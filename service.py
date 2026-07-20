@@ -551,7 +551,12 @@ def process_image_task(task_id, params, api_key_id):
         images = params.get('reference_images', [])
         if images:
             input_mode = "image"
-            for img_b64 in images[:1]:
+            model_meta = next(
+                (m for m in AVAILABLE_MODELS['image'] if m['id'] == model),
+                {}
+            )
+            max_refs = model_meta.get('max_reference_images', 1)
+            for img_b64 in images[:max_refs]:
                 uploaded_url = upload_image_to_yolly_b64(session, img_b64)
                 if not uploaded_url:
                     db.update_task_status(task_id, 'failed')

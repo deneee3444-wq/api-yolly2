@@ -1,7 +1,7 @@
 """
 Service Module - Yolly AI
 Integrates with Yolly.ai service.
-Uses yopmail.com temp mail for on-the-fly account registration and verification.
+Uses fakemail.net temp mail for on-the-fly account registration and verification.
 Saves created accounts directly to the database.
 """
 import os
@@ -10,7 +10,6 @@ import time
 import random
 import string
 import re
-import datetime
 import threading
 import atexit
 import requests
@@ -252,7 +251,7 @@ def find_working_proxy(max_workers: int = 30) -> str:
         return None
 
 
-# --- Session helper ---
+# --- Session & Temp Mail helpers ---
 
 def make_session():
     s = requests.Session()
@@ -266,227 +265,60 @@ def make_session():
     return s
 
 
-# --- Yopmail Temp Mail ---
-
-# Kullanılacak domainler. İçine ne yazarsan ondan rastgele seçilir.
-# Boş bırakırsan önce online liste, o da olmazsa FALLBACK_DOMAINS kullanılır.
-DOMAIN_WHITELIST = [
-    "@1xp.fr",
-]
-
-FALLBACK_DOMAINS = [
-    "@1xp.fr", "@cpc.cx", "@0cd.cn", "@ves.ink", "@q0.us.to", "@zx81.ovh",
-    "@wishy.fr", "@blip.ovh", "@rbs1.xyz", "@y.w80.it", "@iya.fr.nf", "@sdj.fr.nf",
-    "@afw.fr.nf", "@mynes.com", "@lerch.ovh", "@six25.biz", "@ywzmb.top", "@isep.fr.nf",
-    "@noreply.fr", "@pliz.fr.nf", "@noyp.fr.nf", "@zouz.fr.nf", "@hunnur.com", "@wxcv.fr.nf",
-    "@zorg.fr.nf", "@imap.fr.nf", "@redi.fr.nf", "@dlvr.us.to", "@y.iotf.net", "@ym.cypi.fr",
-    "@yop.too.li", "@dmts.fr.nf", "@binich.com", "@enpa.rf.gd", "@super.lgbt", "@via.foo.ng",
-    "@jmail.fr.nf", "@yaloo.fr.nf", "@jinva.fr.nf", "@ealea.fr.nf", "@nomes.fr.nf", "@yop.kd2.org",
-    "@alves.fr.nf", "@bibi.biz.st", "@bboys.fr.nf", "@ma.ezua.com", "@ma.zyns.com", "@mai.25u.com",
-    "@autre.fr.nf", "@tweet.fr.nf", "@pamil.fr.nf", "@15963.fr.nf", "@popol.fr.nf", "@flobo.fr.nf",
-    "@toolbox.ovh", "@bin-ich.com", "@sindwir.com", "@mabal.fr.nf", "@degap.fr.nf", "@yop.uuii.in",
-    "@jetable.org", "@a.kwtest.io", "@cc.these.cc", "@phmail.site", "@gland.xxl.st", "@nospam.fr.nf",
-    "@azeqsd.fr.nf", "@le.monchu.fr", "@nikora.fr.nf", "@sendos.fr.nf", "@cubox.biz.st", "@fhpfhp.fr.nf",
-    "@c-eric.fr.nf", "@bahoo.biz.st", "@upc.infos.st", "@spam.aleh.de", "@alphax.fr.nf", "@habenwir.com",
-    "@ist-hier.com", "@sind-wir.com", "@sindhier.com", "@wir-sind.com", "@myself.fr.nf", "@druzik.pp.ua",
-    "@flaimenet.ir", "@cloudsign.in", "@iuse.ydns.eu", "@get.vpn64.de", "@pepamail.com", "@gmail.gob.re",
-    "@faybetsy.com", "@binsh.kro.kr", "@xikemail.com", "@yahooz.xxl.st", "@altrans.fr.nf", "@yoptruc.fr.nf",
-    "@kyuusei.fr.nf", "@certexx.fr.nf", "@dede.infos.st", "@yotmail.fr.nf", "@miloras.fr.nf", "@nikora.biz.st",
-    "@cabiste.fr.nf", "@galaxim.fr.nf", "@ggmail.biz.st", "@eooo.mooo.com", "@dis.hopto.org", "@yop.kyriog.fr",
-    "@yop.mc-fly.be", "@tmp.x-lab.net", "@mail.hsmw.net", "@y.dldweb.info", "@haben-wir.com", "@sind-hier.com",
-    "@assurmail.net", "@yop.smeux.com", "@alyxgod.rf.gd", "@mailadresi.tk", "@aze.kwtest.io", "@vitahicks.com",
-    "@zeropolly.com", "@getmail.my.id", "@mailbox.biz.st", "@elmail.4pu.com", "@carioca.biz.st", "@mickaben.fr.nf",
-    "@ac-malin.fr.nf", "@gimuemoa.fr.nf", "@woofidog.fr.nf", "@rygel.infos.st", "@contact.biz.st", "@rapidefr.fr.nf",
-    "@calendro.fr.nf", "@calima.asso.st", "@cobal.infos.st", "@terre.infos.st", "@imails.asso.st", "@warlus.asso.st",
-    "@carnesa.biz.st", "@mail.tbr.fr.nf", "@webstore.fr.nf", "@mr-email.fr.nf", "@abo-free.fr.nf", "@mailsafe.fr.nf",
-    "@sirttest.us.to", "@antispam.fr.nf", "@machen-wir.com", "@adresse.biz.st", "@poubelle.fr.nf", "@lacraffe.fr.nf",
-    "@gladogmi.fr.nf", "@yopmail.ozm.fr", "@mail.yabes.ovh", "@totococo.fr.nf", "@yopmail.kro.kr", "@iamfrank.rf.gd",
-    "@pooo.ooguy.com", "@get.route64.de", "@antispam.rf.gd", "@rodhazlitt.com", "@freemail.biz.st", "@skynet.infos.st",
-    "@readmail.biz.st", "@frostmail.fr.nf", "@pitimail.xxl.st", "@mickaben.biz.st", "@mickaben.xxl.st", "@internaut.us.to",
-    "@poubelle-du.net", "@mondial.asso.st", "@randol.infos.st", "@sendos.infos.st", "@nidokela.biz.st", "@likeageek.fr.nf",
-    "@mcdomaine.fr.nf", "@emaildark.fr.nf", "@cookie007.fr.nf", "@tagara.infos.st", "@pokemons1.fr.nf", "@spam.quillet.eu",
-    "@desfrenes.fr.nf", "@mymail.infos.st", "@mail.berwie.com", "@mesemails.fr.nf", "@dripzgaming.com", "@mymaildo.kro.kr",
-    "@dann.mywire.org", "@tivo.camdvr.org", "@tshirtsavvy.com", "@porsilapongo.cl", "@traodoinick.com", "@linuxbp.free.nf",
-    "@nicemail.n-e.kr", "@mymailbox.xxl.st", "@mail.xstyled.net", "@dreamgreen.fr.nf", "@contact.infos.st", "@mess-mails.fr.nf",
-    "@omicron.token.ro", "@torrent411.fr.nf", "@test.inclick.net", "@ssi-bsn.infos.st", "@webclub.infos.st", "@vigilantkeep.net",
-    "@actarus.infos.st", "@whatagarbage.com", "@test-infos.fr.nf", "@mail-mario.fr.nf", "@ym.digi-value.fr", "@adresse.infos.st",
-    "@ypmail.sehier.fr", "@pixelgagnant.net", "@m.tartinemoi.com", "@ggamess.42web.io", "@ma1l.duckdns.org", "@mail.kakator.com",
-    "@courriel.fr.nf", "@jetable.fr.nf", "@moncourrier.fr.nf", "@monemail.fr.nf", "@monmail.fr.nf",
-    "@yopmail.com", "@yopmail.fr", "@yopmail.net"
-]
-
-
-class Yopmail:
-    def __init__(self, mailbox: str = None):
-        if not mailbox:
-            self.mailbox = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
-        else:
-            self.mailbox = mailbox.split('@')[0].lower()
-
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9"
-        })
-        self.yp = None
-        self.yj = None
-        self.version = "9.3"
-        self.location = "en"
-        self.domains = []
-
-    def get_alternate_domains(self) -> list:
-        if self.domains:
-            return self.domains
-        try:
-            res = self.session.get("https://yopmail.com/en/domain?d=all", timeout=10)
-            if res.status_code == 200:
-                fetched_domains = re.findall(r'@[a-zA-Z0-9.-]+', res.text)
-                fetched_domains = [d.lower() for d in fetched_domains if '.' in d and len(d) > 4]
-                if fetched_domains:
-                    merged = set(fetched_domains) | set(d.lower() for d in FALLBACK_DOMAINS)
-                    self.domains = sorted(merged)
-                    return self.domains
-        except Exception:
-            pass
-        self.domains = sorted(set(d.lower() for d in FALLBACK_DOMAINS))
-        return self.domains
-
-    def _init_session(self):
-        res = self.session.get("https://yopmail.com/en/", timeout=20)
-
-        loc_match = re.search(r'lang="(.*?)"', res.text)
-        if loc_match:
-            self.location = loc_match.group(1)
-
-        ver_match = re.search(r'src="/ver/([^/]+)/webmail.js"', res.text)
-        if ver_match:
-            self.version = ver_match.group(1)
-
-        yp_match = re.search(r'<input[^>]*id="yp"[^>]*value="([^"]+)"', res.text)
-        self.yp = yp_match.group(1) if yp_match else ""
-
-        js_res = self.session.get(f"https://yopmail.com/ver/{self.version}/webmail.js", timeout=20)
-        yj_match = re.search(r'&yj=([^&]+)&v=', js_res.text)
-        self.yj = yj_match.group(1) if yj_match else ""
-
-        now = datetime.datetime.now()
-        ytime = f"{now.hour:02d}:{now.minute:02d}"
-
-        self.session.cookies.set("compte", self.mailbox, domain="yopmail.com")
-        self.session.cookies.set("ywm", self.mailbox, domain="yopmail.com")
-        self.session.cookies.set("ytime", ytime, domain="yopmail.com")
-
-    def get_inbox(self, page: int = 1) -> list:
-        if not self.yp or not self.yj:
-            self._init_session()
-
-        url = f"https://yopmail.com/{self.location}/inbox"
-        params = {
-            'login': self.mailbox,
-            'p': str(page),
-            'd': '',
-            'ctrl': '',
-            'yp': self.yp,
-            'yj': self.yj,
-            'v': self.version,
-            'r_c': '',
-            'id': '',
-            'ad': '0'
-        }
-        headers = {
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "referer": f"https://yopmail.com/{self.location}/inbox?login={self.mailbox}",
-            "sec-fetch-dest": "iframe",
-            "sec-fetch-mode": "navigate",
-            "sec-fetch-site": "same-origin"
-        }
-
-        res = self.session.get(url, params=params, headers=headers, timeout=20)
-        if res.status_code != 200:
-            return []
-
-        emails = []
-
-        if _HAS_BS4:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            for mail_div in soup.find_all('div', {'class': 'm'}):
-                mail_id = mail_div.get('id')
-                if not mail_id:
-                    continue
-
-                sender_elem = mail_div.find('span', {'class': 'lmf'})
-                sender = sender_elem.text.strip() if sender_elem else ""
-
-                subject_elem = mail_div.find('span', {'class': 'lms'})
-                subject = subject_elem.text.strip() if subject_elem else ""
-
-                time_elem = mail_div.find('span', {'class': 'lmh'})
-                time_str = time_elem.text.strip() if time_elem else ""
-
-                emails.append({
-                    'id': mail_id,
-                    'from': sender,
-                    'subject': subject,
-                    'time': time_str
-                })
-        else:
-            ids = re.findall(r'<div[^>]*class="m"[^>]*id="([^"]+)"', res.text)
-            ids += re.findall(r'<div[^>]*id="([^"]+)"[^>]*class="m"', res.text)
-            for mail_id in dict.fromkeys(ids):
-                emails.append({'id': mail_id, 'from': '', 'subject': '', 'time': ''})
-
-        return emails
-
-    def get_mail_body(self, mail_id: str, show_images: bool = False) -> str:
-        if not self.yp or not self.yj:
-            self._init_session()
-
-        prefix = 'i' if show_images else 'm'
-        formatted_id = mail_id if mail_id.startswith(('m', 'i')) else f"{prefix}{mail_id}"
-
-        url = f"https://yopmail.com/{self.location}/mail"
-        params = {'b': self.mailbox, 'id': formatted_id}
-        headers = {
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "referer": f"https://yopmail.com/{self.location}/inbox?login={self.mailbox}",
-            "sec-fetch-dest": "iframe",
-            "sec-fetch-mode": "navigate",
-            "sec-fetch-site": "same-origin"
-        }
-
-        res = self.session.get(url, params=params, headers=headers, timeout=20)
-        if res.status_code != 200:
-            return ""
-
-        if _HAS_BS4:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            mail_div = soup.find('div', {'id': 'mail'})
-            return str(mail_div) if mail_div else ""
-        return res.text
+FAKEMAIL_BASE = "https://www.fakemail.net"
 
 
 def make_mail_session():
-    """Creates a yopmail.com mailbox and returns (yopmail_instance, email)."""
+    """Creates a fakemail.net session and returns (session, email).
+    The mailbox is bound to the session cookies, so the session must be reused
+    while polling for the verification message.
+    """
+    ms = requests.Session()
+    ms.headers.update({
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "accept-language": "tr-TR,tr;q=0.9",
+        "sec-ch-ua": '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "none",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+    })
+
     try:
-        yop = Yopmail()
-        yop._init_session()
+        html = ms.get(f"{FAKEMAIL_BASE}/", timeout=20).text
+        m = re.search(r'const CSRF="([a-f0-9]+)"', html)
+        if not m:
+            print("[-] fakemail CSRF token not found.")
+            return None, None
+        csrf_token = m.group(1)
 
-        domains = (
-            DOMAIN_WHITELIST
-            or yop.get_alternate_domains()
-            or sorted(set(d.lower() for d in FALLBACK_DOMAINS))
-        )
-        selected_domain = random.choice(domains)
+        ms.headers.update({
+            "accept": "application/json, text/javascript, */*; q=0.01",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "x-requested-with": "XMLHttpRequest",
+            "referer": f"{FAKEMAIL_BASE}/",
+        })
 
-        email = f"{yop.mailbox}{selected_domain}"
-        return yop, email
+        res = ms.get(f"{FAKEMAIL_BASE}/index/index", params={"csrf_token": csrf_token}, timeout=20)
+        data = json.loads(res.content.decode("utf-8-sig"))
+        email = data.get("email")
+        if not email:
+            print("[-] fakemail address could not be obtained.")
+            return None, None
+        return ms, email
     except Exception as e:
         print(f"[-] Temp mail creation failed: {e}")
         return None, None
 
 
 def _extract_code_from_html(mail_html: str):
-    """Extracts a 4-8 digit verification code from a yopmail message body."""
+    """Extracts a 4-8 digit verification code from a fakemail message body."""
     if _HAS_BS4:
         try:
             soup = BeautifulSoup(mail_html, "html.parser")
@@ -510,16 +342,17 @@ def _extract_code_from_html(mail_html: str):
 
 
 def poll_temp_mail_code(mail_session, attempts: int = 25, delay: int = 2):
-    """Polls the yopmail inbox until a Yolly verification code arrives.
-    `mail_session` is the Yopmail instance returned by make_mail_session().
-    """
+    """Polls the fakemail inbox until a Yolly verification code arrives."""
     seen_ids = set()
     for _ in range(attempts):
         if _shutdown_event.wait(delay):
             return None
         try:
-            messages = mail_session.get_inbox()
-            if not messages:
+            refresh = mail_session.get(f"{FAKEMAIL_BASE}/index/refresh", timeout=20)
+            if refresh.status_code != 200:
+                continue
+            messages = json.loads(refresh.content.decode("utf-8-sig"))
+            if not isinstance(messages, list):
                 continue
 
             for msg in messages:
@@ -528,10 +361,10 @@ def poll_temp_mail_code(mail_session, attempts: int = 25, delay: int = 2):
                     continue
                 seen_ids.add(msg_id)
 
-                subject = (msg.get("subject") or "").lower()
-                sender = (msg.get("from") or "").lower()
+                subject = (msg.get("predmet") or "").lower()
+                sender = (msg.get("od") or msg.get("from") or "").lower()
 
-                mail_html = mail_session.get_mail_body(msg_id)
+                mail_html = mail_session.get(f"{FAKEMAIL_BASE}/email/id/{msg_id}", timeout=20).text
                 code = _extract_code_from_html(mail_html)
                 if not code:
                     continue
@@ -539,7 +372,7 @@ def poll_temp_mail_code(mail_session, attempts: int = 25, delay: int = 2):
                 if ("yolly" in subject or "verification" in subject
                         or "yolly" in sender or "verification" in sender):
                     return code
-                # Fallback: message with a valid looking 6 digit code
+                # Fallback: single-message inbox with a valid looking code
                 if len(code) == 6:
                     return code
         except Exception as e:
@@ -549,7 +382,7 @@ def poll_temp_mail_code(mail_session, attempts: int = 25, delay: int = 2):
 
 def create_yolly_account(api_key_id):
     """Creates a new Yolly.ai account dynamically on-the-fly.
-    Uses yopmail.com for temp mail. Saves account to database.
+    Uses fakemail.net for temp mail. Saves account to database.
     """
     mail_session, email = make_mail_session()
     if not mail_session or not email:
@@ -1172,7 +1005,7 @@ def poll_image_recovery(task_id, api_task_id, token_cookies, account_email=None,
                         if account_email and api_key_id:
                             db.release_account(api_key_id, account_email)
                         return
-            except Exception:
+            except:
                 pass
         db.update_task_status(task_id, 'timeout')
         if account_email and api_key_id:
@@ -1211,7 +1044,7 @@ def poll_video_recovery(task_id, api_task_id, token_cookies, provider='grok-imag
                         if account_email and api_key_id:
                             db.release_account(api_key_id, account_email)
                         return
-            except Exception:
+            except:
                 pass
         db.update_task_status(task_id, 'timeout')
         if account_email and api_key_id:

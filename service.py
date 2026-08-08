@@ -2307,11 +2307,29 @@ def create_myedit_account(api_key_id):
             print("[-] Login failed, no memberToken.")
             return None, None
 
-        # 5. Claim initial daily bonus
+        # 5. Claim initial daily bonus and event task bonuses (required for credits)
         try:
             get_daily_bonus(member_token)
         except Exception as e:
             print(f"[!] Daily bonus claim failed: {e}")
+
+        try:
+            claim_task_bonus(member_token, "TextToImage")
+            check_task_bonus(member_token, "TextToImage")
+        except Exception as e:
+            print(f"[!] TextToImage bonus claim failed: {e}")
+
+        try:
+            claim_task_bonus(member_token, "ImageToVideo")
+            check_task_bonus(member_token, "ImageToVideo")
+        except Exception as e:
+            print(f"[!] ImageToVideo bonus claim failed: {e}")
+
+        try:
+            claim_task_bonus(member_token, "TextToVideo")
+            check_task_bonus(member_token, "TextToVideo")
+        except Exception as e:
+            print(f"[!] TextToVideo bonus claim failed: {e}")
 
         # Add account to database
         db.add_account(api_key_id, email, password)

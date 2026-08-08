@@ -1,7 +1,7 @@
 """
-Service Module - Yolly AI
-Integrates with Yolly.ai service.
-Uses fakemail.net temp mail for on-the-fly account registration and verification.
+Service Module - Self-Contained MyEdit Online Integration
+Integrates with myEditOnline services.
+Uses SpamOK temp mail for on-the-fly account registration and verification.
 Saves created accounts directly to the database.
 """
 import os
@@ -9,162 +9,942 @@ import json
 import time
 import random
 import string
+import struct
 import re
+import base64
 import threading
 import atexit
 import requests
-from concurrent.futures import ThreadPoolExecutor
+from typing import Union
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import database as db
-
-try:
-    from bs4 import BeautifulSoup
-    _HAS_BS4 = True
-except Exception:
-    BeautifulSoup = None
-    _HAS_BS4 = False
 
 # Graceful shutdown event
 _shutdown_event = threading.Event()
 atexit.register(lambda: _shutdown_event.set())
 
-# --- Model Configurations & AVAILABLE_MODELS ---
-MODELS = {
-    "veo3.1-basic": {
-        "label": "Veo 3.1 Basic",
-        "type": "video",
-        "aspect_ratios": ["16:9", "9:16"],
-        "resolutions": ["1080p"],
-        "durations": ["5"],
-        "input_modes": ["text", "image"],
-        "supports_start_end_frame": True,
-        "default_resolution": "1080p",
-        "default_duration": "5",
-        "default_aspect_ratio": "16:9",
-        "extra_params": {
-            "negativePrompt": "",
-            "audioUrl": "",
-            "enablePromptExpansion": False,
-            "cameraFixed": False,
-            "generateAudio": False,
-            "cfgScale": 0.5
-        }
-    },
-    "grok-imagine": {
-        "label": "Grok Imagine",
-        "type": "video",
-        "aspect_ratios": ["16:9", "9:16", "1:1", "2:3", "3:2"],
-        "resolutions": ["480p", "720p"],
-        "durations": ["6", "10"],
-        "input_modes": ["text", "image"],
-        "supports_start_end_frame": False,
-        "default_resolution": "480p",
-        "default_duration": "6",
-        "default_aspect_ratio": "16:9",
-        "extra_params": {
-            "negativePrompt": "",
-            "audioUrl": "",
-            "enablePromptExpansion": False,
-            "cameraFixed": False,
-            "cfgScale": 0.5
-        }
-    },
-    "nano-banana": {
-        "label": "Nano Banana",
-        "type": "image",
-        "aspect_ratios": ["Auto", "1:1", "4:3", "3:4", "16:9", "9:16"],
-        "resolutions": [],
-        "input_modes": ["text", "image"],
-        "default_aspect_ratio": "1:1",
-        "default_resolution": None,
-    },
-    "nano-banana-pro": {
-        "label": "Nano Banana Pro",
-        "type": "image",
-        "aspect_ratios": ["1:1", "3:2", "2:3", "3:4", "4:3", "9:16", "16:9", "21:9"],
-        "resolutions": ["1k", "2k", "4k"],
-        "input_modes": ["text", "image"],
-        "default_aspect_ratio": "1:1",
-        "default_resolution": "1k",
-    },
-    "nano-banana-2": {
-        "label": "Nano Banana 2",
-        "type": "image",
-        "aspect_ratios": ["Auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
-        "resolutions": ["1k", "2k", "4k"],
-        "input_modes": ["text", "image"],
-        "default_aspect_ratio": "1:1",
-        "default_resolution": "1k",
-    },
-    "gpt-image-2": {
-        "label": "GPT-Image 2",
-        "type": "image",
-        "aspect_ratios": ["Auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
-        "resolutions": ["1k", "2k", "4k"],
-        "input_modes": ["text", "image"],
-        "default_aspect_ratio": "1:1",
-        "default_resolution": "1k",
-    },
+# ==============================================================================
+# MYEDIT API ENDPOINT'LERI VE SABITLER
+# ==============================================================================
+INIT_URL = "https://cse.cyberlink.com/cse/v2/init"
+SIGNUP_URL = "https://cse.cyberlink.com/cse/v2/signup"
+LOGIN_URL = "https://cse.cyberlink.com/cse/v2/login"
+DAILY_BONUS_URL = "https://credit.cyberlink.com/v1/member/daily-bonus/get"
+CREDIT_KEY_URL = "https://credit.cyberlink.com/v1/app/key"
+CREDIT_TASK_BONUS_GET_URL = "https://credit.cyberlink.com/v1/app/task-bonus/get"
+CREDIT_MEMBER_REMAIN_URL = "https://credit.cyberlink.com/v2/member/remain"
+SUB_AUTH_URL = "https://myedit.online/api/cloud/subscriptions/auth"
+
+MYEDIT_TTI_URL = "https://myedit.online/tti/effect"
+MYEDIT_VGEN_URL = "https://myedit.online/vgen/effect"
+MYEDIT_VGEN_BUSY_URL = "https://myedit.online/vgen/effect/busy"
+
+AES_IV = b"CyberLinkCSE"  # CSE modulu icin 12 byte sabit IV
+CREDIT_IV = b"CyberLinkCredit"  # Credit modulu icin 16 byte IV ve AAD
+SID_AOL_POL = "ae44600d"  # MyEdit Service ID
+
+MYEDIT_HARDCODED_RSA_PUB = (
+    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtvujIyahk6iftVcwDe/N2IN6f6YDebIE/"
+    "y9HlOe78HjywtLB4f39MkBJyQItum8IaoPn+cS2JHTDG9oGgSuE47kLqVQH51rZ7Aw+L19Sv8B+8p7CsDDt"
+    "OM2QjR7ypa/cAugt0ao0t9eH+vMkiMhsYkZ6uvUDgod+KskwjyDTaGXlAlSc8Orztn44xsGSCxUz86lgsuzRE0"
+    "VHPYdVHYYMV8xT3qhExvtNobu2z2wxRUM4TLN397CkANGQLScnQlbG92MMVsFoSBrycSCjv6zUlBFMmnVR4l5"
+    "m5CHGbe/2/iNXjhf1aA7XpJVZ/2HybuDUUDSjnsTNDqXU/p2++GT8WQIDAQAB"
+)
+
+HEADERS = {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json",
+    "Origin": "https://myedit.online",
+    "Referer": "https://myedit.online/",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/150.0.0.0 Safari/537.36"
+    ),
 }
+
+# ==============================================================================
+# RESIM MODEL CONFIGURATIONS
+# ==============================================================================
+IMAGE_MODELS_CONFIG = {
+    "flux_2_pro": {
+        "name": "Flux 2 Pro",
+        "vendor": "BlackForest",
+        "actionId_prefix": "genimage_1_img_blackforest_flux2pro",
+        "promptLength": 2500,
+        "ref_img_limit": 4,
+        "supported_resolutions": ["1K", "2K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 2, "2K": 5},
+            "enable": {"1K": 3, "2K": 6}
+        },
+        "default_style": "Style_047_None_Flux"
+    },
+    "flux_dev": {
+        "name": "Flux Dev 1",
+        "vendor": "CyberLink",
+        "actionId_prefix": "genimage_1_img_cyberlink_fluxdev1",
+        "promptLength": 800,
+        "ref_img_limit": 0,
+        "supported_resolutions": ["1K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 1}
+        },
+        "default_style": "Style_047_None_Flux"
+    },
+    "z_image": {
+        "name": "Z-Image",
+        "vendor": "CyberLink",
+        "actionId_prefix": "genimage_1_img_cyberlink_zimageturbo",
+        "promptLength": 2500,
+        "ref_img_limit": 0,
+        "supported_resolutions": ["1K", "2K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 1, "2K": 2}
+        },
+        "default_style": "Style_047_None_Flux"
+    },
+    "stable_diffusion": {
+        "name": "Stable Diffusion XL",
+        "vendor": "CyberLink",
+        "actionId_prefix": "genimage_1_img_cyberlink_stablediffusion",
+        "promptLength": 2500,
+        "ref_img_limit": 1,
+        "supported_resolutions": ["1K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 1},
+            "enable": {"1K": 1}
+        },
+        "default_style": "Style_Default",
+        "effect_type": "TtiStyleRef"
+    },
+    "gemini_3_1_flash_lite": {
+        "name": "Gemini 3.1 Flash Lite (Nano Banana 2 Lite)",
+        "vendor": "Google",
+        "actionId_prefix": "genimage_1_img_google_gemini3.1flashlite",
+        "promptLength": 2500,
+        "ref_img_limit": 14,
+        "supported_resolutions": ["1K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 2},
+            "enable": {"1K": 2}
+        },
+        "default_style": "Style_3003_Custom_Gemini"
+    },
+    "gemini_3_1_flash": {
+        "name": "Gemini 3.1 Flash (Nano Banana 2)",
+        "vendor": "Google",
+        "actionId_prefix": "genimage_1_img_google_gemini3.1flash",
+        "promptLength": 2500,
+        "ref_img_limit": 14,
+        "supported_resolutions": ["1K", "2K", "4K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 3, "2K": 5, "4K": 7},
+            "enable": {"1K": 3, "2K": 5, "4K": 7}
+        },
+        "default_style": "Style_3002_Custom_Gemini"
+    },
+    "gemini_3_pro": {
+        "name": "Gemini 3 Pro (Nano Banana Pro)",
+        "vendor": "Google",
+        "actionId_prefix": "genimage_1_img_google_gemini3pro",
+        "promptLength": 2500,
+        "ref_img_limit": 14,
+        "supported_resolutions": ["1K", "2K", "4K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 6, "2K": 6, "4K": 12},
+            "enable": {"1K": 6, "2K": 6, "4K": 12}
+        },
+        "default_style": "Style_3001_Custom_Gemini"
+    },
+    "kling_o1": {
+        "name": "Kling O1",
+        "vendor": "Kling",
+        "actionId_prefix": "genimage_1_img_kling_o1",
+        "promptLength": 2500,
+        "ref_img_limit": 10,
+        "supported_resolutions": ["1K", "2K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 3, "2K": 3},
+            "enable": {"1K": 3, "2K": 3, "4K": 5}
+        },
+        "default_style": "Style_5001_Custom_Kling"
+    },
+    "kling_o3": {
+        "name": "Kling O3",
+        "vendor": "Kling",
+        "actionId_prefix": "genimage_1_img_kling_o3",
+        "promptLength": 2500,
+        "ref_img_limit": 10,
+        "supported_resolutions": ["1K", "2K", "4K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 3, "2K": 3, "4K": 5},
+            "enable": {"1K": 3, "2K": 3, "4K": 5}
+        },
+        "default_style": "Style_5001_Custom_Kling"
+    },
+    "seedream_5_lite": {
+        "name": "SeeDream 5.0 Lite",
+        "vendor": "ByteDance",
+        "actionId_prefix": "genimage_1_img_bytedance_seedream5.0lite",
+        "promptLength": 600,
+        "ref_img_limit": 14,
+        "supported_resolutions": ["2K", "3K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"2K": 3, "3K": 3},
+            "enable": {"2K": 3, "3K": 3}
+        },
+        "default_style": "Style_9000_Custom_Seedream"
+    },
+    "gpt_image_1": {
+        "name": "GPT-Image-1",
+        "vendor": "OpenAI",
+        "actionId_prefix": "genimage_1_img_openai_gptimage1",
+        "promptLength": 2500,
+        "ref_img_limit": 16,
+        "supported_resolutions": ["1K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 2},
+            "enable": {"1K": 2}
+        },
+        "default_style": "Style_1002_Custom_ChatGPT"
+    },
+    "gpt_image_1_5": {
+        "name": "GPT-Image-1.5",
+        "vendor": "OpenAI",
+        "actionId_prefix": "genimage_1_img_openai_gptimage1.5",
+        "promptLength": 2500,
+        "ref_img_limit": 16,
+        "supported_resolutions": ["1K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 3},
+            "enable": {"1K": 3}
+        },
+        "default_style": "Style_1002_Custom_ChatGPT"
+    },
+    "gpt_image_2": {
+        "name": "GPT-Image-2",
+        "vendor": "OpenAI",
+        "actionId_prefix": "genimage_1_img_openai_gptimage2",
+        "promptLength": 8000,
+        "ref_img_limit": 16,
+        "supported_resolutions": ["1K", "2K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 3, "2K": 6},
+            "enable": {"1K": 3, "2K": 6}
+        },
+        "default_style": "Style_1002_Custom_ChatGPT"
+    }
+}
+
+# ==============================================================================
+# VIDEO MODEL CONFIGURATIONS
+# ==============================================================================
+VIDEO_MODELS_CONFIG = {
+    "seedance_2_0_fast": {
+        "name": "Seedance 2.0 Fast",
+        "model": "dreamina-seedance-2-0-fast-260128",
+        "vendor": "BytePlus",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["720p"],
+            "TextToVideo": ["480p", "720p"],
+            "ReferenceToVideo": ["480p", "720p"],
+        },
+        "action_id": "genvideo_1_sec_bytedance_seedance2.0fast_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_bytedance_custom_seedance2.0fast_{sound}_{frame_mode}_{resolution}",
+        "credit_map": {
+            ("none", "480p"): 3, ("none", "720p"): 6,
+            ("vendor", "480p"): 3, ("vendor", "720p"): 6,
+        },
+        "credit": 3,
+        "mode": "fast",
+        "reference_media_limit": {
+            "supported_types": ["image", "video"],
+            "max_images": 9,
+            "max_videos": 3,
+            "max_total": 12,
+            "max_video_duration": 15,
+        },
+    },
+    "seedance_2_0_pro": {
+        "name": "Seedance 2.0 Pro",
+        "model": "dreamina-seedance-2-0-260128",
+        "vendor": "BytePlus",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["1080p"],
+            "TextToVideo": ["480p", "720p", "1080p"],
+            "ReferenceToVideo": ["480p", "720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_bytedance_seedance2.0std_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_bytedance_custom_seedance2.0std_{sound}_{frame_mode}_{resolution}",
+        "credit_map": {
+            ("none", "480p"): 4, ("none", "720p"): 8, ("none", "1080p"): 18,
+            ("vendor", "480p"): 4, ("vendor", "720p"): 8, ("vendor", "1080p"): 18,
+        },
+        "credit": 4,
+        "mode": "std",
+        "reference_media_limit": {
+            "supported_types": ["image", "video"],
+            "max_images": 9,
+            "max_videos": 3,
+            "max_total": 12,
+            "max_video_duration": 15,
+        },
+    },
+    "happy_horse_1_1": {
+        "name": "Happy Horse 1.1",
+        "model": {
+            "TextToVideo": "happyhorse-1.1-t2v",
+            "ImageToVideo": "happyhorse-1.1-i2v",
+            "ReferenceToVideo": "happyhorse-1.1-r2v",
+        },
+        "vendor": "Alibaba",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["1080p"],
+            "TextToVideo": ["720p", "1080p"],
+            "ReferenceToVideo": ["720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_alibaba_happyhorse1.1_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_alibaba_custom_happyhorse1.1_{sound}_{frame_mode}_{resolution}",
+        "credit_map": {
+            ("none", "720p"): 5, ("none", "1080p"): 8,
+            ("vendor", "720p"): 5, ("vendor", "1080p"): 8,
+        },
+        "credit": 5,
+        "default_sound": "vendor",
+        "reference_media_limit": {
+            "supported_types": ["image"],
+            "max_images": 9,
+        },
+    },
+    "wan_2_7": {
+        "name": "Wan 2.7",
+        "model": {
+            "TextToVideo": "wan2.7-t2v",
+            "ImageToVideo": "wan2.7-i2v",
+            "ReferenceToVideo": "wan2.7-r2v",
+        },
+        "vendor": "Alibaba",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["1080p"],
+            "TextToVideo": ["720p", "1080p"],
+            "ReferenceToVideo": ["720p", "1080p"],
+            "VideoToVideo": ["720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_alibaba_wan2.7_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_alibaba_custom_wan2.7_{sound}_{frame_mode}_{resolution}",
+        "credit_map": {
+            ("none", "720p"): 5, ("none", "1080p"): 8,
+            ("vendor", "720p"): 5, ("vendor", "1080p"): 8,
+        },
+        "credit": 5,
+        "default_sound": "vendor",
+        "mode": "std",
+        "reference_media_limit": {
+            "supported_types": ["image", "video"],
+            "max_images": 5,
+            "max_videos": 5,
+            "max_total": 5,
+            "max_video_duration": 30,
+        },
+    },
+    "veo_3_1_fast": {
+        "name": "Veo 3.1 Fast",
+        "model": "veo-3.1-fast-generate-preview",
+        "vendor": "Google",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p", "1080p", "4k"],
+        "supported_aspect_ratios": ["16:9", "9:16"],
+        "supported_durations": [4, 6, 8],
+        "action_id": "genvideo_1_sec_google_veo3.1fast_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_google_custom_veo3.1fast_{sound}_{frame_mode}",
+        "credit_map": {
+            ("ImageToVideo", "none", "720p"): 5,
+            ("ImageToVideo", "none", "1080p"): 5,
+            ("ImageToVideo", "none", "4k"): 5,
+            ("ImageToVideo", "vendor", "720p"): 8,
+            ("ImageToVideo", "vendor", "1080p"): 8,
+            ("ImageToVideo", "vendor", "4k"): 8,
+            ("TextToVideo", "none", "720p"): 5,
+            ("TextToVideo", "none", "1080p"): 7,
+            ("TextToVideo", "none", "4k"): 14,
+            ("TextToVideo", "vendor", "720p"): 7,
+            ("TextToVideo", "vendor", "1080p"): 9,
+            ("TextToVideo", "vendor", "4k"): 16,
+        },
+        "credit": 5,
+        "mode": "fast",
+    },
+    "veo_3_1": {
+        "name": "Veo 3.1",
+        "model": "veo-3.1-generate-preview",
+        "vendor": "Google",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p", "1080p", "4k"],
+        "supported_aspect_ratios": ["16:9", "9:16"],
+        "supported_durations": [4, 6, 8],
+        "action_id": "genvideo_1_sec_google_veo3.1std_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_google_custom_veo3.1std_{sound}_{frame_mode}",
+        "credit_map": {
+            ("ImageToVideo", "none", "720p"): 10,
+            ("ImageToVideo", "none", "1080p"): 10,
+            ("ImageToVideo", "none", "4k"): 10,
+            ("ImageToVideo", "vendor", "720p"): 18,
+            ("ImageToVideo", "vendor", "1080p"): 18,
+            ("ImageToVideo", "vendor", "4k"): 18,
+            ("TextToVideo", "none", "720p"): 10,
+            ("TextToVideo", "none", "1080p"): 10,
+            ("TextToVideo", "none", "4k"): 20,
+            ("TextToVideo", "vendor", "720p"): 18,
+            ("TextToVideo", "vendor", "1080p"): 18,
+            ("TextToVideo", "vendor", "4k"): 30,
+        },
+        "credit": 10,
+        "mode": "std",
+    },
+    "veo_3_1_lite": {
+        "name": "Veo 3.1 Lite",
+        "model": "veo-3.1-lite-generate-001",
+        "vendor": "Google",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16"],
+        "supported_durations": [4, 8],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["1080p"],
+            "TextToVideo": ["720p", "1080p"],
+        },
+        "supported_durations_by_mode": {
+            "ImageToVideo": [4, 8],
+            "TextToVideo": [4, 8],
+        },
+        "action_id": "genvideo_1_sec_google_veo3.1lite_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_google_custom_veo3.1lite_{sound}_{frame_mode}_{resolution}",
+        "credit_map": {
+            ("none", "720p"): 2, ("none", "1080p"): 3,
+            ("vendor", "720p"): 3, ("vendor", "1080p"): 5,
+        },
+        "credit": 3,
+        "mode": "std",
+    },
+    "kling_o3": {
+        "name": "Kling O3",
+        "model": "kling-v3-omni",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p", "1080p", "4k"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "action_id": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
+        "action_id_overrides": {
+            "720p": "genvideo_1_sec_kling_o3std_{sound}_720p",
+            "1080p": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
+            "4k": "genvideo_1_sec_kling_o34k_{sound}_4k",
+        },
+        "action_id_i2v_overrides": {
+            "720p": "genvideo_1_sec_kling_custom_o3std_{sound}_{frame_mode}_720p",
+            "1080p": "genvideo_1_sec_kling_custom_o3pro_{sound}_{frame_mode}_1080p",
+        },
+        "credit_map": {
+            ("none", "720p"): 4, ("none", "1080p"): 5, ("none", "4k"): 14,
+            ("vendor", "720p"): 5, ("vendor", "1080p"): 6, ("vendor", "4k"): 14,
+        },
+        "credit": 5,
+        "reference_media_limit": {
+            "supported_types": ["image"],
+            "max_images": 7,
+        },
+    },
+    "kling_3_0": {
+        "name": "Kling 3.0",
+        "model": "kling-v3",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p", "1080p", "4k"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "action_id": "genvideo_1_sec_kling_3.0pro_{sound}_1080p",
+        "action_id_overrides": {
+            "720p": "genvideo_1_sec_kling_3.0std_{sound}_720p",
+            "1080p": "genvideo_1_sec_kling_3.0pro_{sound}_1080p",
+            "4k": "genvideo_1_sec_kling_3.04k_{sound}_4k",
+        },
+        "action_id_i2v_overrides": {
+            "720p": "genvideo_1_sec_kling_custom_3.0std_{sound}_{frame_mode}_720p",
+            "1080p": "genvideo_1_sec_kling_custom_3.0pro_{sound}_{frame_mode}_1080p",
+        },
+        "credit_map": {
+            ("none", "720p"): 4, ("none", "1080p"): 5, ("none", "4k"): 14,
+            ("vendor", "720p"): 6, ("vendor", "1080p"): 8, ("vendor", "4k"): 14,
+        },
+        "credit": 5,
+    },
+    "kling_2_6": {
+        "name": "Kling 2.6",
+        "model": "kling-v2-6",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10],
+        "action_id": "genvideo_1_sec_kling_2.6pro_{sound}_1080p",
+        "action_id_i2v": "genvideo_1_sec_kling_custom_2.6pro_{sound}_{frame_mode}",
+        "credit_map": {
+            ("ImageToVideo", "none", "1080p"): 5,
+            ("ImageToVideo", "vendor", "1080p"): 8,
+            ("TextToVideo", "none", "1080p"): 4,
+            ("TextToVideo", "vendor", "1080p"): 8,
+        },
+        "credit": 5,
+        "mode": "pro",
+    },
+    "kling_2_5_std": {
+        "name": "Kling 2.5 Standard",
+        "model": "kling-v2-5-turbo",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single"],
+        "supported_resolutions": ["720p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10],
+        "action_id": "genvideo_1_sec_kling_2.5std_{sound}_720p",
+        "action_id_i2v": "genvideo_1_sec_kling_custom_2.5std_{sound}_{frame_mode}",
+        "credit_map": {
+            ("ImageToVideo", "none", "720p"): 3,
+            ("ImageToVideo", "vendor", "720p"): 3,
+            ("TextToVideo", "none", "720p"): 2,
+            ("TextToVideo", "vendor", "720p"): 2,
+        },
+        "credit": 3,
+        "mode": "std",
+    },
+    "kling_2_5_pro": {
+        "name": "Kling 2.5 Pro",
+        "model": "kling-v2-5-turbo",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10],
+        "action_id": "genvideo_1_sec_kling_2.5pro_{sound}_1080p",
+        "action_id_i2v": "genvideo_1_sec_kling_custom_2.5pro_{sound}_{frame_mode}",
+        "credit_map": {
+            ("ImageToVideo", "none", "1080p"): 5,
+            ("ImageToVideo", "vendor", "1080p"): 5,
+            ("TextToVideo", "none", "1080p"): 4,
+            ("TextToVideo", "vendor", "1080p"): 4,
+        },
+        "credit": 5,
+        "mode": "pro",
+    },
+    "vidu_q3_turbo": {
+        "name": "Vidu Q3 Turbo",
+        "model": "viduq3-turbo",
+        "vendor": "Vidu",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [4, 8, 16],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["720p"],
+            "TextToVideo": ["540p", "720p", "1080p"],
+            "ReferenceToVideo": ["540p", "720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_vidu_q3turbo_{sound}_{resolution}",
+        "action_id_i2v_overrides": {
+            "720p": "genvideo_1_sec_vidu_custom_q3turbo_{sound}_{frame_mode}_720p",
+        },
+        "credit_map": {
+            ("none", "540p"): 2, ("none", "720p"): 3, ("none", "1080p"): 4,
+            ("vendor", "540p"): 2, ("vendor", "720p"): 3, ("vendor", "1080p"): 4,
+        },
+        "credit": 4,
+        "default_sound": "vendor",
+        "mode": "turbo",
+        "reference_media_limit": {
+            "supported_types": ["image"],
+            "max_images": 7,
+        },
+    },
+    "vidu_q3_pro": {
+        "name": "Vidu Q3 Pro",
+        "model": "viduq3-pro",
+        "vendor": "Vidu",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [4, 8, 16],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["1080p"],
+            "TextToVideo": ["540p", "720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_vidu_q3pro_{sound}_{resolution}",
+        "action_id_i2v_overrides": {
+            "1080p": "genvideo_1_sec_vidu_custom_q3pro_{sound}_{frame_mode}_1080p",
+        },
+        "credit_map": {
+            ("none", "540p"): 3, ("none", "720p"): 5, ("none", "1080p"): 6,
+            ("vendor", "540p"): 3, ("vendor", "720p"): 5, ("vendor", "1080p"): 6,
+        },
+        "credit": 6,
+        "default_sound": "vendor",
+        "mode": "pro",
+    },
+    "vidu_q2": {
+        "name": "Vidu Q2",
+        "model": "viduq2-turbo",
+        "vendor": "Vidu",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 8],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["720p"],
+            "TextToVideo": ["540p", "720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_vidu_q2_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_vidu_custom_q2turbo_{sound}_{frame_mode}",
+        "credit_map": {
+            ("ImageToVideo", "none", "540p"): 3,
+            ("ImageToVideo", "none", "720p"): 3,
+            ("ImageToVideo", "none", "1080p"): 3,
+            ("ImageToVideo", "vendor", "540p"): 3,
+            ("ImageToVideo", "vendor", "720p"): 3,
+            ("ImageToVideo", "vendor", "1080p"): 3,
+            ("TextToVideo", "none", "540p"): 1,
+            ("TextToVideo", "none", "720p"): 2,
+            ("TextToVideo", "none", "1080p"): 3,
+            ("TextToVideo", "vendor", "540p"): 1,
+            ("TextToVideo", "vendor", "720p"): 2,
+            ("TextToVideo", "vendor", "1080p"): 3,
+        },
+        "credit": 3,
+        "mode": "turbo",
+    },
+    "pixverse_v6": {
+        "name": "PixVerse V6",
+        "model": "v6",
+        "vendor": "Pixverse",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["1080p"],
+            "TextToVideo": ["540p", "720p", "1080p"],
+            "ReferenceToVideo": ["540p", "720p", "1080p"],
+            "VideoToVideo": ["540p", "720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_motivai_pixverse6_{sound}_{resolution}",
+        "action_id_i2v_overrides": {
+            "720p": "genvideo_1_sec_motivai_custom_pixverse6_{sound}_{frame_mode}_720p",
+            "1080p": "genvideo_1_sec_motivai_custom_pixverse6_{sound}_{frame_mode}_1080p",
+        },
+        "credit_map": {
+            ("ImageToVideo", "none", "single", "720p"): 2,
+            ("ImageToVideo", "none", "startend", "720p"): 3,
+            ("ImageToVideo", "vendor", "single", "720p"): 2,
+            ("ImageToVideo", "vendor", "startend", "720p"): 3,
+            ("ImageToVideo", "none", "single", "1080p"): 4,
+            ("ImageToVideo", "none", "startend", "1080p"): 6,
+            ("ImageToVideo", "vendor", "single", "1080p"): 4,
+            ("ImageToVideo", "vendor", "startend", "1080p"): 6,
+            ("none", "540p"): 1,
+            ("none", "720p"): 2,
+            ("none", "1080p"): 4,
+            ("vendor", "540p"): 2,
+            ("vendor", "720p"): 3,
+            ("vendor", "1080p"): 6,
+        },
+        "credit": 4,
+        "mode": "std",
+        "reference_media_limit": {
+            "supported_types": ["image"],
+            "max_images": 7,
+        },
+    },
+    "sora_2_std": {
+        "name": "Sora 2 Standard",
+        "model": "sora-2",
+        "vendor": "OpenAI",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single"],
+        "supported_resolutions": ["720p"],
+        "supported_aspect_ratios": ["16:9", "9:16"],
+        "supported_durations": [4, 8, 12],
+        "action_id": "genvideo_1_sec_openai_sora2std_{sound}",
+        "action_id_i2v": "genvideo_1_sec_openai_custom_sora2std_{sound}_{frame_mode}",
+        "credit_map": {
+            ("none", "720p"): 6,
+            ("vendor", "720p"): 6,
+        },
+        "credit": 6,
+        "mode": "std",
+        "default_sound": "vendor",
+    },
+    "sora_2_pro": {
+        "name": "Sora 2 Pro",
+        "model": "sora-2-pro",
+        "vendor": "OpenAI",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single"],
+        "supported_resolutions": ["720p", "1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16"],
+        "supported_durations": [4, 8, 12],
+        "action_id": "genvideo_1_sec_openai_sora2pro_{sound}",
+        "action_id_overrides": {
+            "720p": "genvideo_1_sec_openai_sora2pro_{sound}_720p",
+            "1080p": "genvideo_1_sec_openai_sora2pro_{sound}_1080p",
+        },
+        "action_id_i2v": "genvideo_1_sec_openai_custom_sora2pro_{sound}_{frame_mode}",
+        "credit_map": {
+            ("ImageToVideo", "none", "720p"): 18,
+            ("ImageToVideo", "none", "1080p"): 18,
+            ("ImageToVideo", "vendor", "720p"): 18,
+            ("ImageToVideo", "vendor", "1080p"): 18,
+            ("TextToVideo", "none", "720p"): 16,
+            ("TextToVideo", "vendor", "720p"): 16,
+            ("TextToVideo", "none", "1080p"): 28,
+            ("TextToVideo", "vendor", "1080p"): 28,
+        },
+        "credit": 18,
+        "mode": "pro",
+        "default_sound": "vendor",
+    }
+}
+
+MODELS = {} # Compatibility mapping
 
 AVAILABLE_MODELS = {
     "image": [
         {
-            "id": "nano-banana",
-            "name": "Nano Banana",
-            "description": "Standard image model with aspect ratio selection",
+            "id": "flux_2_pro",
+            "name": "Flux 2 Pro",
+            "description": "Flux 2 Pro by BlackForest",
             "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_sizes": ["Auto", "1:1", "4:3", "3:4", "16:9", "9:16"],
+            "max_reference_images": 4,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K", "2K"],
             "default_size": "1:1",
-            "max_prompt_length": 4000
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
         },
         {
-            "id": "nano-banana-pro",
-            "name": "Nano Banana Pro",
-            "description": "Pro image model supporting resolution (1k/2k/4k) and aspect ratios",
-            "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_sizes": ["1:1", "3:2", "2:3", "3:4", "4:3", "9:16", "16:9", "21:9"],
-            "supported_resolutions": ["1k", "2k", "4k"],
+            "id": "flux_dev",
+            "name": "Flux Dev 1",
+            "description": "Flux Dev 1 by CyberLink",
+            "supports_reference_images": False,
+            "max_reference_images": 0,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K"],
             "default_size": "1:1",
-            "default_resolution": "1k",
-            "max_prompt_length": 4000
+            "default_resolution": "1K",
+            "max_prompt_length": 800
         },
         {
-            "id": "nano-banana-2",
-            "name": "Nano Banana 2",
-            "description": "Updated image model supporting resolution (1k/2k/4k) and aspect ratios",
-            "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_sizes": ["Auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
-            "supported_resolutions": ["1k", "2k", "4k"],
+            "id": "z_image",
+            "name": "Z-Image",
+            "description": "Z-Image by CyberLink",
+            "supports_reference_images": False,
+            "max_reference_images": 0,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K", "2K"],
             "default_size": "1:1",
-            "default_resolution": "1k",
-            "max_prompt_length": 4000
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
         },
         {
-            "id": "gpt-image-2",
-            "name": "GPT-Image 2",
-            "description": "GPT based image generator supporting resolution (1k/2k/4k)",
+            "id": "stable_diffusion",
+            "name": "Stable Diffusion XL",
+            "description": "Stable Diffusion XL by CyberLink",
             "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_sizes": ["Auto", "1:1", "3:2", "2:3", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
-            "supported_resolutions": ["1k", "2k", "4k"],
+            "max_reference_images": 1,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K"],
             "default_size": "1:1",
-            "default_resolution": "1k",
-            "max_prompt_length": 4000
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "gemini_3_1_flash_lite",
+            "name": "Gemini 3.1 Flash Lite",
+            "description": "Gemini 3.1 Flash Lite by Google",
+            "supports_reference_images": True,
+            "max_reference_images": 14,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "gemini_3_1_flash",
+            "name": "Gemini 3.1 Flash",
+            "description": "Gemini 3.1 Flash by Google",
+            "supports_reference_images": True,
+            "max_reference_images": 14,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K", "2K", "4K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "gemini_3_pro",
+            "name": "Gemini 3 Pro",
+            "description": "Gemini 3 Pro by Google",
+            "supports_reference_images": True,
+            "max_reference_images": 14,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K", "2K", "4K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "kling_o1",
+            "name": "Kling O1",
+            "description": "Kling O1 by Kling",
+            "supports_reference_images": True,
+            "max_reference_images": 10,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K", "2K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "kling_o3",
+            "name": "Kling O3",
+            "description": "Kling O3 by Kling",
+            "supports_reference_images": True,
+            "max_reference_images": 10,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K", "2K", "4K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "seedream_5_lite",
+            "name": "SeeDream 5.0 Lite",
+            "description": "SeeDream 5.0 Lite by ByteDance",
+            "supports_reference_images": True,
+            "max_reference_images": 14,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["2K", "3K"],
+            "default_size": "1:1",
+            "default_resolution": "2K",
+            "max_prompt_length": 600
+        },
+        {
+            "id": "gpt_image_1",
+            "name": "GPT-Image-1",
+            "description": "GPT-Image-1 by OpenAI",
+            "supports_reference_images": True,
+            "max_reference_images": 16,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "gpt_image_1_5",
+            "name": "GPT-Image-1.5",
+            "description": "GPT-Image-1.5 by OpenAI",
+            "supports_reference_images": True,
+            "max_reference_images": 16,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "gpt_image_2",
+            "name": "GPT-Image-2",
+            "description": "GPT-Image-2 by OpenAI",
+            "supports_reference_images": True,
+            "max_reference_images": 16,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K", "2K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 8000
         }
     ],
     "video": [
         {
-            "id": "veo3.1-basic",
-            "name": "Veo 3.1 Basic",
-            "description": "High-fidelity video generation. Supports Start/End frame.",
+            "id": "seedance_2_0_fast",
+            "name": "Seedance 2.0 Fast",
+            "description": "Seedance 2.0 Fast by BytePlus",
             "supports_start_frame": True,
             "supports_end_frame": True,
-            "supports_reference_images": False,
-            "supported_sizes": ["16:9", "9:16"],
-            "supported_durations": [5],
+            "supports_reference_images": True,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["480p", "720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "seedance_2_0_pro",
+            "name": "Seedance 2.0 Pro",
+            "description": "Seedance 2.0 Pro by BytePlus",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": True,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
             "supported_resolutions": ["1080p"],
             "default_size": "16:9",
             "default_resolution": "1080p",
@@ -172,18 +952,243 @@ AVAILABLE_MODELS = {
             "max_prompt_length": 2000
         },
         {
-            "id": "grok-imagine",
-            "name": "Grok Imagine",
-            "description": "High quality video model with resolution support (480p/720p) and durations.",
+            "id": "happy_horse_1_1",
+            "name": "Happy Horse 1.1",
+            "description": "Happy Horse 1.1 by Alibaba",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": True,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["1080p"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "wan_2_7",
+            "name": "Wan 2.7",
+            "description": "Wan 2.7 model by Alibaba",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": True,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["720p", "1080p"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "veo_3_1_fast",
+            "name": "Veo 3.1 Fast",
+            "description": "Veo 3.1 Fast by Google",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "supported_sizes": ["16:9", "9:16"],
+            "supported_durations": [4, 6, 8],
+            "supported_resolutions": ["720p", "1080p", "4k"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 6,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "veo_3_1",
+            "name": "Veo 3.1",
+            "description": "Veo 3.1 by Google",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "supported_sizes": ["16:9", "9:16"],
+            "supported_durations": [4, 6, 8],
+            "supported_resolutions": ["720p", "1080p", "4k"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 6,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "veo_3_1_lite",
+            "name": "Veo 3.1 Lite",
+            "description": "Veo 3.1 Lite by Google",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "supported_sizes": ["16:9", "9:16"],
+            "supported_durations": [4, 8],
+            "supported_resolutions": ["1080p"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 4,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_o3",
+            "name": "Kling O3",
+            "description": "Kling O3 by Kling",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": True,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["720p", "1080p", "4k"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_3_0",
+            "name": "Kling 3.0",
+            "description": "Kling 3.0 by Kling",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["720p", "1080p", "4k"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_2_6",
+            "name": "Kling 2.6",
+            "description": "Kling 2.6 by Kling",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10],
+            "supported_resolutions": ["1080p"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_2_5_std",
+            "name": "Kling 2.5 Standard",
+            "description": "Kling 2.5 Standard by Kling",
             "supports_start_frame": True,
             "supports_end_frame": False,
             "supports_reference_images": False,
-            "supported_sizes": ["16:9", "9:16", "1:1", "2:3", "3:2"],
-            "supported_durations": [6, 10],
-            "supported_resolutions": ["480p", "720p"],
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10],
+            "supported_resolutions": ["720p"],
             "default_size": "16:9",
-            "default_resolution": "480p",
-            "default_duration": 6,
+            "default_resolution": "720p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_2_5_pro",
+            "name": "Kling 2.5 Pro",
+            "description": "Kling 2.5 Pro by Kling",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supported_reference_images": False,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10],
+            "supported_resolutions": ["1080p"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "vidu_q3_turbo",
+            "name": "Vidu Q3 Turbo",
+            "description": "Vidu Q3 Turbo by Vidu",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": True,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [4, 8, 16],
+            "supported_resolutions": ["720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 4,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "vidu_q3_pro",
+            "name": "Vidu Q3 Pro",
+            "description": "Vidu Q3 Pro by Vidu",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [4, 8, 16],
+            "supported_resolutions": ["1080p"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 4,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "vidu_q2",
+            "name": "Vidu Q2",
+            "description": "Vidu Q2 by Vidu",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 8],
+            "supported_resolutions": ["720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "pixverse_v6",
+            "name": "PixVerse V6",
+            "description": "PixVerse V6 by Pixverse",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": True,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["1080p"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "sora_2_std",
+            "name": "Sora 2 Standard",
+            "description": "Sora 2 Standard by OpenAI",
+            "supports_start_frame": True,
+            "supports_end_frame": False,
+            "supports_reference_images": False,
+            "supported_sizes": ["16:9", "9:16"],
+            "supported_durations": [4, 8, 12],
+            "supported_resolutions": ["720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 8,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "sora_2_pro",
+            "name": "Sora 2 Pro",
+            "description": "Sora 2 Pro by OpenAI",
+            "supports_start_frame": True,
+            "supports_end_frame": False,
+            "supports_reference_images": False,
+            "supported_sizes": ["16:9", "9:16"],
+            "supported_durations": [4, 8, 12],
+            "supported_resolutions": ["720p", "1080p"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 8,
             "max_prompt_length": 2000
         }
     ],
@@ -191,722 +1196,1345 @@ AVAILABLE_MODELS = {
     "music": []
 }
 
-# Proxy settings
-PROXYSCRAPE_URL = "https://api.proxyscrape.com/v4/free-proxy-list/get?request=display_proxies&proxy_format=protocolipport&format=text"
-
-
 def get_available_models(mode=None):
     if mode:
         return AVAILABLE_MODELS.get(mode, [])
     return AVAILABLE_MODELS
 
+# ==============================================================================
+# MYEDIT ONLINE ALTYAPI VE KRIPTOGRAFİK YARDIMCILAR (SINGLE FILE)
+# ==============================================================================
 
-# --- Proxy Crawl & Test Helpers ---
+def generate_random_spamok_email(length=12):
+    """Rastgele spamok.com e-postasi uretir."""
+    username = "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
+    return username, f"{username}@spamok.com"
 
-def fetch_proxies() -> list:
+def get_activation_link_from_spamok(username: str, timeout_seconds: int = 60):
+    """SpamOK API'sini sorgulayarak CyberLink aktivasyon linkini otomatik ceker."""
+    spamok_headers = {
+        "User-Agent": HEADERS["User-Agent"],
+        "Accept": "*/*",
+        "Origin": "https://spamok.com",
+        "Referer": "https://spamok.com/",
+        "x-asdasd-platform-id": "blazor-en-us",
+        "x-asdasd-platform-version": "blazor-1.0.0",
+    }
+    
+    start_time = time.time()
+    while time.time() - start_time < timeout_seconds:
+        try:
+            inbox_url = f"https://api.spamok.com/v2/EmailBox/{username}"
+            resp = requests.get(inbox_url, headers=spamok_headers, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                mails = data.get("mails", [])
+                for mail in mails:
+                    subject = mail.get("subject", "")
+                    from_domain = mail.get("fromDomain", "")
+                    if "activate" in subject.lower() or "cyberlink" in from_domain.lower() or "myedit" in mail.get("fromDisplay", "").lower():
+                        mail_id = mail.get("id")
+                        
+                        detail_url = f"https://api.spamok.com/v2/Email/{username}/{mail_id}"
+                        detail_resp = requests.get(detail_url, headers=spamok_headers, timeout=10)
+                        if detail_resp.status_code == 200:
+                            mail_detail = detail_resp.json()
+                            html_content = mail_detail.get("messageHtml", "") or mail_detail.get("messagePlain", "")
+                            
+                            match = re.search(r'https://membership\.cyberlink\.com/prog/event/autoedm/trace_mem\.jsp\?[^\s"\'<>]+', html_content)
+                            if match:
+                                return match.group(0).replace("&amp;", "&")
+                            
+                            match2 = re.search(r'https://mauth\.cyberlink\.com/member-auth/public/active-member\?[^\s"\'<>]+', html_content)
+                            if match2:
+                                return match2.group(0).replace("&amp;", "&")
+        except Exception:
+            pass
+        time.sleep(2)
+    return None
+
+def get_server_public_key():
+    resp = requests.post(INIT_URL, json={"p": "myedit"}, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    return data["public_key"], data["id"]
+
+def create_payload(user_data: dict):
+    pub_key_b64, key_id = get_server_public_key()
+    der_bytes = base64.b64decode(pub_key_b64)
+    public_key = serialization.load_der_public_key(der_bytes)
+    aes_key = AESGCM.generate_key(bit_length=256)
+
+    rsa_encrypted_aes_key = public_key.encrypt(
+        aes_key,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
+    )
+    a_param = base64.b64encode(rsa_encrypted_aes_key).decode("utf-8")
+
+    json_bytes = json.dumps(user_data, separators=(",", ":")).encode("utf-8")
+    aesgcm = AESGCM(aes_key)
+    cipher_bytes = aesgcm.encrypt(AES_IV, json_bytes, None)
+    data_param = base64.b64encode(cipher_bytes).decode("utf-8")
+
+    return {
+        "a": a_param,
+        "data": data_param,
+        "k": str(key_id),
+    }, aes_key
+
+def decrypt_response(response_b64: str, aes_key: bytes):
+    enc_bytes = base64.b64decode(response_b64)
+    aesgcm = AESGCM(aes_key)
+    decrypted_bytes = aesgcm.decrypt(AES_IV, enc_bytes, None)
+    return json.loads(decrypted_bytes.decode("utf-8"))
+
+def signup(email: str, password: str, lang: str = "enu", country: str = "US"):
+    user_data = {
+        "email": email,
+        "pwd": password,
+        "lang": lang,
+        "rec_upgrade": "0",
+        "country": country,
+        "sid": "myedit",
+    }
+    payload, aes_key = create_payload(user_data)
+    res = requests.post(SIGNUP_URL, json=payload, headers=HEADERS, timeout=30)
+    res.raise_for_status()
+    body = res.json()
+    if "response" in body:
+        return decrypt_response(body["response"], aes_key)
+    return body
+
+def activate_account(activation_url: str):
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": HEADERS["User-Agent"],
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    })
+    resp = session.get(activation_url, allow_redirects=True, timeout=30)
+    return "welcome" in resp.url or resp.status_code == 200
+
+def login(email: str, password: str, lang: str = "enu", country: str = "US"):
+    user_data = {
+        "email": email,
+        "pwd": password,
+        "lang": lang,
+        "rec_upgrade": "0",
+        "country": country,
+        "sid": "myedit",
+    }
+    payload, aes_key = create_payload(user_data)
+    res = requests.post(LOGIN_URL, json=payload, headers=HEADERS, timeout=30)
+    res.raise_for_status()
+    body = res.json()
+    if "response" in body:
+        return decrypt_response(body["response"], aes_key)
+    return body
+
+def get_daily_bonus(member_token: str):
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {member_token}",
+        "Origin": "https://myedit.online",
+        "Referer": "https://myedit.online/",
+        "User-Agent": HEADERS["User-Agent"],
+    }
+    payload = {"sid": SID_AOL_POL}
+    res = requests.post(DAILY_BONUS_URL, json=payload, headers=headers, timeout=30)
+    res.raise_for_status()
+    return res.json()
+
+def get_member_remaining_credits(member_token: str):
     try:
-        r = requests.get(PROXYSCRAPE_URL, timeout=10)
-        if r.status_code == 200:
-            proxies = [line.strip() for line in r.text.splitlines() if line.strip()]
-            random.shuffle(proxies)
-            return proxies
-    except Exception as e:
-        print(f"[-] Proxy scraping failed: {e}")
-    return []
+        url = f"{CREDIT_MEMBER_REMAIN_URL}?detail=true&lang=ENU&sid={SID_AOL_POL}"
+        headers = {
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": HEADERS["User-Agent"],
+            "Authorization": f"Bearer {member_token}",
+            "Origin": "https://myedit.online",
+            "Referer": "https://myedit.online/",
+        }
+        res = requests.get(url, headers=headers, timeout=15)
+        res.raise_for_status()
+        credits_json = res.json()
+        return credits_json
+    except Exception:
+        return None
 
+def get_credit_server_public_key():
+    resp = requests.get(CREDIT_KEY_URL, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()["result"]
+    return data["key"], data["id"]
 
-def test_proxy(proxy_url: str, timeout: int = 5) -> bool:
+def create_credit_payload(data_dict: dict):
+    pub_key_b64, key_id = get_credit_server_public_key()
+    der_bytes = base64.b64decode(pub_key_b64)
+    public_key = serialization.load_der_public_key(der_bytes)
+    aes_key = AESGCM.generate_key(bit_length=256)
+
+    rsa_encrypted_aes_key = public_key.encrypt(
+        aes_key,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
+    )
+    a_param = base64.b64encode(rsa_encrypted_aes_key).decode("utf-8")
+
+    json_bytes = json.dumps(data_dict, separators=(",", ":")).encode("utf-8")
+    aesgcm = AESGCM(aes_key)
+    cipher_bytes = aesgcm.encrypt(CREDIT_IV, json_bytes, CREDIT_IV)
+    data_param = base64.b64encode(cipher_bytes).decode("utf-8")
+
+    return {
+        "a": a_param,
+        "data": data_param,
+        "id": str(key_id),
+    }
+
+def claim_task_bonus(member_token: str, feature_id: str = "TextToImage", claim_credit: int = None):
     try:
-        proxies = {"http": proxy_url, "https": proxy_url}
-        r = requests.get("https://www.yolly.ai", proxies=proxies, timeout=timeout)
-        return r.status_code < 500
+        data_obj = {
+            "sid": SID_AOL_POL,
+            "unique_id": "",
+            "version": "temp_one_time_free",
+            "event_id": feature_id,
+            "member_token": member_token,
+        }
+        if claim_credit is not None:
+            data_obj["claim_credit"] = claim_credit
+        payload = create_credit_payload(data_obj)
+        res = requests.post(CREDIT_TASK_BONUS_GET_URL, json=payload, headers=HEADERS, timeout=30)
+        res.raise_for_status()
+        return res.json()
+    except Exception:
+        return None
+
+def check_task_bonus(member_token: str, feature_id: str = "TextToImage"):
+    try:
+        check_url = "https://credit.cyberlink.com/v1/app/task-bonus/check"
+        data_obj = {
+            "sid": SID_AOL_POL,
+            "unique_id": "",
+            "version": "temp_one_time_free",
+            "event_id": feature_id,
+            "member_token": member_token,
+        }
+        payload = create_credit_payload(data_obj)
+        res = requests.post(check_url, json=payload, headers=HEADERS, timeout=30)
+        res.raise_for_status()
+        return res.json()
+    except Exception:
+        return None
+
+def sync_feature_credit(feature_id: str = "TextToImage", action_id: str = "genimage_1_img_openai_gptimage2_none_1K", credit: int = 3):
+    try:
+        url = f"https://credit.cyberlink.com/v1/featurelist/feature?feature_id={feature_id}&action_id={action_id}&credit={credit}&min_unit=1&is_main=false&discount=0&sid={SID_AOL_POL}"
+        res = requests.get(url, headers=HEADERS, timeout=15)
+        res.raise_for_status()
+        return True
     except Exception:
         return False
 
+def build_myedit_iv(timestamp_ms: int, sid: int = 0) -> bytes:
+    return struct.pack('>Q', timestamp_ms) + struct.pack('>I', sid)
 
-def find_working_proxy(max_workers: int = 30) -> str:
-    proxy_list = fetch_proxies()
-    if not proxy_list:
+def get_myedit_rsa_public_key():
+    der_bytes = base64.b64decode(MYEDIT_HARDCODED_RSA_PUB)
+    return serialization.load_der_public_key(der_bytes)
+
+def rsa_encrypt_aes_key(public_key, aes_key: bytes) -> str:
+    encrypted = public_key.encrypt(
+        aes_key,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    return base64.b64encode(encrypted).decode('utf-8')
+
+def encrypt_myedit_aes_gcm(aes_key: bytes, plaintext: Union[str, bytes], timestamp_ms: int, sid: int = 0) -> str:
+    iv = build_myedit_iv(timestamp_ms, sid)
+    if isinstance(plaintext, str):
+        plaintext = plaintext.encode('utf-8')
+    aesgcm = AESGCM(aes_key)
+    cipher_bytes = aesgcm.encrypt(iv, plaintext, None)
+    return base64.b64encode(cipher_bytes).decode('utf-8')
+
+def decrypt_myedit_aes_gcm(aes_key: bytes, ciphertext_b64: str, timestamp_ms: int, sid: int = 0) -> bytes:
+    iv = build_myedit_iv(timestamp_ms, sid)
+    enc_bytes = base64.b64decode(ciphertext_b64)
+    aesgcm = AESGCM(aes_key)
+    return aesgcm.decrypt(iv, enc_bytes, None)
+
+def encrypt_myedit_aes_gcm_hex(aes_key: bytes, raw_bytes: bytes, timestamp_ms: int, sid: int = 0) -> str:
+    iv = build_myedit_iv(timestamp_ms, sid)
+    aesgcm = AESGCM(aes_key)
+    cipher_bytes = aesgcm.encrypt(iv, raw_bytes, None)
+    return cipher_bytes.hex()
+
+def get_subscription_token(member_token: str) -> str:
+    rsa_pub_key = get_myedit_rsa_public_key()
+    aes_key = AESGCM.generate_key(bit_length=256)
+    ts_ms = int(time.time() * 1000)
+
+    key_param = rsa_encrypt_aes_key(rsa_pub_key, aes_key)
+    cl_sid_json = json.dumps({"cl_sid": [SID_AOL_POL]}, separators=(',', ':'))
+    receipt_param = encrypt_myedit_aes_gcm(aes_key, cl_sid_json, ts_ms, 0)
+
+    headers = {
+        "User-Agent": HEADERS["User-Agent"],
+        "Authorization": f"Bearer {member_token}",
+        "Content-Type": "application/json",
+        "Origin": "https://myedit.online",
+        "Referer": "https://myedit.online/",
+    }
+    body = {
+        "product": "myedit",
+        "version": "3.9.0",
+        "versiontype": "3.9.0",
+        "platform": "web",
+        "receipt": receipt_param,
+        "key": key_param,
+        "timestamp": ts_ms,
+    }
+    resp = requests.post(SUB_AUTH_URL, json=body, headers=headers, timeout=30)
+    resp.raise_for_status()
+    return resp.json()["subscription_token"]
+
+def decrypt_downloaded_media(url: str, aes_key: bytes, enc_key_b64: str, enc_iv_b64: str, init_ts_ms: int, output_path: str = "output.bin"):
+    try:
+        resp = requests.get(url, timeout=60)
+        resp.raise_for_status()
+        enc_bytes = resp.content
+        raw_key = decrypt_myedit_aes_gcm(aes_key, enc_key_b64, init_ts_ms, 0)
+        raw_iv = decrypt_myedit_aes_gcm(aes_key, enc_iv_b64, init_ts_ms, 0)
+        aesgcm = AESGCM(raw_key)
+        decrypted_bytes = aesgcm.decrypt(raw_iv, enc_bytes, None)
+        with open(output_path, "wb") as f:
+            f.write(decrypted_bytes)
+        return os.path.abspath(output_path)
+    except Exception:
         return None
 
-    import queue
-    result_q = queue.Queue()
-    found_event = threading.Event()
+# ==============================================================================
+# VIDEO MODEL SPECIFIC FUNCTIONS
+# ==============================================================================
 
-    def probe(proxy: str):
-        if found_event.is_set():
-            return
-        if test_proxy(proxy):
-            if not found_event.is_set():
-                found_event.set()
-                result_q.put(proxy)
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        executor.map(probe, proxy_list)
-
+def get_image_dimensions(file_path):
     try:
-        working = result_q.get_nowait()
-        return working
-    except queue.Empty:
-        return None
-
-
-# --- Session & Temp Mail helpers ---
-
-def make_session():
-    s = requests.Session()
-    s.headers.update({
-        "accept": "application/json, text/plain, */*",
-        "accept-language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-        "origin": "https://www.yolly.ai",
-        "referer": "https://www.yolly.ai/",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
-    })
-    return s
-
-
-FAKEMAIL_BASE = "https://www.fakemail.net"
-
-
-def make_mail_session():
-    """Creates a fakemail.net session and returns (session, email).
-    The mailbox is bound to the session cookies, so the session must be reused
-    while polling for the verification message.
-    """
-    ms = requests.Session()
-    ms.headers.update({
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "accept-language": "tr-TR,tr;q=0.9",
-        "sec-ch-ua": '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "document",
-        "sec-fetch-mode": "navigate",
-        "sec-fetch-site": "none",
-        "sec-fetch-user": "?1",
-        "upgrade-insecure-requests": "1",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
-    })
-
-    try:
-        html = ms.get(f"{FAKEMAIL_BASE}/", timeout=20).text
-        m = re.search(r'const CSRF="([a-f0-9]+)"', html)
-        if not m:
-            print("[-] fakemail CSRF token not found.")
-            return None, None
-        csrf_token = m.group(1)
-
-        ms.headers.update({
-            "accept": "application/json, text/javascript, */*; q=0.01",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
-            "x-requested-with": "XMLHttpRequest",
-            "referer": f"{FAKEMAIL_BASE}/",
-        })
-
-        res = ms.get(f"{FAKEMAIL_BASE}/index/index", params={"csrf_token": csrf_token}, timeout=20)
-        data = json.loads(res.content.decode("utf-8-sig"))
-        email = data.get("email")
-        if not email:
-            print("[-] fakemail address could not be obtained.")
-            return None, None
-        return ms, email
-    except Exception as e:
-        print(f"[-] Temp mail creation failed: {e}")
-        return None, None
-
-
-def _extract_code_from_html(mail_html: str):
-    """Extracts a 4-8 digit verification code from a fakemail message body."""
-    if _HAS_BS4:
+        from PIL import Image
+        with Image.open(file_path) as img:
+            return img.width, img.height
+    except ImportError:
         try:
-            soup = BeautifulSoup(mail_html, "html.parser")
-            for p in soup.find_all("p"):
-                text = p.get_text(strip=True)
-                if re.fullmatch(r"\d{4,8}", text):
-                    return text
-            plain = soup.get_text(" ", strip=True)
+            with open(file_path, 'rb') as f:
+                head = f.read(24)
+                if len(head) == 24 and head.startswith(b'\x89PNG\r\n\x1a\n'):
+                    check = struct.unpack('>I', head[16:20])[0]
+                    if check != 0x0d0a1a0a:
+                        w, h = struct.unpack('>II', head[16:24])
+                        return w, h
+                elif head.startswith(b'\xff\xd8'):
+                    f.seek(0)
+                    size = 2
+                    ftype = 0
+                    while not 0xc0 <= ftype <= 0xcf or ftype in (0xc4, 0xc8, 0xcc):
+                        f.seek(size, 1)
+                        byte = f.read(1)
+                        while ord(byte) == 0xff:
+                            byte = f.read(1)
+                        ftype = ord(byte)
+                        size = struct.unpack('>H', f.read(2))[0] - 2
+                    f.seek(1, 1)
+                    h, w = struct.unpack('>HH', f.read(4))
+                    return w, h
         except Exception:
-            plain = re.sub(r"<[^>]+>", " ", mail_html)
-    else:
-        plain = re.sub(r"<[^>]+>", " ", mail_html)
+            pass
+        return 1280, 720
 
-    otp = re.search(r"\b(\d{6})\b", plain)
-    if otp:
-        return otp.group(1)
-    otp = re.search(r"\b(\d{4,8})\b", plain)
-    if otp:
-        return otp.group(1)
-    return None
-
-
-def poll_temp_mail_code(mail_session, attempts: int = 25, delay: int = 2):
-    """Polls the fakemail inbox until a Yolly verification code arrives."""
-    seen_ids = set()
-    for _ in range(attempts):
-        if _shutdown_event.wait(delay):
-            return None
-        try:
-            refresh = mail_session.get(f"{FAKEMAIL_BASE}/index/refresh", timeout=20)
-            if refresh.status_code != 200:
-                continue
-            messages = json.loads(refresh.content.decode("utf-8-sig"))
-            if not isinstance(messages, list):
-                continue
-
-            for msg in messages:
-                msg_id = msg.get("id")
-                if not msg_id or msg_id in seen_ids:
-                    continue
-                seen_ids.add(msg_id)
-
-                subject = (msg.get("predmet") or "").lower()
-                sender = (msg.get("od") or msg.get("from") or "").lower()
-
-                mail_html = mail_session.get(f"{FAKEMAIL_BASE}/email/id/{msg_id}", timeout=20).text
-                code = _extract_code_from_html(mail_html)
-                if not code:
-                    continue
-
-                if ("yolly" in subject or "verification" in subject
-                        or "yolly" in sender or "verification" in sender):
-                    return code
-                # Fallback: single-message inbox with a valid looking code
-                if len(code) == 6:
-                    return code
-        except Exception as e:
-            print(f"[!] Email poll exception: {e}")
-    return None
-
-
-def create_yolly_account(api_key_id):
-    """Creates a new Yolly.ai account dynamically on-the-fly.
-    Uses fakemail.net for temp mail. Saves account to database.
-    """
-    mail_session, email = make_mail_session()
-    if not mail_session or not email:
-        return None, None
-
-    print(f"[*] Temp mail created: {email}")
-
-    s = make_session()
-
-    # 1. send-code
-    send_code_url = "https://www.yolly.ai/api/auth/send-code"
-
-    use_proxy = False
+def check_vgen_busy(referer="https://myedit.online/en/video-editor/text-to-video/edit"):
+    headers = {
+        "User-Agent": HEADERS["User-Agent"],
+        "Accept": "application/json, text/plain, */*",
+        "Origin": "https://myedit.online",
+        "Referer": referer,
+    }
     try:
-        res = s.post(send_code_url, json={"email": email}, timeout=15)
-        is_rate_limited = False
-        if res.status_code != 200:
-            is_rate_limited = True
+        resp = requests.get(MYEDIT_VGEN_BUSY_URL, headers=headers, timeout=15)
+        resp.raise_for_status()
+        return resp.json().get("busy", False)
+    except Exception:
+        return False
+
+def prepare_image_for_vgen(image_path: str, aspect_ratio: str, target_w: int = None, target_h: int = None, suffix: str = "") -> str:
+    try:
+        from PIL import Image
+        try:
+            ar_w, ar_h = map(int, aspect_ratio.split(":"))
+            target_ar = ar_w / ar_h
+        except Exception:
+            target_ar = 16 / 9
+            ar_w, ar_h = 16, 9
+            
+        img = Image.open(image_path)
+        orig_w, orig_h = img.size
+        orig_ar = orig_w / orig_h
+        
+        if abs(orig_ar - target_ar) > 0.01:
+            if orig_ar > target_ar:
+                new_w = int(orig_h * target_ar)
+                left = (orig_w - new_w) // 2
+                img = img.crop((left, 0, left + new_w, orig_h))
+            else:
+                new_h = int(orig_w / target_ar)
+                top = (orig_h - new_h) // 2
+                img = img.crop((0, top, orig_w, top + new_h))
+            
+        if not target_w or not target_h:
+            if ar_w == 16 and ar_h == 9:
+                target_w, target_h = 1280, 720
+            elif ar_w == 9 and ar_h == 16:
+                target_w, target_h = 720, 1280
+            elif ar_w == 1 and ar_h == 1:
+                target_w, target_h = 1024, 1024
+            else:
+                target_w, target_h = 1280, 720
+                
+        img_resized = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+        temp_file = os.path.join(os.path.dirname(image_path), f"temp_vgen_input{suffix}.jpg")
+        img_resized.save(temp_file, "JPEG", quality=95)
+        return temp_file
+    except Exception:
+        return image_path
+
+# ==============================================================================
+# MAIN EXECUTION FUNCTIONS
+# ==============================================================================
+
+def generate_ai_image_service(
+    member_token: str,
+    user_prompt: str = "a majestic fantasy landscape, digital art, highly detailed 8k",
+    image_paths: list = None,
+    model_key: str = "flux_2_pro",
+    style_id: str = None,
+    aspect_ratio: str = "1:1",
+    resolution: str = "1K",
+    batch_size: str = "1",
+    output_format: str = "jpeg",
+    filename_prefix: str = "",
+):
+    if model_key not in IMAGE_MODELS_CONFIG:
+        raise ValueError(f"Unsupported model: {model_key}")
+
+    model_data = IMAGE_MODELS_CONFIG[model_key]
+    if not style_id:
+        style_id = model_data.get("default_style", "Style_Default")
+
+    if len(user_prompt) > model_data["promptLength"]:
+        user_prompt = user_prompt[:model_data["promptLength"]]
+
+    has_reference = False
+    ref_limit = model_data.get("ref_img_limit", 0)
+    if image_paths and len(image_paths) > 0:
+        if ref_limit == 0:
+            raise ValueError("Reference image not supported by model.")
+        if len(image_paths) > ref_limit:
+            image_paths = image_paths[:ref_limit]
+        has_reference = True
+
+    is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
+    try:
+        b_size = int(batch_size)
+    except ValueError:
+        b_size = 1
+
+    if is_style_ref:
+        feature_id_val = "TtiStyleRef"
+        action_id_val = f"gen_{b_size}_img"
+        total_credit_cost = 1 * b_size
+    else:
+        feature_id_val = "TextToImage"
+        mode_key = "enable" if has_reference else "none"
+        credit_cost = model_data["credits"][mode_key][resolution]
+        total_credit_cost = credit_cost * b_size
+        action_id_val = f"{model_data['actionId_prefix']}_{mode_key}_{resolution}"
+
+    sync_feature_credit(feature_id=feature_id_val, action_id=action_id_val, credit=total_credit_cost)
+    rsa_pub_key = get_myedit_rsa_public_key()
+    sub_token = get_subscription_token(member_token)
+
+    loaded_images_bytes = []
+    if has_reference and image_paths:
+        for p in image_paths:
+            with open(p, "rb") as f:
+                loaded_images_bytes.append(f.read())
+
+    version_val = "4" if ("flux" in model_key or model_key == "z_image") else "5"
+    if (version_val == "5" or is_style_ref) and not loaded_images_bytes:
+        from PIL import Image
+        import io
+        img = Image.new('RGB', (512, 512), color=(120, 160, 220))
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG')
+        loaded_images_bytes.append(buf.getvalue())
+
+    aes_key = AESGCM.generate_key(bit_length=256)
+    ts_ms = int(time.time() * 1000)
+    key_param = rsa_encrypt_aes_key(rsa_pub_key, aes_key)
+    receipt_json = json.dumps({"product": "myedit", "version": "3.9.0", "versiontype": "3.9.0", "platform": "web"}, separators=(',', ':'))
+    receipt_param = encrypt_myedit_aes_gcm(aes_key, receipt_json, ts_ms, 0)
+    enc_member_token = encrypt_myedit_aes_gcm(aes_key, member_token, ts_ms, 0)
+
+    headers = {
+        "User-Agent": HEADERS["User-Agent"],
+        "Origin": "https://myedit.online",
+        "Referer": "https://myedit.online/en/photo-editor/ai-image-generator/edit",
+    }
+    
+    form_data_init = {
+        "receipt": receipt_param,
+        "member_token": enc_member_token,
+        "key": key_param,
+        "timestamp": str(ts_ms),
+    }
+
+    if loaded_images_bytes:
+        if is_style_ref:
+            filename_val = "TEXT_TO_IMAGE_STYLE_source"
+        else:
+            if image_paths and len(image_paths) > 0:
+                ext = os.path.splitext(image_paths[0])[1].replace(".", "").lower() or "jpg"
+                if ext == "jpeg":
+                    ext = "jpg"
+            else:
+                ext = "jpg"
+            filename_val = f"TEXT_TO_IMAGE_source_0.{ext}"
+        form_data_init["filename"] = filename_val
+        form_data_init["filesize"] = str(len(loaded_images_bytes[0]))
+
+    resp_init = requests.post(MYEDIT_TTI_URL, data=form_data_init, headers=headers, timeout=30)
+    resp_init.raise_for_status()
+    init_json = resp_init.json()
+    
+    s_id_str = str(init_json["s_id"])
+    s_id_int = int(s_id_str)
+    s_token_b64 = init_json["s_token"]
+    raw_session_token = decrypt_myedit_aes_gcm(aes_key, s_token_b64, ts_ms, 0)
+
+    uploaded_sources_list = []
+    if loaded_images_bytes:
+        put_headers = {
+            "User-Agent": HEADERS["User-Agent"],
+            "Content-Type": "image/jpeg",
+            "Origin": "https://myedit.online",
+            "Referer": "https://myedit.online/",
+        }
+
+        for idx, img_bytes in enumerate(loaded_images_bytes):
+            if is_style_ref:
+                fname = "TEXT_TO_IMAGE_STYLE_source"
+            else:
+                if image_paths and idx < len(image_paths):
+                    ext = os.path.splitext(image_paths[idx])[1].replace(".", "").lower() or "jpg"
+                    if ext == "jpeg":
+                        ext = "jpg"
+                else:
+                    ext = "jpg"
+                fname = f"TEXT_TO_IMAGE_source_{idx}.{ext}"
+            fsize = str(len(img_bytes))
+
+            req_ts_ms = int(time.time() * 1000)
+            enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
+            get_link_url = f"{MYEDIT_TTI_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}"
+
+            resp_link = requests.post(get_link_url, data={"filename": fname, "filesize": fsize}, headers=headers, timeout=30)
+            resp_link.raise_for_status()
+            storage_url = resp_link.json()["storage"]
+
+            resp_upload = requests.put(storage_url, data=img_bytes, headers=put_headers, timeout=30)
+            resp_upload.raise_for_status()
+            uploaded_sources_list.append(idx + 1)
+
+    sources_str = json.dumps(uploaded_sources_list)
+
+    req_ts_ms = int(time.time() * 1000)
+    enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
+    apply_url = f"{MYEDIT_TTI_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}"
+
+    alias_str = time.strftime("%y%m%d_%H%M")
+    apply_headers = {
+        "User-Agent": HEADERS["User-Agent"],
+        "Authorization": f"Bearer {member_token}",
+        "x-subscription-token": f"Bearer {sub_token}",
+        "Origin": "https://myedit.online",
+        "Referer": "https://myedit.online/en/photo-editor/ai-image-generator/edit",
+    }
+    
+    consumption_data = {
+        "member_token": member_token,
+        "cl_sid": SID_AOL_POL,
+        "feature_id": feature_id_val,
+        "action_id": action_id_val,
+        "unit": 1 if is_style_ref else int(batch_size),
+        "total_credit": total_credit_cost
+    }
+    consumption_param = encrypt_myedit_aes_gcm(
+        aes_key,
+        json.dumps(consumption_data, separators=(',', ':')),
+        req_ts_ms,
+        s_id_int
+    )
+
+    if is_style_ref:
+        form_data_apply = {
+            "source": str(uploaded_sources_list[0]) if uploaded_sources_list else "1",
+            "aspect_ratio": aspect_ratio,
+            "user_prompt": user_prompt,
+            "need_translate": "true",
+            "need_bad_word_check": "false",
+            "batch_size": str(batch_size),
+            "consumption": consumption_param,
+            "cloud_sync": "true",
+            "alias": alias_str,
+            "effect": "TtiStyleRef",
+        }
+    else:
+        form_data_apply = {
+            "style_id": style_id,
+            "style_prompt": "",
+            "version": version_val,
+            "aspect_ratio": aspect_ratio,
+            "output_format": output_format,
+            "user_prompt": user_prompt,
+            "batch_size": str(batch_size),
+            "consumption": consumption_param,
+            "cloud_sync": "true",
+            "alias": alias_str,
+            "effect": "TextToImage",
+        }
+
+        if "flux" not in model_key:
+            form_data_apply["resolution"] = resolution
+        if has_reference or "flux" not in model_key:
+            form_data_apply["sources"] = sources_str
+        if "flux" in model_key:
+            form_data_apply["need_translate"] = "true"
+            form_data_apply["need_bad_word_check"] = "false"
+
+    files_apply = {k: (None, str(v)) for k, v in form_data_apply.items()}
+
+    resp_apply = requests.patch(apply_url, files=files_apply, headers=apply_headers, timeout=30)
+    resp_apply.raise_for_status()
+
+    apply_json = resp_apply.json()
+    task_id = apply_json.get("task_id")
+    polling = apply_json.get("polling", {})
+    delay = polling.get("delay", 5)
+
+    max_attempts = 120
+    decrypted_files = []
+    for i in range(max_attempts):
+        time.sleep(delay)
+        req_ts_ms = int(time.time() * 1000)
+        enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
+        poll_url = f"{MYEDIT_TTI_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}/{task_id}"
+
+        resp_poll = requests.get(poll_url, headers=headers, timeout=30)
+        resp_poll.raise_for_status()
+        poll_json = resp_poll.json()
+        status = poll_json.get("status")
+
+        if status == "Done":
+            files = poll_json.get("files", [])
+            for idx, f in enumerate(files):
+                fname = f.get("name", "")
+                furl = f.get("url", "")
+                task_info = f.get("task", {})
+                enc_key = task_info.get("permanent_key") or init_json.get("p_key")
+                enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
+
+                if furl:
+                    ext = output_format.lower()
+                    prefix = filename_prefix if filename_prefix else "generated_image"
+                    out_filename = f"{prefix}_{idx+1}.{ext}"
+                    if enc_key and enc_iv:
+                        dec_path = decrypt_downloaded_media(furl, aes_key, enc_key, enc_iv, ts_ms, output_path=out_filename)
+                        if dec_path:
+                            decrypted_files.append(dec_path)
+                    else:
+                        try:
+                            resp_dl = requests.get(furl, timeout=60)
+                            resp_dl.raise_for_status()
+                            with open(out_filename, "wb") as out_f:
+                                out_f.write(resp_dl.content)
+                            decrypted_files.append(os.path.abspath(out_filename))
+                        except Exception:
+                            pass
+            return {"status": "Done", "files": decrypted_files}
+
+        if status in ("Error", "Failed"):
+            return {"status": "Failed", "error": poll_json}
+
+    return {"status": "Timeout"}
+
+def generate_ai_video_service(
+    member_token: str,
+    user_prompt: str = "a cute astronaut cat floating in space station, cinematic lighting",
+    model_key: str = "seedance_2_0_fast",
+    aspect_ratio: str = "16:9",
+    resolution: str = "480p",
+    processing_duration: int = 5,
+    sound: str = "none",
+    effect_mode: str = "TextToVideo",
+    source_image_path: str = None,
+    last_image_path: str = None,
+    ref_images: list = None,
+    ref_videos: list = None,
+    frame_mode: str = "single",
+    filename_prefix: str = "",
+):
+    model_data = VIDEO_MODELS_CONFIG.get(model_key, VIDEO_MODELS_CONFIG["seedance_2_0_fast"])
+    if isinstance(model_data["model"], dict):
+        model_name_str = model_data["model"].get(effect_mode, list(model_data["model"].values())[0])
+    else:
+        model_name_str = model_data["model"]
+    vendor_str = model_data["vendor"]
+
+    if effect_mode == "ReferenceToVideo":
+        limit = model_data.get("reference_media_limit", {})
+        supported_types = limit.get("supported_types", ["image"])
+        num_images = len(ref_images) if ref_images else 0
+        num_videos = len(ref_videos) if ref_videos else 0
+        
+        if num_images > 0 and "image" not in supported_types:
+            raise ValueError("Reference images not supported.")
+        if num_videos > 0 and "video" not in supported_types:
+            raise ValueError("Reference videos not supported.")
+            
+        max_images = limit.get("max_images")
+        max_videos = limit.get("max_videos")
+        max_total = limit.get("max_total", (max_images or 0) + (max_videos or 0))
+        
+        if max_images and num_images > max_images:
+            raise ValueError("Image count exceeds limit.")
+        if max_videos and num_videos > max_videos:
+            raise ValueError("Video count exceeds limit.")
+        if max_total and (num_images + num_videos) > max_total:
+            raise ValueError("Total references exceed limit.")
+
+    SORA_RESOLUTION_MAP = {
+        ("720p", "16:9"): "1280:720",
+        ("720p", "9:16"): "720:1280",
+        ("1080p", "16:9"): "1792:1024",
+        ("1080p", "9:16"): "1024:1792",
+    }
+
+    if effect_mode == "ImageToVideo" and last_image_path:
+        frame_mode = "startend"
+
+    prepared_media = []
+    if effect_mode == "ImageToVideo" and source_image_path and os.path.exists(source_image_path):
+        target_w, target_h = None, None
+        if vendor_str == "OpenAI":
+            sora_res = SORA_RESOLUTION_MAP.get((resolution, aspect_ratio), "1280:720")
+            target_w, target_h = map(int, sora_res.split(":"))
         else:
             try:
-                res_json = res.json()
-                if res_json.get("message") == "RATE_LIMIT_IP" or res_json.get("code") == -1:
-                    is_rate_limited = True
+                ar_w, ar_h = map(int, aspect_ratio.split(":"))
             except Exception:
-                pass
-
-        if is_rate_limited:
-            use_proxy = True
-    except Exception as e:
-        print(f"[-] Initial send-code failed, switching to proxy: {e}")
-        use_proxy = True
-
-    if use_proxy:
-        print("[*] send-code is rate limited or failed. Trying with proxy...")
-        working_proxy = find_working_proxy()
-        proxies_dict = {"http": working_proxy, "https": working_proxy} if working_proxy else None
-        try:
-            res = s.post(send_code_url, json={"email": email}, proxies=proxies_dict, timeout=15)
-            if res.status_code != 200:
-                print(f"[-] send-code failed with proxy: {res.status_code}")
-                return None, None
-        except Exception as e:
-            print(f"[-] send-code proxy request failed: {e}")
-            return None, None
-    else:
-        print("[+] send-code successful without proxy.")
-
-    # 2. Poll temp mail for OTP code
-    code = poll_temp_mail_code(mail_session, attempts=25, delay=2)
-
-    if not code:
-        print("[-] Verification OTP code not received.")
-        return None, None
-
-    # 3. get csrf token
-    csrf_token = None
-    try:
-        csrf_url = "https://www.yolly.ai/api/auth/csrf"
-        csrf_res = s.get(csrf_url, timeout=15)
-        if csrf_res.status_code == 200:
-            csrf_token = csrf_res.json().get("csrfToken")
-    except Exception as e:
-        print(f"[-] CSRF request failed: {e}")
-        return None, None
-
-    if not csrf_token:
-        print("[-] CSRF Token not found.")
-        return None, None
-
-    # 4. callback verify (with proxy)
-    working_proxy = find_working_proxy()
-    verify_proxies = {"http": working_proxy, "https": working_proxy} if working_proxy else None
-
-    verify_url = "https://www.yolly.ai/api/auth/callback/verification-code?"
-    verify_payload = {
-        "email": email,
-        "code": code,
-        "firstVisitPage": "/",
-        "redirect": "false",
-        "callbackUrl": "https://www.yolly.ai/",
-        "csrfToken": csrf_token
-    }
-    verify_headers = dict(s.headers)
-    verify_headers["content-type"] = "application/x-www-form-urlencoded"
-
-    try:
-        verify_res = s.post(
-            verify_url,
-            data=verify_payload,
-            headers=verify_headers,
-            proxies=verify_proxies,
-            timeout=15
-        )
-        if verify_res.status_code != 200:
-            print(f"[-] Callback verification failed: {verify_res.status_code}")
-            return None, None
-    except Exception as e:
-        print(f"[-] Verify connection exception: {e}")
-        return None, None
-
-    # 5. Check credits to ensure account is fresh & active
-    try:
-        credits_res = s.get("https://www.yolly.ai/api/user/credits", timeout=15)
-        if credits_res.status_code == 200:
-            credits_data = credits_res.json()
-            left_credits = int(credits_data.get("left_credits", 0))
-            if left_credits == 0:
-                print("[-] Registered account has 0 credits.")
-                return None, None
-        else:
-            print("[-] Credits check failed.")
-            return None, None
-    except Exception as e:
-        print(f"[-] Credits check exception: {e}")
-        return None, None
-
-    # 6. Add account to database
-    db.add_account(api_key_id, email, "windows700")
-    print(f"[+] Successfully registered and saved Yolly account: {email}")
-
-    return s, email
-
-
-def link_new_account_to_task(api_key_id, email, task_id):
-    """Updates database:
-    1. Marks the newly registered on-the-fly email as used = 1.
-    2. Finds a random unused (used=0) client account from the database (excluding the new on-the-fly email).
-    3. Marks that random client account as used = 1 (to consume client quota).
-    4. Links the task to this random client account (so if the task fails, the client's quota is refunded).
-    Returns the email of the consumed client account (or falls back to the on-the-fly email).
-    """
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    consumed_email = email
-    try:
-        # 1. Mark on-the-fly account as used
-        if db.DB_TYPE == 'postgresql':
-            cursor.execute(
-                'UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s',
-                (api_key_id, email)
-            )
-        else:
-            cursor.execute(
-                'UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?',
-                (api_key_id, email)
-            )
-
-        # 2. Find a random unused account for this client
-        if db.DB_TYPE == 'postgresql':
-            cursor.execute(
-                'SELECT email FROM accounts WHERE api_key_id = %s AND used = 0 AND email != %s',
-                (api_key_id, email)
-            )
-        else:
-            cursor.execute(
-                'SELECT email FROM accounts WHERE api_key_id = ? AND used = 0 AND email != ?',
-                (api_key_id, email)
-            )
-
-        rows = cursor.fetchall()
-        if rows:
-            emails = []
-            for r in rows:
-                if isinstance(r, dict):
-                    emails.append(r['email'])
-                elif hasattr(r, 'keys') or isinstance(r, tuple) or isinstance(r, list):
-                    emails.append(r[0])
-                else:
-                    emails.append(r['email'])
-
-            if emails:
-                chosen_email = random.choice(emails)
-                print(f"[QUOTA] Consuming random unused account to decrease client quota: {chosen_email}")
-
-                # 3. Mark the chosen random account as used = 1
-                if db.DB_TYPE == 'postgresql':
-                    cursor.execute(
-                        'UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s',
-                        (api_key_id, chosen_email)
-                    )
-                else:
-                    cursor.execute(
-                        'UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?',
-                        (api_key_id, chosen_email)
-                    )
-                consumed_email = chosen_email
-
-        # 4. Link the task to the consumed email (so that release_account refunds it on failure)
-        if task_id:
-            if db.DB_TYPE == 'postgresql':
-                cursor.execute(
-                    'UPDATE tasks SET account_email = %s WHERE task_id = %s',
-                    (consumed_email, task_id)
-                )
+                ar_w, ar_h = 16, 9
+            
+            h_val = 720
+            if resolution == "480p": h_val = 480
+            elif resolution == "540p": h_val = 540
+            elif resolution == "1080p": h_val = 1080
+            elif resolution == "4k": h_val = 2160
+            
+            if ar_w == 16 and ar_h == 9:
+                target_w, target_h = int(h_val * 16 / 9), h_val
+            elif ar_w == 9 and ar_h == 16:
+                target_w, target_h = h_val, int(h_val * 16 / 9)
+            elif ar_w == 1 and ar_h == 1:
+                target_w, target_h = (1024, 1024) if h_val >= 720 else (720, 720)
             else:
-                cursor.execute(
-                    'UPDATE tasks SET account_email = ? WHERE task_id = ?',
-                    (consumed_email, task_id)
-                )
-        conn.commit()
-    except Exception as e:
-        print(f"Error linking account and consuming quota: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
-    return consumed_email
+                target_w, target_h = int(h_val * ar_w / ar_h), h_val
+        
+        temp1 = prepare_image_for_vgen(source_image_path, aspect_ratio, target_w, target_h, suffix="_first")
+        prepared_media.append({
+            "path": temp1,
+            "tag": "first_frame",
+            "type": "image",
+            "is_temp": temp1 != source_image_path
+        })
+        
+        if frame_mode == "startend" and last_image_path and os.path.exists(last_image_path):
+            temp2 = prepare_image_for_vgen(last_image_path, aspect_ratio, target_w, target_h, suffix="_end")
+            prepared_media.append({
+                "path": temp2,
+                "tag": "end_frame",
+                "type": "image",
+                "is_temp": temp2 != last_image_path
+            })
+            
+    elif effect_mode == "ReferenceToVideo":
+        if ref_images:
+            for idx, item in enumerate(ref_images):
+                img_path = item["path"] if isinstance(item, dict) else item
+                if os.path.exists(img_path):
+                    prepared_media.append({"path": img_path, "tag": f"@image{idx+1}", "type": "image", "is_temp": False})
+        if ref_videos:
+            for idx, item in enumerate(ref_videos):
+                vid_path = item["path"] if isinstance(item, dict) else item
+                if os.path.exists(vid_path):
+                    prepared_media.append({"path": vid_path, "tag": f"@video{idx+1}", "type": "video", "is_temp": False})
 
+    def cleanup_temp_images():
+        for media in prepared_media:
+            if media["is_temp"] and os.path.exists(media["path"]):
+                try:
+                    os.remove(media["path"])
+                except Exception:
+                    pass
+
+    action_id_sound = {"vendor": "enable", "none": "none", "auto": "enable"}.get(sound, sound)
+    if effect_mode == "ImageToVideo":
+        overrides = model_data.get("action_id_i2v_overrides", {})
+        if resolution in overrides:
+            action_id_str = overrides[resolution].format(sound=action_id_sound, resolution=resolution, frame_mode=frame_mode)
+        elif "action_id_i2v" in model_data:
+            action_id_str = model_data["action_id_i2v"].format(sound=action_id_sound, resolution=resolution, frame_mode=frame_mode)
+        else:
+            overrides_t2v = model_data.get("action_id_overrides", {})
+            if resolution in overrides_t2v:
+                action_id_str = overrides_t2v[resolution].format(sound=action_id_sound, resolution=resolution)
+            else:
+                action_id_str = model_data["action_id"].format(sound=action_id_sound, resolution=resolution)
+    else:
+        overrides = model_data.get("action_id_overrides", {})
+        if resolution in overrides:
+            action_id_str = overrides[resolution].format(sound=action_id_sound, resolution=resolution)
+        else:
+            action_id_str = model_data["action_id"].format(sound=action_id_sound, resolution=resolution)
+            
+    credit_map = model_data.get("credit_map")
+    if credit_map:
+        credit_cost = credit_map.get((effect_mode, sound, frame_mode, resolution))
+        if credit_cost is None:
+            credit_cost = credit_map.get((effect_mode, sound, resolution))
+        if credit_cost is None:
+            credit_cost = credit_map.get((sound, resolution))
+        if credit_cost is None:
+            credit_cost = model_data.get("credit", 3)
+    else:
+        credit_cost = model_data.get("credit", 3)
+
+    rsa_pub_key = get_myedit_rsa_public_key()
+    sub_token = get_subscription_token(member_token)
+    referer_url = "https://myedit.online/en/video-editor/image-to-video/edit" if effect_mode == "ImageToVideo" else "https://myedit.online/en/video-editor/text-to-video/edit"
+
+    aes_key = AESGCM.generate_key(bit_length=256)
+    ts_ms = int(time.time() * 1000)
+    key_param = rsa_encrypt_aes_key(rsa_pub_key, aes_key)
+
+    receipt_obj = {
+        "product": "MyEdit",
+        "version": "3.9.0",
+        "versiontype": "3.9.0",
+        "platform": "web",
+        "consumption": {
+            "member_token": member_token,
+            "cl_sid": SID_AOL_POL,
+            "feature_id": effect_mode,
+            "action_id": action_id_str,
+            "unit": processing_duration,
+            "total_credit": credit_cost * processing_duration,
+        },
+    }
+    receipt_json = json.dumps(receipt_obj, separators=(",", ":"))
+    receipt_param = encrypt_myedit_aes_gcm(aes_key, receipt_json, ts_ms, 0)
+
+    headers_init = {
+        "User-Agent": HEADERS["User-Agent"],
+        "Origin": "https://myedit.online",
+        "Referer": referer_url,
+    }
+
+    files_init = {
+        "key": (None, key_param),
+        "timestamp": (None, str(ts_ms)),
+        "receipt": (None, receipt_param),
+    }
+
+    if prepared_media:
+        sources_list = []
+        for i, item in enumerate(prepared_media):
+            file_size = os.path.getsize(item["path"])
+            filename = os.path.basename(item["path"])
+            sources_list.append({"filename": filename, "filesize": file_size})
+        files_init["sources"] = (None, json.dumps(sources_list, separators=(",", ":")))
+
+    resp_init = requests.post(MYEDIT_VGEN_URL, files=files_init, headers=headers_init, timeout=30)
+    resp_init.raise_for_status()
+    init_json = resp_init.json()
+    
+    s_id_str = str(init_json["s_id"])
+    s_id_int = int(s_id_str)
+    s_token_b64 = init_json["s_token"]
+    raw_session_token = decrypt_myedit_aes_gcm(aes_key, s_token_b64, ts_ms, 0)
+
+    if prepared_media:
+        media_info_list = init_json.get("media_info", [])
+        for i, item in enumerate(prepared_media):
+            if i < len(media_info_list) and "url" in media_info_list[i]:
+                upload_url = media_info_list[i]["url"]
+                with open(item["path"], 'rb') as f:
+                    file_data = f.read()
+                content_type = 'video/mp4' if item["type"] == "video" else 'image/jpeg'
+                resp_upload = requests.put(upload_url, data=file_data, headers={'Content-Type': content_type})
+
+    req_ts_ms = int(time.time() * 1000)
+    enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
+    apply_url = f"{MYEDIT_VGEN_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}"
+
+    alias_str = time.strftime("%y%m%d_%H%M")
+    apply_headers = {
+        "User-Agent": HEADERS["User-Agent"],
+        "Authorization": f"Bearer {member_token}",
+        "x-subscription-token": f"Bearer {sub_token}",
+        "Origin": "https://myedit.online",
+        "Referer": referer_url,
+    }
+
+    sound_form_val = "vendor" if sound in ["vendor", "auto", "on", "On"] else "none"
+    form_data_apply = {
+        "vendor": vendor_str,
+        "processing_duration": str(processing_duration),
+        "user_prompt": user_prompt,
+        "need_bad_word_check": "false",
+        "sound": sound_form_val,
+        "create_thumbnail": "true",
+        "cloud_sync": "true",
+        "alias": alias_str,
+        "model": model_name_str,
+        "is_custom": "true",
+        "is_fixed_model": "true",
+        "effect": effect_mode,
+    }
+
+    model_mode = model_data.get("mode")
+    if not model_mode:
+        model_mode = "pro" if resolution in ["1080p", "4k"] else "std"
+
+    if prepared_media:
+        media_info_list = init_json.get("media_info", [])
+        media_ids = [m["id"] for m in media_info_list if "id" in m]
+        first_frame_id = media_ids[0] if len(media_ids) > 0 else 1
+        end_frame_id = media_ids[1] if len(media_ids) > 1 else None
+
+        if effect_mode == "ImageToVideo":
+            img_w, img_h = get_image_dimensions(prepared_media[0]["path"])
+            image_file_size = os.path.getsize(prepared_media[0]["path"])
+
+            if vendor_str in ["Alibaba", "Pixverse", "BytePlus"]:
+                form_data_apply["width"] = str(img_w)
+                form_data_apply["height"] = str(img_h)
+                if vendor_str == "Alibaba":
+                    form_data_apply["aspect_ratio"] = aspect_ratio
+                    form_data_apply["resolution"] = resolution.upper()
+                    if model_mode:
+                        form_data_apply["mode"] = model_mode
+                else:
+                    form_data_apply["mode"] = model_mode
+                
+                if end_frame_id is not None:
+                    form_data_apply["sources"] = json.dumps([first_frame_id, end_frame_id])
+                    image_list_obj = [
+                        {"media_id": first_frame_id, "filesize": image_file_size, "width": img_w, "height": img_h, "type": "first_frame"},
+                        {"media_id": end_frame_id, "filesize": os.path.getsize(prepared_media[1]["path"]), "width": img_w, "height": img_h, "type": "end_frame"}
+                    ]
+                else:
+                    form_data_apply["sources"] = json.dumps([first_frame_id])
+                    image_list_obj = [
+                        {"media_id": first_frame_id, "filesize": image_file_size, "width": img_w, "height": img_h, "type": "first_frame"}
+                    ]
+                form_data_apply["image_list"] = json.dumps(image_list_obj, separators=(",", ":"))
+
+            elif vendor_str == "OpenAI":
+                sora_res = SORA_RESOLUTION_MAP.get((resolution, aspect_ratio), "1280:720")
+                target_w, target_h = sora_res.split(":")
+                form_data_apply["width"] = target_w
+                form_data_apply["height"] = target_h
+                form_data_apply["resolution"] = sora_res
+                form_data_apply["sources"] = json.dumps([first_frame_id])
+            else:
+                form_data_apply["width"] = str(img_w)
+                form_data_apply["height"] = str(img_h)
+                form_data_apply["mode"] = model_mode
+                
+                if end_frame_id is not None:
+                    form_data_apply["sources"] = json.dumps([first_frame_id, -1, end_frame_id])
+                    last_image_file_size = os.path.getsize(prepared_media[1]["path"])
+                    last_image_obj = {"media_id": end_frame_id, "filesize": last_image_file_size, "width": img_w, "height": img_h}
+                    form_data_apply["last_image"] = json.dumps(last_image_obj, separators=(",", ":"))
+                else:
+                    form_data_apply["sources"] = json.dumps([first_frame_id])
+                    
+        elif effect_mode == "ReferenceToVideo":
+            form_data_apply["sources"] = json.dumps(media_ids)
+            form_data_apply["effect"] = "RefToVideo"
+            image_list_obj = []
+            video_list_obj = []
+            for j, item in enumerate(prepared_media):
+                if item["type"] == "image":
+                    w_j, h_j = get_image_dimensions(item["path"])
+                    size_j = os.path.getsize(item["path"])
+                    image_list_obj.append({"media_id": media_ids[j], "filesize": size_j, "width": w_j, "height": h_j, "tag": item["tag"]})
+                elif item["type"] == "video":
+                    size_j = os.path.getsize(item["path"])
+                    video_list_obj.append({"media_id": media_ids[j], "tag": item["tag"], "filesize": size_j})
+            form_data_apply["image_list"] = json.dumps(image_list_obj, separators=(",", ":"))
+            form_data_apply["video_list"] = json.dumps(video_list_obj, separators=(",", ":"))
+            form_data_apply["audio_spec"] = json.dumps({"mode": "native"}, separators=(",", ":"))
+            form_data_apply["aspect_ratio"] = aspect_ratio
+            form_data_apply["resolution"] = resolution
+            if model_mode:
+                form_data_apply["mode"] = model_mode
+    else:
+        form_data_apply["aspect_ratio"] = aspect_ratio
+        form_data_apply["resolution"] = resolution
+        if model_mode:
+            form_data_apply["mode"] = model_mode
+
+    files_apply = {k: (None, str(v)) for k, v in form_data_apply.items()}
+    resp_apply = requests.patch(apply_url, files=files_apply, headers=apply_headers, timeout=60)
+    resp_apply.raise_for_status()
+
+    apply_json = resp_apply.json()
+    task_id = apply_json.get("task_id")
+    polling = apply_json.get("polling", {})
+    delay = polling.get("delay", 5)
+
+    max_attempts = 120
+    decrypted_files = []
+    for i in range(max_attempts):
+        time.sleep(delay)
+        req_ts_ms = int(time.time() * 1000)
+        enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
+        poll_url = f"{MYEDIT_VGEN_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}/{task_id}"
+
+        resp_poll = requests.get(poll_url, headers=headers_init, timeout=30)
+        resp_poll.raise_for_status()
+        poll_json = resp_poll.json()
+        status = poll_json.get("status")
+
+        if status == "Done":
+            files = poll_json.get("files", [])
+            for idx, f in enumerate(files):
+                fname = f.get("name", "")
+                furl = f.get("url", "")
+                task_info = f.get("task", {})
+                enc_key = task_info.get("permanent_key") or init_json.get("p_key")
+                enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
+
+                if enc_key and enc_iv and furl:
+                    prefix = filename_prefix if filename_prefix else "generated_video"
+                    thumb_prefix = filename_prefix if filename_prefix else "thumbnail"
+                    media_prefix = filename_prefix if filename_prefix else "generated_media"
+                    if ".mp4" in fname.lower() or ".mp4" in furl.lower():
+                        out_filename = f"{prefix}_{idx+1}.mp4"
+                    elif ".jpg" in fname.lower() or ".jpeg" in fname.lower() or ".jpg" in furl.lower():
+                        out_filename = f"{thumb_prefix}_{idx+1}.jpg"
+                    else:
+                        out_filename = f"{media_prefix}_{idx+1}.bin"
+
+                    dec_path = decrypt_downloaded_media(furl, aes_key, enc_key, enc_iv, ts_ms, output_path=out_filename)
+                    if dec_path:
+                        decrypted_files.append(dec_path)
+            cleanup_temp_images()
+            return {"status": "Done", "files": decrypted_files}
+
+        if status in ("Error", "Failed"):
+            cleanup_temp_images()
+            return {"status": "Failed", "error": poll_json}
+
+    cleanup_temp_images()
+    return {"status": "Timeout"}
+
+# ==============================================================================
+# service.py LOGIC & WRAPPERS
+# ==============================================================================
+
+def create_myedit_account_wrapper(api_key_id):
+    """Wrapper function matching Yolly's naming structure."""
+    return create_myedit_account(api_key_id)
 
 def login_with_retry_and_link(api_key_id, task_id=None):
-    """On-the-fly registration wrapper. Tries creating a Yolly account up to 5 times.
+    """On-the-fly registration wrapper. Tries creating an account up to 5 times.
     Links the successful account to the task.
     """
     for _ in range(5):
-        session, email = create_yolly_account(api_key_id)
-        if session and email:
+        member_token, email = create_myedit_account_wrapper(api_key_id)
+        if member_token and email:
             consumed_email = link_new_account_to_task(api_key_id, email, task_id)
-            return session, {"email": consumed_email}
+            return member_token, {"email": consumed_email}
     return None, None
 
-
-def upload_image_to_yolly_b64(session, b64_data, filename_ext=".png"):
-    """Parses base64 image data and uploads it to Yolly."""
+def save_b64_to_temp_file(b64_data, suffix=".jpg"):
+    """Saves base64 data to a local temporary file."""
     if "," in b64_data:
         b64_data = b64_data.split(",")[1]
-
-    mime_type = "image/png" if filename_ext == ".png" else "image/jpeg"
-    base64_string = f"data:{mime_type};base64,{b64_data}"
-
-    timestamp = int(time.time() * 1000)
-    file_name = f"video-input-{timestamp}-0{filename_ext}"
-
-    upload_url = "https://www.yolly.ai/api/kie/upload"
-    payload = {"base64Data": base64_string, "fileName": file_name}
-
-    session.headers.update({"referer": "https://www.yolly.ai/video"})
-
-    try:
-        res = session.post(upload_url, json=payload, timeout=30)
-        if res.status_code == 200:
-            data = res.json()
-            image_url = data.get("data", {}).get("url")
-            if image_url:
-                return image_url
-    except Exception as e:
-        print(f"[-] Image upload network error: {e}")
-    return None
-
-
-# --- Worker Functions ---
+    data = base64.b64decode(b64_data)
+    os.makedirs("temp", exist_ok=True)
+    temp_path = f"temp/ref_{int(time.time() * 1000)}_{random.randint(1000, 9999)}{suffix}"
+    with open(temp_path, "wb") as f:
+        f.write(data)
+    return os.path.abspath(temp_path)
 
 def process_image_task(task_id, params, api_key_id):
+    temp_files = []
     try:
         db.update_task_status(task_id, 'running')
 
-        session, account = login_with_retry_and_link(api_key_id, task_id)
-        if not session:
+        member_token, account = login_with_retry_and_link(api_key_id, task_id)
+        if not member_token:
             db.update_task_status(task_id, 'failed')
             db.add_task_log(task_id, "Service temporarily unavailable.")
             return
 
         prompt = params.get('prompt', '')
-        model = params.get('model', 'nano-banana-2')
+        model = params.get('model', 'flux_2_pro')
         aspect_ratio = params.get('size', '1:1')
-        resolution = params.get('resolution', '1k')
+        resolution = params.get('resolution', '1K')
+        batch_size = int(params.get('batch_size', 1))
 
-        input_mode = "text"
+        # Handle reference images (Image-to-Image)
         reference_images = []
-
         images = params.get('reference_images', [])
         if images:
-            input_mode = "image"
-            model_meta = next(
-                (m for m in AVAILABLE_MODELS['image'] if m['id'] == model),
-                {}
-            )
-            max_refs = model_meta.get('max_reference_images', 1)
-            for img_b64 in images[:max_refs]:
-                uploaded_url = upload_image_to_yolly_b64(session, img_b64)
-                if not uploaded_url:
-                    db.update_task_status(task_id, 'failed')
-                    db.add_task_log(task_id, "Reference image upload failed.")
-                    db.release_account(api_key_id, account['email'])
-                    return
-                reference_images.append(uploaded_url)
-            db.update_task_reference_urls(task_id, reference_images)
+            for img_b64 in images:
+                temp_path = save_b64_to_temp_file(img_b64)
+                temp_files.append(temp_path)
+                reference_images.append(temp_path)
 
-        create_url = "https://www.yolly.ai/api/image/create"
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "referenceImages": reference_images,
-            "aspectRatio": aspect_ratio,
-            "numberOfImages": 1,
-            "activeTab": "text" if input_mode == "text" else "image",
-            "isPublic": True,
-            "locale": "en"
-        }
-
-        model_config = MODELS.get(model, {})
-        if resolution and model_config.get("resolutions"):
-            payload["resolution"] = resolution
-
-        cookie_json = json.dumps(session.cookies.get_dict())
-        db.update_task_token(task_id, cookie_json)
-
-        session.headers.update({"referer": "https://www.yolly.ai/ai-image-generator"})
-
-        res = session.post(create_url, json=payload, timeout=20)
-        if "Insufficient credits" in res.text:
+        # Claim bonus before starting
+        model_data = IMAGE_MODELS_CONFIG.get(model)
+        if not model_data:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, "Insufficient quota.")
+            db.add_task_log(task_id, f"Unsupported model: {model}")
             db.release_account(api_key_id, account['email'])
             return
 
-        if res.status_code != 200:
-            db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, f"Submit error: {res.text}")
+        is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
+        feature_id = "TtiStyleRef" if is_style_ref else "TextToImage"
+        claim_task_bonus(member_token, feature_id)
+        check_task_bonus(member_token, feature_id)
+
+        # Update database token
+        token_data = json.dumps({"member_token": member_token})
+        db.update_task_token(task_id, token_data)
+        db.add_task_log(task_id, f"Submitting MyEdit task using model {model}...")
+
+        # Run generate_ai_image_service
+        result = generate_ai_image_service(
+            member_token=member_token,
+            user_prompt=prompt,
+            image_paths=reference_images if reference_images else None,
+            model_key=model,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
+            batch_size=str(batch_size),
+            filename_prefix=f"task_{task_id}"
+        )
+
+        if result.get("status") == "Done":
+            completed_files = result.get("files", [])
+            if completed_files:
+                db.update_task_status(task_id, 'completed', completed_files[0])
+            else:
+                db.update_task_status(task_id, 'failed')
+                db.add_task_log(task_id, "No generated files returned.")
+                db.release_account(api_key_id, account['email'])
+        elif result.get("status") == "Timeout":
+            db.update_task_status(task_id, 'timeout')
             db.release_account(api_key_id, account['email'])
-            return
-
-        data = res.json()
-        yolly_task_id = data.get("id")
-
-        if not yolly_task_id:
+        else:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, "Submit error: Task ID not found.")
+            db.add_task_log(task_id, f"Submission error: {result.get('error', 'unknown error')}")
             db.release_account(api_key_id, account['email'])
-            return
-
-        db.update_task_external_data(task_id, yolly_task_id, cookie_json)
-        db.add_task_log(task_id, f"API Task ID: {yolly_task_id}")
-
-        query_url = "https://www.yolly.ai/api/image/query"
-        q_params = {"id": yolly_task_id}
-
-        for _ in range(600):
-            if _shutdown_event.wait(3):
-                return
-            try:
-                q_res = session.get(query_url, params=q_params, timeout=15)
-                if q_res.status_code == 200:
-                    q_data = q_res.json()
-                    status = q_data.get("status")
-
-                    if status == "completed":
-                        image_urls = q_data.get("image_urls", [])
-                        result_urls = q_data.get("result", {}).get("imageUrls", [])
-                        final_urls = image_urls or result_urls
-                        if final_urls:
-                            db.update_task_status(task_id, 'completed', final_urls[0])
-                            return
-                    elif status in ["failed", "error"]:
-                        db.update_task_status(task_id, 'failed')
-                        db.add_task_log(task_id, f"Submit error: {q_data}")
-                        db.release_account(api_key_id, account['email'])
-                        return
-            except Exception:
-                pass
-
-        db.update_task_status(task_id, 'timeout')
-        db.release_account(api_key_id, account['email'])
 
     except Exception as e:
         db.update_task_status(task_id, 'error')
         db.add_task_log(task_id, str(e))
         if 'account' in locals() and account:
             db.release_account(api_key_id, account['email'])
-
+    finally:
+        for temp_file in temp_files:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except Exception:
+                    pass
 
 def process_video_task(task_id, params, api_key_id):
+    temp_files = []
     try:
         db.update_task_status(task_id, 'running')
 
-        session, account = login_with_retry_and_link(api_key_id, task_id)
-        if not session:
+        member_token, account = login_with_retry_and_link(api_key_id, task_id)
+        if not member_token:
             db.update_task_status(task_id, 'failed')
             db.add_task_log(task_id, "Service temporarily unavailable.")
             return
 
         prompt = params.get('prompt', '')
-        model = params.get('model', 'grok-imagine')
+        model = params.get('model', 'wan_2_7')
         aspect_ratio = params.get('size', '16:9')
-        resolution = params.get('resolution', '480p')
-        duration = str(params.get('duration', '6'))
+        resolution = params.get('resolution', '720p')
+        duration = int(params.get('duration', 5))
 
-        input_mode = "text"
-        images_payload = []
+        input_mode = "TextToVideo"
+        source_image_path = None
+        last_image_path = None
+        ref_images = []
+        ref_videos = []
+        frame_mode = "single"
 
+        # Handle start frame
         start_frame_b64 = params.get('start_frame')
         if start_frame_b64:
-            input_mode = "image"
-            uploaded_start = upload_image_to_yolly_b64(session, start_frame_b64)
-            if not uploaded_start:
-                db.update_task_status(task_id, 'failed')
-                db.add_task_log(task_id, "Start frame upload failed.")
-                db.release_account(api_key_id, account['email'])
-                return
-            images_payload.append(uploaded_start)
-            db.update_task_frame_urls(task_id, start_frame_url=uploaded_start, end_frame_url=None)
+            input_mode = "ImageToVideo"
+            temp_start = save_b64_to_temp_file(start_frame_b64)
+            temp_files.append(temp_start)
+            source_image_path = temp_start
 
+        # Handle end frame
         end_frame_b64 = params.get('end_frame')
         if end_frame_b64 and start_frame_b64:
-            uploaded_end = upload_image_to_yolly_b64(session, end_frame_b64)
-            if not uploaded_end:
-                db.update_task_status(task_id, 'failed')
-                db.add_task_log(task_id, "End frame upload failed.")
-                db.release_account(api_key_id, account['email'])
-                return
-            images_payload.append(uploaded_end)
-            db.update_task_frame_urls(task_id, start_frame_url=uploaded_start, end_frame_url=uploaded_end)
+            frame_mode = "startend"
+            temp_end = save_b64_to_temp_file(end_frame_b64)
+            temp_files.append(temp_end)
+            last_image_path = temp_end
 
-        create_url = "https://www.yolly.ai/api/video/create"
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "images": images_payload,
-            "inputMode": input_mode,
-            "isPublic": True,
-            "resolution": resolution,
-            "duration": duration,
-            "aspectRatio": aspect_ratio,
-            "locale": "en"
-        }
+        # Handle reference images / videos
+        images = params.get('reference_images', [])
+        videos = params.get('reference_videos', [])
+        if images or videos:
+            input_mode = "ReferenceToVideo"
+            for img_b64 in images:
+                temp_img = save_b64_to_temp_file(img_b64)
+                temp_files.append(temp_img)
+                ref_images.append(temp_img)
+            for vid_b64 in videos:
+                temp_vid = save_b64_to_temp_file(vid_b64, suffix=".mp4")
+                temp_files.append(temp_vid)
+                ref_videos.append(temp_vid)
 
-        model_config = MODELS.get(model, {})
-        extra = model_config.get("extra_params", {
-            "negativePrompt": "",
-            "audioUrl": "",
-            "enablePromptExpansion": False,
-            "cameraFixed": False,
-            "cfgScale": 0.5
-        })
-        payload.update(extra)
-
-        cookie_json = json.dumps(session.cookies.get_dict())
-        db.update_task_token(task_id, cookie_json)
-
-        res = session.post(create_url, json=payload, timeout=20)
-        if "Insufficient credits" in res.text:
+        # Claim bonus before starting
+        model_data = VIDEO_MODELS_CONFIG.get(model)
+        if not model_data:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, "Insufficient quota.")
+            db.add_task_log(task_id, f"Unsupported model: {model}")
             db.release_account(api_key_id, account['email'])
             return
 
-        if res.status_code != 200:
-            db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, f"Submit error: {res.text}")
+        claim_task_bonus(member_token, feature_id=input_mode)
+        check_task_bonus(member_token, feature_id=input_mode)
+
+        # Update database token
+        token_data = json.dumps({"member_token": member_token})
+        db.update_task_token(task_id, token_data)
+        db.add_task_log(task_id, f"Submitting MyEdit task using model {model}...")
+
+        # Run generate_ai_video_service
+        result = generate_ai_video_service(
+            member_token=member_token,
+            user_prompt=prompt,
+            model_key=model,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
+            processing_duration=duration,
+            sound="none",
+            effect_mode=input_mode,
+            source_image_path=source_image_path,
+            last_image_path=last_image_path,
+            ref_images=ref_images if ref_images else None,
+            ref_videos=ref_videos if ref_videos else None,
+            frame_mode=frame_mode,
+            filename_prefix=f"task_{task_id}"
+        )
+
+        if result.get("status") == "Done":
+            completed_files = result.get("files", [])
+            video_file = next((f for f in completed_files if f.endswith(".mp4")), None)
+            if video_file:
+                db.update_task_status(task_id, 'completed', video_file)
+            else:
+                db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
+        elif result.get("status") == "Timeout":
+            db.update_task_status(task_id, 'timeout')
             db.release_account(api_key_id, account['email'])
-            return
-
-        data = res.json()
-        yolly_task_id = data.get("id")
-        provider = data.get("provider", model)
-
-        if not yolly_task_id:
+        else:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, "Submit error: Task ID not found.")
+            db.add_task_log(task_id, f"Submission error: {result.get('error', 'unknown error')}")
             db.release_account(api_key_id, account['email'])
-            return
-
-        db.update_task_external_data(task_id, yolly_task_id, cookie_json)
-        db.add_task_log(task_id, f"API Task ID: {yolly_task_id}")
-
-        query_url = "https://www.yolly.ai/api/video/query"
-        q_params = {"id": yolly_task_id, "provider": provider}
-
-        for _ in range(600):
-            if _shutdown_event.wait(3):
-                return
-            try:
-                q_res = session.get(query_url, params=q_params, timeout=15)
-                if q_res.status_code == 200:
-                    q_data = q_res.json()
-                    task_info = q_data.get("data") if isinstance(q_data.get("data"), dict) else None
-
-                    if task_info:
-                        status = task_info.get("status")
-                        video_url = task_info.get("videoUrl")
-                    else:
-                        status = q_data.get("status")
-                        video_url = (
-                            q_data.get("video_url")
-                            or q_data.get("r2_video_url")
-                            or (q_data.get("video_urls", [None]) or [None])[0]
-                        )
-
-                    if status == "completed":
-                        if video_url:
-                            db.update_task_status(task_id, 'completed', video_url)
-                            return
-                    elif status in ["failed", "error"]:
-                        db.update_task_status(task_id, 'failed')
-                        db.add_task_log(task_id, f"Submit error: {task_info or q_data}")
-                        db.release_account(api_key_id, account['email'])
-                        return
-            except Exception:
-                pass
-
-        db.update_task_status(task_id, 'timeout')
-        db.release_account(api_key_id, account['email'])
 
     except Exception as e:
         db.update_task_status(task_id, 'error')
         db.add_task_log(task_id, str(e))
         if 'account' in locals() and account:
             db.release_account(api_key_id, account['email'])
-
+    finally:
+        for temp_file in temp_files:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except Exception:
+                    pass
 
 def process_tts_task(task_id, params, api_key_id):
     db.update_task_status(task_id, 'failed')
     db.add_task_log(task_id, "TTS is not supported by this service.")
 
-
 def process_music_task(task_id, params, api_key_id):
     db.update_task_status(task_id, 'failed')
     db.add_task_log(task_id, "Music is not supported by this service.")
 
-
 def get_tts_voices(api_key_id):
     return [], "TTS not supported by this service"
 
-
 def proxy_request(url, range_header=None):
-    """Proxy implementation for Yolly."""
+    """Local or HTTP Proxy implementation for serving files."""
+    if not url.startswith("http://") and not url.startswith("https://"):
+        # Local file path
+        if os.path.exists(url):
+            file_size = os.path.getsize(url)
+            def iter_file():
+                with open(url, "rb") as f:
+                    while True:
+                        chunk = f.read(8192)
+                        if not chunk:
+                            break
+                        yield chunk
+            mime_type = "video/mp4" if url.endswith(".mp4") else "image/jpeg"
+            headers = [
+                ("Content-Type", mime_type),
+                ("Content-Length", str(file_size)),
+                ("Accept-Ranges", "bytes")
+            ]
+            return iter_file(), 200, headers
+        else:
+            return iter([]), 404, []
+
+    # HTTP url streaming proxy
     fwd_headers = {
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     }
@@ -917,147 +2545,11 @@ def proxy_request(url, range_header=None):
     resp_headers = [(k, v) for k, v in r.headers.items() if k.lower() not in excluded]
     return r.iter_content(chunk_size=8192), r.status_code, resp_headers
 
-
 # --- Recovery Logic ---
-
-def check_yolly_for_task(task_id, mode, token_cookies, api_task_id, account_email=None, api_key_id=None):
-    """Checks Yolly query endpoint to see if a task completed or failed during recovery."""
-    try:
-        cookie_dict = json.loads(token_cookies)
-        session = make_session()
-        requests.utils.cookiejar_from_dict(cookie_dict, session.cookies)
-
-        if mode == 'image':
-            query_url = "https://www.yolly.ai/api/image/query"
-            q_res = session.get(query_url, params={"id": api_task_id}, timeout=15)
-            if q_res.status_code == 200:
-                q_data = q_res.json()
-                status = q_data.get("status")
-                if status == "completed":
-                    image_urls = q_data.get("image_urls", [])
-                    result_urls = q_data.get("result", {}).get("imageUrls", [])
-                    final_urls = image_urls or result_urls
-                    if final_urls:
-                        db.update_task_status(task_id, 'completed', final_urls[0])
-                        return
-                elif status in ["failed", "error"]:
-                    db.update_task_status(task_id, 'failed')
-                    if account_email and api_key_id:
-                        db.release_account(api_key_id, account_email)
-                    return
-            threading.Thread(target=poll_image_recovery, args=(task_id, api_task_id, token_cookies, account_email, api_key_id)).start()
-
-        elif mode == 'video':
-            task_data = db.get_task(api_key_id, task_id) if api_key_id else None
-            provider = task_data.get('model', 'grok-imagine') if task_data else 'grok-imagine'
-
-            query_url = "https://www.yolly.ai/api/video/query"
-            q_res = session.get(query_url, params={"id": api_task_id, "provider": provider}, timeout=15)
-            if q_res.status_code == 200:
-                q_data = q_res.json()
-                task_info = q_data.get("data") if isinstance(q_data.get("data"), dict) else None
-                status = task_info.get("status") if task_info else q_data.get("status")
-                if status == "completed":
-                    video_url = task_info.get("videoUrl") if task_info else (q_data.get("video_url") or q_data.get("r2_video_url") or (q_data.get("video_urls", [None]) or [None])[0])
-                    if video_url:
-                        db.update_task_status(task_id, 'completed', video_url)
-                        return
-                elif status in ["failed", "error"]:
-                    db.update_task_status(task_id, 'failed')
-                    if account_email and api_key_id:
-                        db.release_account(api_key_id, account_email)
-                    return
-            threading.Thread(target=poll_video_recovery, args=(task_id, api_task_id, token_cookies, provider, account_email, api_key_id)).start()
-
-    except Exception as e:
-        print(f"[-] Recovery check exception: {e}")
-        db.update_task_status(task_id, 'failed')
-        if account_email and api_key_id:
-            db.release_account(api_key_id, account_email)
-
-
-def poll_image_recovery(task_id, api_task_id, token_cookies, account_email=None, api_key_id=None):
-    try:
-        cookie_dict = json.loads(token_cookies)
-        session = make_session()
-        requests.utils.cookiejar_from_dict(cookie_dict, session.cookies)
-
-        query_url = "https://www.yolly.ai/api/image/query"
-        q_params = {"id": api_task_id}
-
-        for _ in range(600):
-            if _shutdown_event.wait(5):
-                return
-            try:
-                q_res = session.get(query_url, params=q_params, timeout=15)
-                if q_res.status_code == 200:
-                    q_data = q_res.json()
-                    status = q_data.get("status")
-                    if status == "completed":
-                        image_urls = q_data.get("image_urls", [])
-                        result_urls = q_data.get("result", {}).get("imageUrls", [])
-                        final_urls = image_urls or result_urls
-                        if final_urls:
-                            db.update_task_status(task_id, 'completed', final_urls[0])
-                            return
-                    elif status in ["failed", "error"]:
-                        db.update_task_status(task_id, 'failed')
-                        if account_email and api_key_id:
-                            db.release_account(api_key_id, account_email)
-                        return
-            except:
-                pass
-        db.update_task_status(task_id, 'timeout')
-        if account_email and api_key_id:
-            db.release_account(api_key_id, account_email)
-    except Exception as e:
-        db.update_task_status(task_id, 'failed')
-        if account_email and api_key_id:
-            db.release_account(api_key_id, account_email)
-
-
-def poll_video_recovery(task_id, api_task_id, token_cookies, provider='grok-imagine', account_email=None, api_key_id=None):
-    try:
-        cookie_dict = json.loads(token_cookies)
-        session = make_session()
-        requests.utils.cookiejar_from_dict(cookie_dict, session.cookies)
-
-        query_url = "https://www.yolly.ai/api/video/query"
-        q_params = {"id": api_task_id, "provider": provider}
-
-        for _ in range(600):
-            if _shutdown_event.wait(5):
-                return
-            try:
-                q_res = session.get(query_url, params=q_params, timeout=15)
-                if q_res.status_code == 200:
-                    q_data = q_res.json()
-                    task_info = q_data.get("data") if isinstance(q_data.get("data"), dict) else None
-                    status = task_info.get("status") if task_info else q_data.get("status")
-                    if status == "completed":
-                        video_url = task_info.get("videoUrl") if task_info else (q_data.get("video_url") or q_data.get("r2_video_url") or (q_data.get("video_urls", [None]) or [None])[0])
-                        if video_url:
-                            db.update_task_status(task_id, 'completed', video_url)
-                            return
-                    elif status in ["failed", "error"]:
-                        db.update_task_status(task_id, 'failed')
-                        if account_email and api_key_id:
-                            db.release_account(api_key_id, account_email)
-                        return
-            except:
-                pass
-        db.update_task_status(task_id, 'timeout')
-        if account_email and api_key_id:
-            db.release_account(api_key_id, account_email)
-    except Exception as e:
-        db.update_task_status(task_id, 'failed')
-        if account_email and api_key_id:
-            db.release_account(api_key_id, account_email)
-
 
 def resume_incomplete_tasks():
     print("=" * 50)
-    print("[STARTUP] Starting crash recovery for AI service...")
+    print("[STARTUP] Starting crash recovery for MyEdit service...")
     try:
         recovery_result = db.recover_stale_tasks()
         if recovery_result['failed_count'] > 0:
@@ -1068,40 +2560,16 @@ def resume_incomplete_tasks():
 
     needs_check = recovery_result.get('needs_check', [])
     for t in needs_check:
-        if t.get('token') and t.get('external_task_id'):
-            threading.Thread(
-                target=check_yolly_for_task,
-                args=(t['task_id'], t['mode'], t['token'], t['external_task_id'], t.get('account_email'), t.get('api_key_id'))
-            ).start()
-        else:
-            db.update_task_status(t['task_id'], 'failed')
-            if t.get('account_email') and t.get('api_key_id'):
-                db.release_account(t['api_key_id'], t['account_email'])
+        db.update_task_status(t['task_id'], 'failed')
+        if t.get('account_email') and t.get('api_key_id'):
+            db.release_account(t['api_key_id'], t['account_email'])
 
     try:
         tasks = db.get_incomplete_tasks()
         for t in tasks:
-            if t.get('token') and t.get('external_task_id'):
-                task_id = t['task_id']
-                mode = t['mode']
-                external_id = t['external_task_id']
-                token = t['token']
-                account_email = t.get('account_email')
-                api_key_id = t.get('api_key_id')
-
-                print(f"  [RESUME] Task {task_id} ({mode}) - External ID: {external_id}")
-                if mode == 'image':
-                    threading.Thread(
-                        target=poll_image_recovery,
-                        args=(task_id, external_id, token, account_email, api_key_id)
-                    ).start()
-                elif mode == 'video':
-                    task_data = db.get_task(api_key_id, task_id) if api_key_id else None
-                    provider = task_data.get('model', 'grok-imagine') if task_data else 'grok-imagine'
-                    threading.Thread(
-                        target=poll_video_recovery,
-                        args=(task_id, external_id, token, provider, account_email, api_key_id)
-                    ).start()
+            db.update_task_status(t['task_id'], 'failed')
+            if t.get('account_email') and t.get('api_key_id'):
+                db.release_account(t['api_key_id'], t['account_email'])
     except Exception as e:
         print(f"[STARTUP] Error during task resume: {e}")
     print("[STARTUP] Crash recovery complete.")

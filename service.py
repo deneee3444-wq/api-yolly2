@@ -2273,6 +2273,130 @@ def generate_ai_video_service(
 # service.py LOGIC & WRAPPERS
 # ==============================================================================
 
+def create_myedit_account(api_key_id):
+    """Creates a new MyEdit account dynamically on-the-fly.
+    Uses SpamOK for temp mail. Saves account to database.
+    """
+    try:
+        username, email = generate_random_spamok_email(12)
+        password = "CyberLink123!"
+
+        # 1. Signup
+        signup_res = signup(email, password)
+        if signup_res.get("status") != "OK":
+            print(f"[-] Signup failed: {signup_res}")
+            return None, None
+
+        # 2. Get activation link
+        activation_url = get_activation_link_from_spamok(username, timeout_seconds=45)
+        if not activation_url:
+            print("[-] Activation link not received.")
+            return None, None
+
+        # 3. Activate
+        if not activate_account(activation_url):
+            print("[-] Activation not verified, trying login anyway...")
+
+        # 4. Login
+        login_res = login(email, password)
+        member_token = login_res.get("memberToken")
+        if not member_token:
+            print("[-] Login failed, no memberToken.")
+            return None, None
+
+        # 5. Claim initial daily bonus
+        try:
+            get_daily_bonus(member_token)
+        except Exception as e:
+            print(f"[!] Daily bonus claim failed: {e}")
+
+        # Add account to database
+        db.add_account(api_key_id, email, password)
+        print(f"[+] Successfully registered and saved MyEdit account: {email}")
+
+        return member_token, email
+    except Exception as e:
+        print(f"[-] Account creation exception: {e}")
+        return None, None
+
+def link_new_account_to_task(api_key_id, email, task_id):
+    """Updates database to link and deduct quota."""
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    consumed_email = email
+    try:
+        # 1. Mark on-the-fly account as used
+        if db.DB_TYPE == 'postgresql':
+            cursor.execute(
+                'UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s',
+                (api_key_id, email)
+            )
+        else:
+            cursor.execute(
+                'UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?',
+                (api_key_id, email)
+            )
+
+        # 2. Find a random unused account for this client
+        if db.DB_TYPE == 'postgresql':
+            cursor.execute(
+                'SELECT email FROM accounts WHERE api_key_id = %s AND used = 0 AND email != %s',
+                (api_key_id, email)
+            )
+        else:
+            cursor.execute(
+                'SELECT email FROM accounts WHERE api_key_id = ? AND used = 0 AND email != ?',
+                (api_key_id, email)
+            )
+
+        rows = cursor.fetchall()
+        if rows:
+            emails = []
+            for r in rows:
+                if isinstance(r, dict):
+                    emails.append(r['email'])
+                elif hasattr(r, 'keys') or isinstance(r, tuple) or isinstance(r, list):
+                    emails.append(r[0])
+                else:
+                    emails.append(r['email'])
+
+            if emails:
+                chosen_email = random.choice(emails)
+                print(f"[QUOTA] Consuming random unused account: {chosen_email}")
+
+                # 3. Mark the chosen random account as used = 1
+                if db.DB_TYPE == 'postgresql':
+                    cursor.execute(
+                        'UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s',
+                        (api_key_id, chosen_email)
+                    )
+                else:
+                    cursor.execute(
+                        'UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?',
+                        (api_key_id, chosen_email)
+                    )
+                consumed_email = chosen_email
+
+        # 4. Link the task to the consumed email
+        if task_id:
+            if db.DB_TYPE == 'postgresql':
+                cursor.execute(
+                    'UPDATE tasks SET account_email = %s WHERE task_id = %s',
+                    (consumed_email, task_id)
+                )
+            else:
+                cursor.execute(
+                    'UPDATE tasks SET account_email = ? WHERE task_id = ?',
+                    (consumed_email, task_id)
+                )
+        conn.commit()
+    except Exception as e:
+        print(f"Error linking account and consuming quota: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+    return consumed_email
+
 def create_myedit_account_wrapper(api_key_id):
     """Wrapper function matching Yolly's naming structure."""
     return create_myedit_account(api_key_id)

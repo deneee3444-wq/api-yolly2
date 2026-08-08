@@ -2486,7 +2486,7 @@ def process_image_task(task_id, params, api_key_id):
         # Update database token
         token_data = json.dumps({"member_token": member_token})
         db.update_task_token(task_id, token_data)
-        db.add_task_log(task_id, f"Submitting MyEdit task using model {model}...")
+        db.add_task_log(task_id, f"Submitting task {task_id} using model {model}...")
 
         # Run generate_ai_image_service
         result = generate_ai_image_service(
@@ -2545,6 +2545,7 @@ def process_video_task(task_id, params, api_key_id):
         aspect_ratio = params.get('size', '16:9')
         resolution = params.get('resolution', '720p')
         duration = int(params.get('duration', 5))
+        sound = params.get('sound', 'vendor')
 
         input_mode = "TextToVideo"
         source_image_path = None
@@ -2597,7 +2598,7 @@ def process_video_task(task_id, params, api_key_id):
         # Update database token
         token_data = json.dumps({"member_token": member_token})
         db.update_task_token(task_id, token_data)
-        db.add_task_log(task_id, f"Submitting MyEdit task using model {model}...")
+        db.add_task_log(task_id, f"Submitting task {task_id} using model {model}...")
 
         # Run generate_ai_video_service
         result = generate_ai_video_service(
@@ -2607,7 +2608,7 @@ def process_video_task(task_id, params, api_key_id):
             aspect_ratio=aspect_ratio,
             resolution=resolution,
             processing_duration=duration,
-            sound="none",
+            sound=sound,
             effect_mode=input_mode,
             source_image_path=source_image_path,
             last_image_path=last_image_path,

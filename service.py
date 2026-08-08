@@ -2037,6 +2037,9 @@ def generate_ai_video_service(
     else:
         credit_cost = model_data.get("credit", 3)
 
+    get_member_remaining_credits(member_token)
+    sync_feature_credit(feature_id=effect_mode, action_id=action_id_str, credit=credit_cost)
+
     rsa_pub_key = get_myedit_rsa_public_key()
     sub_token = get_subscription_token(member_token)
     referer_url = "https://myedit.online/en/video-editor/image-to-video/edit" if effect_mode == "ImageToVideo" else "https://myedit.online/en/video-editor/text-to-video/edit"

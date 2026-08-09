@@ -1781,8 +1781,6 @@ def generate_ai_image_service(
             storage_url = resp_link.json()["storage"]
             
             clean_url = storage_url.split("?")[0]
-            if task_id:
-                clean_url = f"{clean_url}?task_id={task_id}"
             uploaded_reference_urls.append(clean_url)
 
             resp_upload = requests.put(storage_url, data=img_bytes, headers=put_headers, timeout=30)
@@ -1790,7 +1788,7 @@ def generate_ai_image_service(
             uploaded_sources_list.append(idx + 1)
 
         if task_id and uploaded_reference_urls:
-            proxy_ref_urls = [f"/proxy?url={url}" for url in uploaded_reference_urls]
+            proxy_ref_urls = [f"https://api-yolly2-fiqk.onrender.com/proxy?url={url}" for url in uploaded_reference_urls]
             db.update_task_reference_urls(task_id, proxy_ref_urls)
 
     sources_str = json.dumps(uploaded_sources_list)
@@ -2122,8 +2120,6 @@ def generate_ai_video_service(
                 upload_url = media_info_list[i]["url"]
                 
                 clean_url = upload_url.split("?")[0]
-                if task_id:
-                    clean_url = f"{clean_url}?task_id={task_id}"
                 uploaded_reference_urls.append(clean_url)
 
                 with open(item["path"], 'rb') as f:
@@ -2132,7 +2128,7 @@ def generate_ai_video_service(
                 resp_upload = requests.put(upload_url, data=file_data, headers={'Content-Type': content_type})
 
         if task_id and uploaded_reference_urls:
-            proxy_ref_urls = [f"/proxy?url={url}" for url in uploaded_reference_urls]
+            proxy_ref_urls = [f"https://api-yolly2-fiqk.onrender.com/proxy?url={url}" for url in uploaded_reference_urls]
             db.update_task_reference_urls(task_id, proxy_ref_urls)
 
     req_ts_ms = int(time.time() * 1000)
@@ -2528,7 +2524,7 @@ def process_image_task(task_id, params, api_key_id):
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
             if completed_files:
-                db.update_task_status(task_id, 'completed', f"/proxy?url={completed_files[0]}")
+                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/proxy?url={completed_files[0]}")
             else:
                 db.update_task_status(task_id, 'failed')
                 db.add_task_log(task_id, "No generated files returned.")
@@ -2648,9 +2644,9 @@ def process_video_task(task_id, params, api_key_id):
             completed_files = result.get("files", [])
             video_file = next((f for f in completed_files if f.endswith(".mp4")), None)
             if video_file:
-                db.update_task_status(task_id, 'completed', f"/proxy?url={video_file}")
+                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/proxy?url={video_file}")
             else:
-                db.update_task_status(task_id, 'completed', f"/proxy?url={completed_files[0]}" if completed_files else "")
+                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/proxy?url={completed_files[0]}" if completed_files else "")
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
             db.release_account(api_key_id, account['email'])
@@ -2683,15 +2679,20 @@ def process_music_task(task_id, params, api_key_id):
 def get_tts_voices(api_key_id):
     return [], "TTS not supported by this service"
 
-def get_reference_media_from_db(task_id, filename):
-    """Retrieves reference image/video from the database task params by matching filename."""
+def get_reference_media_by_url_from_db(url):
+    """Retrieves reference image/video from the database task params by matching the S3 URL in reference_image_urls."""
+    import urllib.parse as urlparse
+    parsed = urlparse.urlparse(url)
+    path = parsed.path
+    
     conn = db.get_connection()
     cursor = conn.cursor()
     try:
+        query_val = f"%{path}%"
         if db.DB_TYPE == 'postgresql':
-            cursor.execute('SELECT params FROM tasks WHERE task_id = %s', (task_id,))
+            cursor.execute('SELECT params FROM tasks WHERE reference_image_urls LIKE %s', (query_val,))
         else:
-            cursor.execute('SELECT params FROM tasks WHERE task_id = ?', (task_id,))
+            cursor.execute('SELECT params FROM tasks WHERE reference_image_urls LIKE ?', (query_val,))
         row = cursor.fetchone()
         if row:
             params_str = None
@@ -2704,11 +2705,11 @@ def get_reference_media_from_db(task_id, filename):
                 
             if params_str:
                 params_dict = json.loads(params_str)
-                # Parse index from filenames like 'input.1.jpg' or 'TEXT_TO_IMAGE_source_0.jpg'
+                filename = os.path.basename(path)
+                
                 match = re.search(r'(?:input\.|source_)(\d+)', filename)
                 idx = 0
                 if match:
-                    # input.1.jpg -> index 0, source_0.jpg -> index 0
                     if "input." in filename:
                         idx = int(match.group(1)) - 1
                     else:
@@ -2745,7 +2746,7 @@ def get_reference_media_from_db(task_id, filename):
                         b64_data = b64_data.split(",")[1]
                     return base64.b64decode(b64_data), mime_type
     except Exception as e:
-        print(f"Error fetching reference from DB: {e}")
+        print(f"Error fetching reference by URL from DB: {e}")
     finally:
         conn.close()
     return None, None
@@ -2773,26 +2774,20 @@ def proxy_request(url, range_header=None):
         else:
             return iter([]), 404, []
 
-    if "task_id=" in url and "dec_aes_key=" not in url:
-        import urllib.parse as urlparse
+    if "Vgen/source" in url or "TEXT_TO_IMAGE_source" in url or "input." in url:
         try:
-            parsed = urlparse.urlparse(url)
-            params = urlparse.parse_qs(parsed.query)
-            task_id = params.get("task_id", [None])[0]
-            filename = os.path.basename(parsed.path)
-            if task_id:
-                media_bytes, mime_type = get_reference_media_from_db(task_id, filename)
-                if media_bytes:
-                    file_size = len(media_bytes)
-                    headers = [
-                        ("Content-Type", mime_type),
-                        ("Content-Length", str(file_size)),
-                        ("Accept-Ranges", "bytes")
-                    ]
-                    def iter_bytes():
-                        for offset in range(0, file_size, 8192):
-                            yield media_bytes[offset:offset+8192]
-                    return iter_bytes(), 200, headers
+            media_bytes, mime_type = get_reference_media_by_url_from_db(url)
+            if media_bytes:
+                file_size = len(media_bytes)
+                headers = [
+                    ("Content-Type", mime_type),
+                    ("Content-Length", str(file_size)),
+                    ("Accept-Ranges", "bytes")
+                ]
+                def iter_bytes():
+                    for offset in range(0, file_size, 8192):
+                        yield media_bytes[offset:offset+8192]
+                return iter_bytes(), 200, headers
         except Exception as e:
             print(f"DB reference proxy error: {e}")
             return iter([]), 500, []

@@ -2902,9 +2902,12 @@ def proxy_request(url, range_header=None):
                 b64_data = None
                 mime_type = "image/jpeg"
 
-                if "first" in filename and start_frame:
+                is_first = ("first" in filename) or (idx == 0 and ("input.1" in filename or "source_0" in filename))
+                is_end = ("end" in filename) or (idx == 1 and ("input.2" in filename or "source_1" in filename))
+
+                if is_first and start_frame:
                     b64_data = start_frame
-                elif "end" in filename and end_frame:
+                elif is_end and end_frame:
                     b64_data = end_frame
                 elif "video" in filename or filename.endswith(".mp4"):
                     if idx < len(videos):
@@ -2913,6 +2916,10 @@ def proxy_request(url, range_header=None):
                 else:
                     if idx < len(images):
                         b64_data = images[idx]
+                    elif idx == 0 and start_frame:
+                        b64_data = start_frame
+                    elif idx == 1 and end_frame:
+                        b64_data = end_frame
 
                 if b64_data:
                     if "," in b64_data:
@@ -2954,15 +2961,19 @@ def proxy_request(url, range_header=None):
                 raw_bytes = resp.content
 
                 if dec_aes_key and dec_enc_key and dec_enc_iv and dec_ts_ms:
-                    # File is encrypted, decrypt it
-                    aes_key = bytes.fromhex(dec_aes_key)
-                    dec_enc_key = dec_enc_key.replace(" ", "+")
-                    dec_enc_iv = dec_enc_iv.replace(" ", "+")
+                    try:
+                        # File is encrypted, decrypt it
+                        aes_key = bytes.fromhex(dec_aes_key)
+                        dec_enc_key = dec_enc_key.replace(" ", "+")
+                        dec_enc_iv = dec_enc_iv.replace(" ", "+")
 
-                    raw_key = decrypt_myedit_aes_gcm(aes_key, dec_enc_key, int(dec_ts_ms), 0)
-                    raw_iv = decrypt_myedit_aes_gcm(aes_key, dec_enc_iv, int(dec_ts_ms), 0)
-                    aesgcm = AESGCM(raw_key)
-                    decrypted_bytes = aesgcm.decrypt(raw_iv, raw_bytes, None)
+                        raw_key = decrypt_myedit_aes_gcm(aes_key, dec_enc_key, int(dec_ts_ms), 0)
+                        raw_iv = decrypt_myedit_aes_gcm(aes_key, dec_enc_iv, int(dec_ts_ms), 0)
+                        aesgcm = AESGCM(raw_key)
+                        decrypted_bytes = aesgcm.decrypt(raw_iv, raw_bytes, None)
+                    except Exception as dec_err:
+                        print(f"Decryption failed (might be unencrypted thumbnail/media): {dec_err}")
+                        decrypted_bytes = raw_bytes
                 else:
                     # File is not encrypted, use raw bytes directly
                     decrypted_bytes = raw_bytes

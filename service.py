@@ -1649,6 +1649,7 @@ def generate_ai_image_service(
     batch_size: str = "1",
     output_format: str = "jpeg",
     filename_prefix: str = "",
+    task_id: str = None,
 ):
     if model_key not in IMAGE_MODELS_CONFIG:
         raise ValueError(f"Unsupported model: {model_key}")
@@ -1780,11 +1781,17 @@ def generate_ai_image_service(
             storage_url = resp_link.json()["storage"]
             
             clean_url = storage_url.split("?")[0]
+            if task_id:
+                clean_url = f"{clean_url}?task_id={task_id}"
             uploaded_reference_urls.append(clean_url)
 
             resp_upload = requests.put(storage_url, data=img_bytes, headers=put_headers, timeout=30)
             resp_upload.raise_for_status()
             uploaded_sources_list.append(idx + 1)
+
+        if task_id and uploaded_reference_urls:
+            proxy_ref_urls = [f"/proxy?url={url}" for url in uploaded_reference_urls]
+            db.update_task_reference_urls(task_id, proxy_ref_urls)
 
     sources_str = json.dumps(uploaded_sources_list)
 
@@ -1913,6 +1920,7 @@ def generate_ai_video_service(
     ref_videos: list = None,
     frame_mode: str = "single",
     filename_prefix: str = "",
+    task_id: str = None,
 ):
     model_data = VIDEO_MODELS_CONFIG.get(model_key, VIDEO_MODELS_CONFIG["seedance_2_0_fast"])
     if isinstance(model_data["model"], dict):
@@ -2114,12 +2122,18 @@ def generate_ai_video_service(
                 upload_url = media_info_list[i]["url"]
                 
                 clean_url = upload_url.split("?")[0]
+                if task_id:
+                    clean_url = f"{clean_url}?task_id={task_id}"
                 uploaded_reference_urls.append(clean_url)
 
                 with open(item["path"], 'rb') as f:
                     file_data = f.read()
                 content_type = 'video/mp4' if item["type"] == "video" else 'image/jpeg'
                 resp_upload = requests.put(upload_url, data=file_data, headers={'Content-Type': content_type})
+
+        if task_id and uploaded_reference_urls:
+            proxy_ref_urls = [f"/proxy?url={url}" for url in uploaded_reference_urls]
+            db.update_task_reference_urls(task_id, proxy_ref_urls)
 
     req_ts_ms = int(time.time() * 1000)
     enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
@@ -2507,17 +2521,14 @@ def process_image_task(task_id, params, api_key_id):
             aspect_ratio=aspect_ratio,
             resolution=resolution,
             batch_size=str(batch_size),
-            filename_prefix=f"task_{task_id}"
+            filename_prefix=f"task_{task_id}",
+            task_id=task_id
         )
-
-        reference_urls = result.get("reference_urls", [])
-        if reference_urls:
-            db.update_task_reference_urls(task_id, reference_urls)
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
             if completed_files:
-                db.update_task_status(task_id, 'completed', completed_files[0])
+                db.update_task_status(task_id, 'completed', f"/proxy?url={completed_files[0]}")
             else:
                 db.update_task_status(task_id, 'failed')
                 db.add_task_log(task_id, "No generated files returned.")
@@ -2629,20 +2640,17 @@ def process_video_task(task_id, params, api_key_id):
             ref_images=ref_images if ref_images else None,
             ref_videos=ref_videos if ref_videos else None,
             frame_mode=frame_mode,
-            filename_prefix=f"task_{task_id}"
+            filename_prefix=f"task_{task_id}",
+            task_id=task_id
         )
-
-        reference_urls = result.get("reference_urls", [])
-        if reference_urls:
-            db.update_task_reference_urls(task_id, reference_urls)
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
             video_file = next((f for f in completed_files if f.endswith(".mp4")), None)
             if video_file:
-                db.update_task_status(task_id, 'completed', video_file)
+                db.update_task_status(task_id, 'completed', f"/proxy?url={video_file}")
             else:
-                db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
+                db.update_task_status(task_id, 'completed', f"/proxy?url={completed_files[0]}" if completed_files else "")
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
             db.release_account(api_key_id, account['email'])
@@ -2675,6 +2683,73 @@ def process_music_task(task_id, params, api_key_id):
 def get_tts_voices(api_key_id):
     return [], "TTS not supported by this service"
 
+def get_reference_media_from_db(task_id, filename):
+    """Retrieves reference image/video from the database task params by matching filename."""
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    try:
+        if db.DB_TYPE == 'postgresql':
+            cursor.execute('SELECT params FROM tasks WHERE task_id = %s', (task_id,))
+        else:
+            cursor.execute('SELECT params FROM tasks WHERE task_id = ?', (task_id,))
+        row = cursor.fetchone()
+        if row:
+            params_str = None
+            if isinstance(row, dict):
+                params_str = row.get("params")
+            elif isinstance(row, tuple) or isinstance(row, list):
+                params_str = row[0]
+            else:
+                params_str = getattr(row, "params", None)
+                
+            if params_str:
+                params_dict = json.loads(params_str)
+                # Parse index from filenames like 'input.1.jpg' or 'TEXT_TO_IMAGE_source_0.jpg'
+                match = re.search(r'(?:input\.|source_)(\d+)', filename)
+                idx = 0
+                if match:
+                    # input.1.jpg -> index 0, source_0.jpg -> index 0
+                    if "input." in filename:
+                        idx = int(match.group(1)) - 1
+                    else:
+                        idx = int(match.group(1))
+                    if idx < 0:
+                        idx = 0
+                elif "first" in filename:
+                    idx = 0
+                elif "end" in filename:
+                    idx = 1
+
+                images = params_dict.get("reference_images", [])
+                videos = params_dict.get("reference_videos", [])
+                start_frame = params_dict.get("start_frame")
+                end_frame = params_dict.get("end_frame")
+
+                b64_data = None
+                mime_type = "image/jpeg"
+
+                if "first" in filename and start_frame:
+                    b64_data = start_frame
+                elif "end" in filename and end_frame:
+                    b64_data = end_frame
+                elif "video" in filename or filename.endswith(".mp4"):
+                    if idx < len(videos):
+                        b64_data = videos[idx]
+                        mime_type = "video/mp4"
+                else:
+                    if idx < len(images):
+                        b64_data = images[idx]
+
+                if b64_data:
+                    if "," in b64_data:
+                        b64_data = b64_data.split(",")[1]
+                    return base64.b64decode(b64_data), mime_type
+    except Exception as e:
+        print(f"Error fetching reference from DB: {e}")
+    finally:
+        conn.close()
+    return None, None
+
 def proxy_request(url, range_header=None):
     """Local or HTTP Proxy implementation for serving files."""
     if not url.startswith("http://") and not url.startswith("https://"):
@@ -2697,6 +2772,30 @@ def proxy_request(url, range_header=None):
             return iter_file(), 200, headers
         else:
             return iter([]), 404, []
+
+    if "task_id=" in url and "dec_aes_key=" not in url:
+        import urllib.parse as urlparse
+        try:
+            parsed = urlparse.urlparse(url)
+            params = urlparse.parse_qs(parsed.query)
+            task_id = params.get("task_id", [None])[0]
+            filename = os.path.basename(parsed.path)
+            if task_id:
+                media_bytes, mime_type = get_reference_media_from_db(task_id, filename)
+                if media_bytes:
+                    file_size = len(media_bytes)
+                    headers = [
+                        ("Content-Type", mime_type),
+                        ("Content-Length", str(file_size)),
+                        ("Accept-Ranges", "bytes")
+                    ]
+                    def iter_bytes():
+                        for offset in range(0, file_size, 8192):
+                            yield media_bytes[offset:offset+8192]
+                    return iter_bytes(), 200, headers
+        except Exception as e:
+            print(f"DB reference proxy error: {e}")
+            return iter([]), 500, []
 
     if "dec_aes_key=" in url:
         import urllib.parse as urlparse

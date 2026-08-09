@@ -769,7 +769,7 @@ AVAILABLE_MODELS = {
         {
             "id": "flux_2_pro",
             "name": "Flux 2 Pro",
-            "description": "Flux 2 Pro by BlackForest",
+            "description": "Flux 2 Pro by BlackForest - Supports up to 4 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 4,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -805,7 +805,7 @@ AVAILABLE_MODELS = {
         {
             "id": "stable_diffusion",
             "name": "Stable Diffusion XL",
-            "description": "Stable Diffusion XL by CyberLink",
+            "description": "Stable Diffusion XL by CyberLink - Supports 1 Reference Image",
             "supports_reference_images": True,
             "max_reference_images": 1,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -816,8 +816,8 @@ AVAILABLE_MODELS = {
         },
         {
             "id": "gemini_3_1_flash_lite",
-            "name": "Gemini 3.1 Flash Lite",
-            "description": "Gemini 3.1 Flash Lite by Google",
+            "name": "Gemini 3.1 Flash Lite (Nano Banana 2 Lite)",
+            "description": "Gemini 3.1 Flash Lite (Nano Banana 2 Lite) by Google - Supports up to 14 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 14,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -828,8 +828,8 @@ AVAILABLE_MODELS = {
         },
         {
             "id": "gemini_3_1_flash",
-            "name": "Gemini 3.1 Flash",
-            "description": "Gemini 3.1 Flash by Google",
+            "name": "Gemini 3.1 Flash (Nano Banana 2)",
+            "description": "Gemini 3.1 Flash (Nano Banana 2) by Google - Supports up to 14 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 14,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -840,8 +840,8 @@ AVAILABLE_MODELS = {
         },
         {
             "id": "gemini_3_pro",
-            "name": "Gemini 3 Pro",
-            "description": "Gemini 3 Pro by Google",
+            "name": "Gemini 3 Pro (Nano Banana Pro)",
+            "description": "Gemini 3 Pro (Nano Banana Pro) by Google - Supports up to 14 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 14,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -853,7 +853,7 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_o1",
             "name": "Kling O1",
-            "description": "Kling O1 by Kling",
+            "description": "Kling O1 by Kling - Supports up to 10 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 10,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -865,7 +865,7 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_o3",
             "name": "Kling O3",
-            "description": "Kling O3 by Kling",
+            "description": "Kling O3 by Kling - Supports up to 10 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 10,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -877,7 +877,7 @@ AVAILABLE_MODELS = {
         {
             "id": "seedream_5_lite",
             "name": "SeeDream 5.0 Lite",
-            "description": "SeeDream 5.0 Lite by ByteDance",
+            "description": "SeeDream 5.0 Lite by ByteDance - Supports up to 14 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 14,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -889,7 +889,7 @@ AVAILABLE_MODELS = {
         {
             "id": "gpt_image_1",
             "name": "GPT-Image-1",
-            "description": "GPT-Image-1 by OpenAI",
+            "description": "GPT-Image-1 by OpenAI - Supports up to 16 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 16,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -901,7 +901,7 @@ AVAILABLE_MODELS = {
         {
             "id": "gpt_image_1_5",
             "name": "GPT-Image-1.5",
-            "description": "GPT-Image-1.5 by OpenAI",
+            "description": "GPT-Image-1.5 by OpenAI - Supports up to 16 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 16,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -913,7 +913,7 @@ AVAILABLE_MODELS = {
         {
             "id": "gpt_image_2",
             "name": "GPT-Image-2",
-            "description": "GPT-Image-2 by OpenAI",
+            "description": "GPT-Image-2 by OpenAI - Supports up to 16 Reference Images",
             "supports_reference_images": True,
             "max_reference_images": 16,
             "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -927,7 +927,7 @@ AVAILABLE_MODELS = {
         {
             "id": "seedance_2_0_fast",
             "name": "Seedance 2.0 Fast",
-            "description": "Seedance 2.0 Fast by BytePlus",
+            "description": "Seedance 2.0 Fast by BytePlus - Supports Start/End Frame, up to 9 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
@@ -943,7 +943,7 @@ AVAILABLE_MODELS = {
         {
             "id": "seedance_2_0_pro",
             "name": "Seedance 2.0 Pro",
-            "description": "Seedance 2.0 Pro by BytePlus",
+            "description": "Seedance 2.0 Pro by BytePlus - Supports Start/End Frame, up to 9 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
@@ -959,7 +959,7 @@ AVAILABLE_MODELS = {
         {
             "id": "happy_horse_1_1",
             "name": "Happy Horse 1.1",
-            "description": "Happy Horse 1.1 by Alibaba",
+            "description": "Happy Horse 1.1 by Alibaba - Supports Start/End Frame, up to 9 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
@@ -975,7 +975,7 @@ AVAILABLE_MODELS = {
         {
             "id": "wan_2_7",
             "name": "Wan 2.7",
-            "description": "Wan 2.7 model by Alibaba",
+            "description": "Wan 2.7 model by Alibaba - Supports Start/End Frame, up to 5 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
@@ -991,7 +991,7 @@ AVAILABLE_MODELS = {
         {
             "id": "veo_3_1_fast",
             "name": "Veo 3.1 Fast",
-            "description": "Veo 3.1 Fast by Google",
+            "description": "Veo 3.1 Fast by Google - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
@@ -1007,7 +1007,7 @@ AVAILABLE_MODELS = {
         {
             "id": "veo_3_1",
             "name": "Veo 3.1",
-            "description": "Veo 3.1 by Google",
+            "description": "Veo 3.1 by Google - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
@@ -1023,7 +1023,7 @@ AVAILABLE_MODELS = {
         {
             "id": "veo_3_1_lite",
             "name": "Veo 3.1 Lite",
-            "description": "Veo 3.1 Lite by Google",
+            "description": "Veo 3.1 Lite by Google - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
@@ -1039,7 +1039,7 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_o3",
             "name": "Kling O3",
-            "description": "Kling O3 by Kling",
+            "description": "Kling O3 by Kling - Supports Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
@@ -1055,7 +1055,7 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_3_0",
             "name": "Kling 3.0",
-            "description": "Kling 3.0 by Kling",
+            "description": "Kling 3.0 by Kling - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
@@ -1071,7 +1071,7 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_2_6",
             "name": "Kling 2.6",
-            "description": "Kling 2.6 by Kling",
+            "description": "Kling 2.6 by Kling - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
@@ -1087,7 +1087,7 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_2_5_std",
             "name": "Kling 2.5 Standard",
-            "description": "Kling 2.5 Standard by Kling",
+            "description": "Kling 2.5 Standard by Kling - Supports Start Frame",
             "supports_start_frame": True,
             "supports_end_frame": False,
             "supports_reference_images": False,
@@ -1103,7 +1103,7 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_2_5_pro",
             "name": "Kling 2.5 Pro",
-            "description": "Kling 2.5 Pro by Kling",
+            "description": "Kling 2.5 Pro by Kling - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
@@ -1119,7 +1119,7 @@ AVAILABLE_MODELS = {
         {
             "id": "vidu_q3_turbo",
             "name": "Vidu Q3 Turbo",
-            "description": "Vidu Q3 Turbo by Vidu",
+            "description": "Vidu Q3 Turbo by Vidu - Supports Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
@@ -1135,7 +1135,7 @@ AVAILABLE_MODELS = {
         {
             "id": "vidu_q3_pro",
             "name": "Vidu Q3 Pro",
-            "description": "Vidu Q3 Pro by Vidu",
+            "description": "Vidu Q3 Pro by Vidu - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
@@ -1151,7 +1151,7 @@ AVAILABLE_MODELS = {
         {
             "id": "vidu_q2",
             "name": "Vidu Q2",
-            "description": "Vidu Q2 by Vidu",
+            "description": "Vidu Q2 by Vidu - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
@@ -1167,7 +1167,7 @@ AVAILABLE_MODELS = {
         {
             "id": "pixverse_v6",
             "name": "PixVerse V6",
-            "description": "PixVerse V6 by Pixverse",
+            "description": "PixVerse V6 by Pixverse - Supports Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
@@ -1183,7 +1183,7 @@ AVAILABLE_MODELS = {
         {
             "id": "sora_2_std",
             "name": "Sora 2 Standard",
-            "description": "Sora 2 Standard by OpenAI",
+            "description": "Sora 2 Standard by OpenAI - Supports Start Frame",
             "supports_start_frame": True,
             "supports_end_frame": False,
             "supports_reference_images": False,
@@ -1199,7 +1199,7 @@ AVAILABLE_MODELS = {
         {
             "id": "sora_2_pro",
             "name": "Sora 2 Pro",
-            "description": "Sora 2 Pro by OpenAI",
+            "description": "Sora 2 Pro by OpenAI - Supports Start Frame",
             "supports_start_frame": True,
             "supports_end_frame": False,
             "supports_reference_images": False,
@@ -2529,7 +2529,7 @@ def process_image_task(task_id, params, api_key_id):
             "end_frame": params.get('end_frame')
         })
         db.update_task_token(task_id, token_data)
-        db.add_task_log(task_id, str(task_id))
+        db.add_task_log(task_id, f"Task id: {task_id}")
 
         # Run generate_ai_image_service
         result = generate_ai_image_service(
@@ -2665,7 +2665,7 @@ def process_video_task(task_id, params, api_key_id):
             "end_frame": params.get('end_frame')
         })
         db.update_task_token(task_id, token_data)
-        db.add_task_log(task_id, str(task_id))
+        db.add_task_log(task_id, f"Task id: {task_id}")
 
         # Run generate_ai_video_service
         result = generate_ai_video_service(

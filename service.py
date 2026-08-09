@@ -25,32 +25,7 @@ import database as db
 _shutdown_event = threading.Event()
 atexit.register(lambda: _shutdown_event.set())
 
-class SimpleLRUCache:
-    def __init__(self, maxsize=100):
-        self.maxsize = maxsize
-        self.cache = {}
-        self.keys = []
-        self.lock = threading.Lock()
 
-    def set(self, key, value):
-        with self.lock:
-            if key in self.cache:
-                self.keys.remove(key)
-            self.cache[key] = value
-            self.keys.append(key)
-            if len(self.keys) > self.maxsize:
-                oldest = self.keys.pop(0)
-                self.cache.pop(oldest, None)
-
-    def get(self, key):
-        with self.lock:
-            if key in self.cache:
-                self.keys.remove(key)
-                self.keys.append(key)
-                return self.cache[key]
-            return None
-
-REFERENCE_CACHE = SimpleLRUCache(maxsize=100)
 
 
 # ==============================================================================
@@ -1810,15 +1785,13 @@ def generate_ai_image_service(
             
             clean_url = storage_url.split("?")[0]
             uploaded_reference_urls.append(clean_url)
-            REFERENCE_CACHE.set(clean_url, (img_bytes, "image/jpeg"))
 
             resp_upload = requests.put(storage_url, data=img_bytes, headers=put_headers, timeout=30)
             resp_upload.raise_for_status()
             uploaded_sources_list.append(idx + 1)
 
         if task_id and uploaded_reference_urls:
-            proxy_ref_urls = [f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={url}" for url in uploaded_reference_urls]
-            db.update_task_reference_urls(task_id, proxy_ref_urls)
+            db.update_task_reference_urls(task_id, uploaded_reference_urls)
 
     sources_str = json.dumps(uploaded_sources_list)
 
@@ -1912,19 +1885,29 @@ def generate_ai_image_service(
         if status == "Done":
             files = poll_json.get("files", [])
             for idx, f in enumerate(files):
+                fname = f.get("name", "")
                 furl = f.get("url", "")
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
 
                 if furl:
+                    ext = output_format.lower()
+                    prefix = filename_prefix if filename_prefix else "generated_image"
+                    out_filename = f"{prefix}_{idx+1}.{ext}"
                     if enc_key and enc_iv:
-                        aes_key_hex = aes_key.hex()
-                        sep = "&" if "?" in furl else "?"
-                        final_url = f"{furl}{sep}dec_aes_key={aes_key_hex}&dec_enc_key={enc_key}&dec_enc_iv={enc_iv}&dec_ts_ms={ts_ms}"
-                        decrypted_files.append(final_url)
+                        dec_path = decrypt_downloaded_media(furl, aes_key, enc_key, enc_iv, ts_ms, output_path=out_filename)
+                        if dec_path:
+                            decrypted_files.append(dec_path)
                     else:
-                        decrypted_files.append(furl)
+                        try:
+                            resp_dl = requests.get(furl, timeout=60)
+                            resp_dl.raise_for_status()
+                            with open(out_filename, "wb") as out_f:
+                                out_f.write(resp_dl.content)
+                            decrypted_files.append(os.path.abspath(out_filename))
+                        except Exception:
+                            pass
             return {"status": "Done", "files": decrypted_files, "reference_urls": uploaded_reference_urls}
 
         if status in ("Error", "Failed"):
@@ -2154,12 +2137,10 @@ def generate_ai_video_service(
                 with open(item["path"], 'rb') as f:
                     file_data = f.read()
                 content_type = 'video/mp4' if item["type"] == "video" else 'image/jpeg'
-                REFERENCE_CACHE.set(clean_url, (file_data, content_type))
                 resp_upload = requests.put(upload_url, data=file_data, headers={'Content-Type': content_type})
 
         if task_id and uploaded_reference_urls:
-            proxy_ref_urls = [f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={url}" for url in uploaded_reference_urls]
-            db.update_task_reference_urls(task_id, proxy_ref_urls)
+            db.update_task_reference_urls(task_id, uploaded_reference_urls)
 
     req_ts_ms = int(time.time() * 1000)
     enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
@@ -2299,19 +2280,26 @@ def generate_ai_video_service(
         if status == "Done":
             files = poll_json.get("files", [])
             for idx, f in enumerate(files):
+                fname = f.get("name", "")
                 furl = f.get("url", "")
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
 
-                if furl:
-                    if enc_key and enc_iv:
-                        aes_key_hex = aes_key.hex()
-                        sep = "&" if "?" in furl else "?"
-                        final_url = f"{furl}{sep}dec_aes_key={aes_key_hex}&dec_enc_key={enc_key}&dec_enc_iv={enc_iv}&dec_ts_ms={ts_ms}"
-                        decrypted_files.append(final_url)
+                if enc_key and enc_iv and furl:
+                    prefix = filename_prefix if filename_prefix else "generated_video"
+                    thumb_prefix = filename_prefix if filename_prefix else "thumbnail"
+                    media_prefix = filename_prefix if filename_prefix else "generated_media"
+                    if ".mp4" in fname.lower() or ".mp4" in furl.lower():
+                        out_filename = f"{prefix}_{idx+1}.mp4"
+                    elif ".jpg" in fname.lower() or ".jpeg" in fname.lower() or ".jpg" in furl.lower():
+                        out_filename = f"{thumb_prefix}_{idx+1}.jpg"
                     else:
-                        decrypted_files.append(furl)
+                        out_filename = f"{media_prefix}_{idx+1}.bin"
+
+                    dec_path = decrypt_downloaded_media(furl, aes_key, enc_key, enc_iv, ts_ms, output_path=out_filename)
+                    if dec_path:
+                        decrypted_files.append(dec_path)
             cleanup_temp_images()
             return {"status": "Done", "files": decrypted_files, "reference_urls": uploaded_reference_urls}
 
@@ -2554,7 +2542,7 @@ def process_image_task(task_id, params, api_key_id):
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
             if completed_files:
-                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={completed_files[0]}")
+                db.update_task_status(task_id, 'completed', completed_files[0])
             else:
                 db.update_task_status(task_id, 'failed')
                 db.add_task_log(task_id, "No generated files returned.")
@@ -2674,9 +2662,9 @@ def process_video_task(task_id, params, api_key_id):
             completed_files = result.get("files", [])
             video_file = next((f for f in completed_files if f.endswith(".mp4")), None)
             if video_file:
-                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={video_file}")
+                db.update_task_status(task_id, 'completed', video_file)
             else:
-                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={completed_files[0]}" if completed_files else "")
+                db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
             db.release_account(api_key_id, account['email'])
@@ -2745,112 +2733,7 @@ def proxy_request(url, range_header=None):
         else:
             return iter([]), 404, []
 
-    if "Vgen/source" in url or "TEXT_TO_IMAGE_source" in url or "input." in url:
-        # 1. Check in-memory cache
-        cached = REFERENCE_CACHE.get(url)
-        if cached:
-            media_bytes, mime_type = cached
-            file_size = len(media_bytes)
-            headers = [
-                ("Content-Type", mime_type),
-                ("Content-Length", str(file_size)),
-                ("Accept-Ranges", "bytes")
-            ]
-            def iter_bytes():
-                for offset in range(0, file_size, 8192):
-                    yield media_bytes[offset:offset+8192]
-            return iter_bytes(), 200, headers
-
-        # 2. Since the database does not have a "params" column to store base64 reference images,
-        # we can only serve reference images that are present in the active in-memory REFERENCE_CACHE.
-        # If it is not in the cache, and belongs to private MyEdit S3, return 404 directly to prevent hangs.
-        if "cl-aol-media" in url or "cyberlink" in url:
-            return iter([]), 404, []
-
-    if "dec_aes_key=" in url:
-        import urllib.parse as urlparse
-        try:
-            parsed = urlparse.urlparse(url)
-            params = urlparse.parse_qs(parsed.query)
-            
-            aes_key_hex = params.get("dec_aes_key", [None])[0]
-            enc_key_b64 = params.get("dec_enc_key", [None])[0]
-            enc_iv_b64 = params.get("dec_enc_iv", [None])[0]
-            ts_ms_str = params.get("dec_ts_ms", [None])[0]
-            
-            # Base64 strings in query parameters often have '+' replaced with space ' ' by parsing libraries.
-            # Restore '+' characters.
-            if enc_key_b64:
-                enc_key_b64 = enc_key_b64.replace(" ", "+")
-            if enc_iv_b64:
-                enc_iv_b64 = enc_iv_b64.replace(" ", "+")
-            
-            # Reconstruct clean URL for S3 without our custom dec_* parameters
-            query_pairs = urlparse.parse_qsl(parsed.query)
-            clean_query_pairs = [(k, v) for k, v in query_pairs if not k.startswith("dec_")]
-            clean_query = urlparse.urlencode(clean_query_pairs)
-            clean_url = urlparse.urlunparse((
-                parsed.scheme,
-                parsed.netloc,
-                parsed.path,
-                parsed.params,
-                clean_query,
-                parsed.fragment
-            ))
-            
-            if aes_key_hex and enc_key_b64 and enc_iv_b64 and ts_ms_str:
-                fwd_headers = {
-                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
-                }
-                resp = requests.get(clean_url, headers=fwd_headers, timeout=60)
-                resp.raise_for_status()
-                enc_bytes = resp.content
-                
-                aes_key = bytes.fromhex(aes_key_hex)
-                raw_key = decrypt_myedit_aes_gcm(aes_key, enc_key_b64, int(ts_ms_str), 0)
-                raw_iv = decrypt_myedit_aes_gcm(aes_key, enc_iv_b64, int(ts_ms_str), 0)
-                aesgcm = AESGCM(raw_key)
-                decrypted_bytes = aesgcm.decrypt(raw_iv, enc_bytes, None)
-                
-                file_size = len(decrypted_bytes)
-                mime_type = "video/mp4" if parsed.path.lower().endswith(".mp4") else "image/jpeg"
-                
-                headers = [
-                    ("Content-Type", mime_type),
-                    ("Accept-Ranges", "bytes")
-                ]
-                
-                start = 0
-                end = file_size - 1
-                status_code = 200
-                
-                if range_header and range_header.startswith("bytes="):
-                    try:
-                        ranges = range_header.replace("bytes=", "").split("-")
-                        if ranges[0]:
-                            start = int(ranges[0])
-                        if len(ranges) > 1 and ranges[1]:
-                            end = int(ranges[1])
-                        status_code = 206
-                        headers.append(("Content-Range", f"bytes {start}-{end}/{file_size}"))
-                    except Exception:
-                        pass
-                
-                headers.append(("Content-Length", str(end - start + 1)))
-                
-                def iter_bytes():
-                    offset = start
-                    while offset <= end:
-                        chunk_end = min(offset + 8192, end + 1)
-                        yield decrypted_bytes[offset:chunk_end]
-                        offset = chunk_end
-                        
-                return iter_bytes(), status_code, headers
-        except Exception as e:
-            print(f"Decryption proxy error: {e}")
-            return iter([]), 500, []
-
-    # Standard HTTP url streaming proxy
+    # HTTP url streaming proxy
     fwd_headers = {
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     }

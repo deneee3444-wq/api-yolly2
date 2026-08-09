@@ -2709,77 +2709,7 @@ def process_music_task(task_id, params, api_key_id):
 def get_tts_voices(api_key_id):
     return [], "TTS not supported by this service"
 
-def get_reference_media_by_url_from_db(url):
-    """Retrieves reference image/video from the database task params by matching the S3 URL in reference_image_urls."""
-    import urllib.parse as urlparse
-    parsed = urlparse.urlparse(url)
-    path = parsed.path
-    
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    try:
-        query_val = f"%{path}%"
-        if db.DB_TYPE == 'postgresql':
-            cursor.execute('SELECT params FROM tasks WHERE reference_image_urls LIKE %s', (query_val,))
-        else:
-            cursor.execute('SELECT params FROM tasks WHERE reference_image_urls LIKE ?', (query_val,))
-        row = cursor.fetchone()
-        if row:
-            params_str = None
-            if isinstance(row, dict):
-                params_str = row.get("params")
-            elif isinstance(row, tuple) or isinstance(row, list):
-                params_str = row[0]
-            else:
-                params_str = getattr(row, "params", None)
-                
-            if params_str:
-                params_dict = json.loads(params_str)
-                filename = os.path.basename(path)
-                
-                match = re.search(r'(?:input\.|source_)(\d+)', filename)
-                idx = 0
-                if match:
-                    if "input." in filename:
-                        idx = int(match.group(1)) - 1
-                    else:
-                        idx = int(match.group(1))
-                    if idx < 0:
-                        idx = 0
-                elif "first" in filename:
-                    idx = 0
-                elif "end" in filename:
-                    idx = 1
 
-                images = params_dict.get("reference_images", [])
-                videos = params_dict.get("reference_videos", [])
-                start_frame = params_dict.get("start_frame")
-                end_frame = params_dict.get("end_frame")
-
-                b64_data = None
-                mime_type = "image/jpeg"
-
-                if "first" in filename and start_frame:
-                    b64_data = start_frame
-                elif "end" in filename and end_frame:
-                    b64_data = end_frame
-                elif "video" in filename or filename.endswith(".mp4"):
-                    if idx < len(videos):
-                        b64_data = videos[idx]
-                        mime_type = "video/mp4"
-                else:
-                    if idx < len(images):
-                        b64_data = images[idx]
-
-                if b64_data:
-                    if "," in b64_data:
-                        b64_data = b64_data.split(",")[1]
-                    return base64.b64decode(b64_data), mime_type
-    except Exception as e:
-        print(f"Error fetching reference by URL from DB: {e}")
-    finally:
-        conn.close()
-    return None, None
 
 def proxy_request(url, range_header=None):
     """Local or HTTP Proxy implementation for serving files."""
@@ -2816,7 +2746,7 @@ def proxy_request(url, range_header=None):
             return iter([]), 404, []
 
     if "Vgen/source" in url or "TEXT_TO_IMAGE_source" in url or "input." in url:
-        # 1. Check in-memory cache first
+        # 1. Check in-memory cache
         cached = REFERENCE_CACHE.get(url)
         if cached:
             media_bytes, mime_type = cached
@@ -2831,25 +2761,9 @@ def proxy_request(url, range_header=None):
                     yield media_bytes[offset:offset+8192]
             return iter_bytes(), 200, headers
 
-        # 2. Check DB fallback
-        try:
-            media_bytes, mime_type = get_reference_media_by_url_from_db(url)
-            if media_bytes:
-                file_size = len(media_bytes)
-                headers = [
-                    ("Content-Type", mime_type),
-                    ("Content-Length", str(file_size)),
-                    ("Accept-Ranges", "bytes")
-                ]
-                def iter_bytes():
-                    for offset in range(0, file_size, 8192):
-                        yield media_bytes[offset:offset+8192]
-                return iter_bytes(), 200, headers
-        except Exception as e:
-            print(f"DB reference proxy error: {e}")
-            return iter([]), 500, []
-
-        # 3. If missing from cache & DB, and belongs to private MyEdit S3, return 404 directly to prevent hangs.
+        # 2. Since the database does not have a "params" column to store base64 reference images,
+        # we can only serve reference images that are present in the active in-memory REFERENCE_CACHE.
+        # If it is not in the cache, and belongs to private MyEdit S3, return 404 directly to prevent hangs.
         if "cl-aol-media" in url or "cyberlink" in url:
             return iter([]), 404, []
 
@@ -2863,6 +2777,13 @@ def proxy_request(url, range_header=None):
             enc_key_b64 = params.get("dec_enc_key", [None])[0]
             enc_iv_b64 = params.get("dec_enc_iv", [None])[0]
             ts_ms_str = params.get("dec_ts_ms", [None])[0]
+            
+            # Base64 strings in query parameters often have '+' replaced with space ' ' by parsing libraries.
+            # Restore '+' characters.
+            if enc_key_b64:
+                enc_key_b64 = enc_key_b64.replace(" ", "+")
+            if enc_iv_b64:
+                enc_iv_b64 = enc_iv_b64.replace(" ", "+")
             
             # Reconstruct clean URL for S3 without our custom dec_* parameters
             query_pairs = urlparse.parse_qsl(parsed.query)

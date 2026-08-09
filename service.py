@@ -1884,31 +1884,29 @@ def generate_ai_image_service(
 
         if status == "Done":
             files = poll_json.get("files", [])
+            s3_files = []
+            dec_metadata = None
             for idx, f in enumerate(files):
-                fname = f.get("name", "")
                 furl = f.get("url", "")
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
 
                 if furl:
-                    ext = output_format.lower()
-                    prefix = filename_prefix if filename_prefix else "generated_image"
-                    out_filename = f"{prefix}_{idx+1}.{ext}"
-                    if enc_key and enc_iv:
-                        dec_path = decrypt_downloaded_media(furl, aes_key, enc_key, enc_iv, ts_ms, output_path=out_filename)
-                        if dec_path:
-                            decrypted_files.append(dec_path)
-                    else:
-                        try:
-                            resp_dl = requests.get(furl, timeout=60)
-                            resp_dl.raise_for_status()
-                            with open(out_filename, "wb") as out_f:
-                                out_f.write(resp_dl.content)
-                            decrypted_files.append(os.path.abspath(out_filename))
-                        except Exception:
-                            pass
-            return {"status": "Done", "files": decrypted_files, "reference_urls": uploaded_reference_urls}
+                    s3_files.append(furl)
+                    if enc_key and enc_iv and not dec_metadata:
+                        dec_metadata = {
+                            "aes_key": aes_key.hex(),
+                            "enc_key": enc_key,
+                            "enc_iv": enc_iv,
+                            "ts_ms": ts_ms
+                        }
+            return {
+                "status": "Done",
+                "files": s3_files,
+                "reference_urls": uploaded_reference_urls,
+                "decryption_metadata": dec_metadata
+            }
 
         if status in ("Error", "Failed"):
             return {"status": "Failed", "error": poll_json, "reference_urls": uploaded_reference_urls}
@@ -2279,29 +2277,30 @@ def generate_ai_video_service(
 
         if status == "Done":
             files = poll_json.get("files", [])
+            s3_files = []
+            dec_metadata = None
             for idx, f in enumerate(files):
-                fname = f.get("name", "")
                 furl = f.get("url", "")
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
 
-                if enc_key and enc_iv and furl:
-                    prefix = filename_prefix if filename_prefix else "generated_video"
-                    thumb_prefix = filename_prefix if filename_prefix else "thumbnail"
-                    media_prefix = filename_prefix if filename_prefix else "generated_media"
-                    if ".mp4" in fname.lower() or ".mp4" in furl.lower():
-                        out_filename = f"{prefix}_{idx+1}.mp4"
-                    elif ".jpg" in fname.lower() or ".jpeg" in fname.lower() or ".jpg" in furl.lower():
-                        out_filename = f"{thumb_prefix}_{idx+1}.jpg"
-                    else:
-                        out_filename = f"{media_prefix}_{idx+1}.bin"
-
-                    dec_path = decrypt_downloaded_media(furl, aes_key, enc_key, enc_iv, ts_ms, output_path=out_filename)
-                    if dec_path:
-                        decrypted_files.append(dec_path)
+                if furl:
+                    s3_files.append(furl)
+                    if enc_key and enc_iv and not dec_metadata:
+                        dec_metadata = {
+                            "aes_key": aes_key.hex(),
+                            "enc_key": enc_key,
+                            "enc_iv": enc_iv,
+                            "ts_ms": ts_ms
+                        }
             cleanup_temp_images()
-            return {"status": "Done", "files": decrypted_files, "reference_urls": uploaded_reference_urls}
+            return {
+                "status": "Done",
+                "files": s3_files,
+                "reference_urls": uploaded_reference_urls,
+                "decryption_metadata": dec_metadata
+            }
 
         if status in ("Error", "Failed"):
             cleanup_temp_images()
@@ -2522,7 +2521,13 @@ def process_image_task(task_id, params, api_key_id):
         check_task_bonus(member_token, feature_id)
 
         # Update database token
-        token_data = json.dumps({"member_token": member_token})
+        token_data = json.dumps({
+            "member_token": member_token,
+            "reference_images": params.get('reference_images', []),
+            "reference_videos": params.get('reference_videos', []),
+            "start_frame": params.get('start_frame'),
+            "end_frame": params.get('end_frame')
+        })
         db.update_task_token(task_id, token_data)
         db.add_task_log(task_id, str(task_id))
 
@@ -2541,6 +2546,23 @@ def process_image_task(task_id, params, api_key_id):
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
+            dec_metadata = result.get("decryption_metadata")
+            token_data_dict = {
+                "member_token": member_token,
+                "reference_images": params.get('reference_images', []),
+                "reference_videos": params.get('reference_videos', []),
+                "start_frame": params.get('start_frame'),
+                "end_frame": params.get('end_frame')
+            }
+            if dec_metadata:
+                token_data_dict.update({
+                    "dec_aes_key": dec_metadata.get("aes_key"),
+                    "dec_enc_key": dec_metadata.get("enc_key"),
+                    "dec_enc_iv": dec_metadata.get("enc_iv"),
+                    "dec_ts_ms": dec_metadata.get("ts_ms")
+                })
+            db.update_task_token(task_id, json.dumps(token_data_dict))
+
             if completed_files:
                 db.update_task_status(task_id, 'completed', completed_files[0])
             else:
@@ -2635,7 +2657,13 @@ def process_video_task(task_id, params, api_key_id):
         check_task_bonus(member_token, feature_id=input_mode)
 
         # Update database token
-        token_data = json.dumps({"member_token": member_token})
+        token_data = json.dumps({
+            "member_token": member_token,
+            "reference_images": params.get('reference_images', []),
+            "reference_videos": params.get('reference_videos', []),
+            "start_frame": params.get('start_frame'),
+            "end_frame": params.get('end_frame')
+        })
         db.update_task_token(task_id, token_data)
         db.add_task_log(task_id, str(task_id))
 
@@ -2661,6 +2689,23 @@ def process_video_task(task_id, params, api_key_id):
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
             video_file = next((f for f in completed_files if f.endswith(".mp4")), None)
+            dec_metadata = result.get("decryption_metadata")
+            token_data_dict = {
+                "member_token": member_token,
+                "reference_images": params.get('reference_images', []),
+                "reference_videos": params.get('reference_videos', []),
+                "start_frame": params.get('start_frame'),
+                "end_frame": params.get('end_frame')
+            }
+            if dec_metadata:
+                token_data_dict.update({
+                    "dec_aes_key": dec_metadata.get("aes_key"),
+                    "dec_enc_key": dec_metadata.get("enc_key"),
+                    "dec_enc_iv": dec_metadata.get("enc_iv"),
+                    "dec_ts_ms": dec_metadata.get("ts_ms")
+                })
+            db.update_task_token(task_id, json.dumps(token_data_dict))
+
             if video_file:
                 db.update_task_status(task_id, 'completed', video_file)
             else:
@@ -2702,6 +2747,11 @@ def get_tts_voices(api_key_id):
 def proxy_request(url, range_header=None):
     """Local or HTTP Proxy implementation for serving files."""
     import urllib.parse as urlparse
+    import json
+    import re
+    import base64
+
+    # 1. Clean double proxy url prefix
     while True:
         if "/proxy?url=" in url:
             parsed_temp = urlparse.urlparse(url)
@@ -2733,7 +2783,167 @@ def proxy_request(url, range_header=None):
         else:
             return iter([]), 404, []
 
-    # HTTP url streaming proxy
+    # 2. Check if this is a private MyEdit S3 URL
+    is_myedit_s3 = "cl-aol-media" in url or "cyberlink" in url
+    
+    if is_myedit_s3:
+        # Match task from database using URL path
+        parsed_url = urlparse.urlparse(url)
+        url_path = parsed_url.path  # e.g. /Vgen/results/Credit/59723825/thumbnail.jpg or /source/Tti/2zcmqgbdbdrks/input.1.jpg
+        
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        task_row = None
+        try:
+            # We look for url_path in result_url or reference_image_urls
+            query_val = f"%{url_path}%"
+            if db.DB_TYPE == 'postgresql':
+                cursor.execute('SELECT token FROM tasks WHERE result_url LIKE %s OR reference_image_urls LIKE %s', (query_val, query_val))
+            else:
+                cursor.execute('SELECT token FROM tasks WHERE result_url LIKE ? OR reference_image_urls LIKE ?', (query_val, query_val))
+            row = cursor.fetchone()
+            if row:
+                if isinstance(row, dict):
+                    task_row = row.get("token")
+                elif isinstance(row, tuple) or isinstance(row, list):
+                    task_row = row[0]
+                else:
+                    task_row = getattr(row, "token", None)
+        except Exception as e:
+            print(f"Proxy db query error: {e}")
+        finally:
+            cursor.close()
+            conn.close()
+
+        if task_row:
+            try:
+                task_data = json.loads(task_row)
+            except Exception:
+                task_data = {}
+
+            # Case A: Requesting a reference image/video from the database
+            if "source" in url_path or "input." in url_path:
+                filename = os.path.basename(url_path)
+                match = re.search(r'(?:input\.|source_)(\d+)', filename)
+                idx = 0
+                if match:
+                    if "input." in filename:
+                        idx = int(match.group(1)) - 1
+                    else:
+                        idx = int(match.group(1))
+                    if idx < 0:
+                        idx = 0
+                elif "first" in filename:
+                    idx = 0
+                elif "end" in filename:
+                    idx = 1
+
+                images = task_data.get("reference_images", [])
+                videos = task_data.get("reference_videos", [])
+                start_frame = task_data.get("start_frame")
+                end_frame = task_data.get("end_frame")
+
+                b64_data = None
+                mime_type = "image/jpeg"
+
+                if "first" in filename and start_frame:
+                    b64_data = start_frame
+                elif "end" in filename and end_frame:
+                    b64_data = end_frame
+                elif "video" in filename or filename.endswith(".mp4"):
+                    if idx < len(videos):
+                        b64_data = videos[idx]
+                        mime_type = "video/mp4"
+                else:
+                    if idx < len(images):
+                        b64_data = images[idx]
+
+                if b64_data:
+                    if "," in b64_data:
+                        b64_data = b64_data.split(",")[1]
+                    media_bytes = base64.b64decode(b64_data)
+                    file_size = len(media_bytes)
+                    headers = [
+                        ("Content-Type", mime_type),
+                        ("Content-Length", str(file_size)),
+                        ("Accept-Ranges", "bytes")
+                    ]
+                    def iter_bytes():
+                        for offset in range(0, file_size, 8192):
+                            yield media_bytes[offset:offset+8192]
+                    return iter_bytes(), 200, headers
+                else:
+                    return iter([]), 404, []
+
+            # Case B: Requesting a VGEN result video (which requires decryption keys)
+            dec_aes_key = task_data.get("dec_aes_key")
+            dec_enc_key = task_data.get("dec_enc_key")
+            dec_enc_iv = task_data.get("dec_enc_iv")
+            dec_ts_ms = task_data.get("dec_ts_ms")
+
+            if dec_aes_key and dec_enc_key and dec_enc_iv and dec_ts_ms:
+                try:
+                    fwd_headers = {
+                        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+                    }
+                    resp = requests.get(url, headers=fwd_headers, timeout=60)
+                    resp.raise_for_status()
+                    enc_bytes = resp.content
+
+                    aes_key = bytes.fromhex(dec_aes_key)
+                    
+                    # Restore '+' characters in base64 URL params if corrupted
+                    dec_enc_key = dec_enc_key.replace(" ", "+")
+                    dec_enc_iv = dec_enc_iv.replace(" ", "+")
+
+                    raw_key = decrypt_myedit_aes_gcm(aes_key, dec_enc_key, int(dec_ts_ms), 0)
+                    raw_iv = decrypt_myedit_aes_gcm(aes_key, dec_enc_iv, int(dec_ts_ms), 0)
+                    aesgcm = AESGCM(raw_key)
+                    decrypted_bytes = aesgcm.decrypt(raw_iv, enc_bytes, None)
+
+                    file_size = len(decrypted_bytes)
+                    mime_type = "video/mp4" if url_path.lower().endswith(".mp4") else "image/jpeg"
+
+                    headers = [
+                        ("Content-Type", mime_type),
+                        ("Accept-Ranges", "bytes")
+                    ]
+
+                    start = 0
+                    end = file_size - 1
+                    status_code = 200
+
+                    if range_header and range_header.startswith("bytes="):
+                        try:
+                            ranges = range_header.replace("bytes=", "").split("-")
+                            if ranges[0]:
+                                start = int(ranges[0])
+                            if len(ranges) > 1 and ranges[1]:
+                                end = int(ranges[1])
+                            status_code = 206
+                            headers.append(("Content-Range", f"bytes {start}-{end}/{file_size}"))
+                        except Exception:
+                            pass
+
+                    headers.append(("Content-Length", str(end - start + 1)))
+
+                    def iter_bytes():
+                        offset = start
+                        while offset <= end:
+                            chunk_end = min(offset + 8192, end + 1)
+                            yield decrypted_bytes[offset:chunk_end]
+                            offset = chunk_end
+
+                    return iter_bytes(), status_code, headers
+                except Exception as e:
+                    print(f"Decryption proxy error: {e}")
+                    return iter([]), 500, []
+
+        # If it is a private MyEdit S3 URL but not found in tasks or has no decryption keys,
+        # return 404 directly to avoid connection hangs/timeout.
+        return iter([]), 404, []
+
+    # 3. Standard HTTP url streaming proxy (for other non-MyEdit URLs)
     fwd_headers = {
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     }

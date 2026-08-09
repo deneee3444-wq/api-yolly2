@@ -928,6 +928,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "max_reference_images": 9,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
             "supported_resolutions": ["480p", "720p"],
@@ -943,6 +944,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "max_reference_images": 9,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
             "supported_resolutions": ["1080p"],
@@ -958,6 +960,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "max_reference_images": 9,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
             "supported_resolutions": ["1080p"],
@@ -973,6 +976,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "max_reference_images": 5,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
             "supported_resolutions": ["720p", "1080p"],
@@ -988,6 +992,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16"],
             "supported_durations": [4, 6, 8],
             "supported_resolutions": ["720p", "1080p", "4k"],
@@ -1003,6 +1008,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16"],
             "supported_durations": [4, 6, 8],
             "supported_resolutions": ["720p", "1080p", "4k"],
@@ -1018,6 +1024,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16"],
             "supported_durations": [4, 8],
             "supported_resolutions": ["1080p"],
@@ -1033,6 +1040,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
             "supported_resolutions": ["720p", "1080p", "4k"],
@@ -1048,6 +1056,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
             "supported_resolutions": ["720p", "1080p", "4k"],
@@ -1063,6 +1072,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10],
             "supported_resolutions": ["1080p"],
@@ -1078,6 +1088,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": False,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10],
             "supported_resolutions": ["720p"],
@@ -1092,7 +1103,8 @@ AVAILABLE_MODELS = {
             "description": "Kling 2.5 Pro by Kling",
             "supports_start_frame": True,
             "supports_end_frame": True,
-            "supported_reference_images": False,
+            "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10],
             "supported_resolutions": ["1080p"],
@@ -1108,6 +1120,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [4, 8, 16],
             "supported_resolutions": ["720p"],
@@ -1123,6 +1136,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [4, 8, 16],
             "supported_resolutions": ["1080p"],
@@ -1138,6 +1152,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 8],
             "supported_resolutions": ["720p"],
@@ -1153,6 +1168,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
             "supported_resolutions": ["1080p"],
@@ -1168,6 +1184,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": False,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16"],
             "supported_durations": [4, 8, 12],
             "supported_resolutions": ["720p"],
@@ -1183,6 +1200,7 @@ AVAILABLE_MODELS = {
             "supports_start_frame": True,
             "supports_end_frame": False,
             "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16"],
             "supported_durations": [4, 8, 12],
             "supported_resolutions": ["720p", "1080p"],
@@ -1731,6 +1749,7 @@ def generate_ai_image_service(
     raw_session_token = decrypt_myedit_aes_gcm(aes_key, s_token_b64, ts_ms, 0)
 
     uploaded_sources_list = []
+    uploaded_reference_urls = []
     if loaded_images_bytes:
         put_headers = {
             "User-Agent": HEADERS["User-Agent"],
@@ -1759,6 +1778,9 @@ def generate_ai_image_service(
             resp_link = requests.post(get_link_url, data={"filename": fname, "filesize": fsize}, headers=headers, timeout=30)
             resp_link.raise_for_status()
             storage_url = resp_link.json()["storage"]
+            
+            clean_url = storage_url.split("?")[0]
+            uploaded_reference_urls.append(clean_url)
 
             resp_upload = requests.put(storage_url, data=img_bytes, headers=put_headers, timeout=30)
             resp_upload.raise_for_status()
@@ -1856,35 +1878,25 @@ def generate_ai_image_service(
         if status == "Done":
             files = poll_json.get("files", [])
             for idx, f in enumerate(files):
-                fname = f.get("name", "")
                 furl = f.get("url", "")
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
 
                 if furl:
-                    ext = output_format.lower()
-                    prefix = filename_prefix if filename_prefix else "generated_image"
-                    out_filename = f"{prefix}_{idx+1}.{ext}"
                     if enc_key and enc_iv:
-                        dec_path = decrypt_downloaded_media(furl, aes_key, enc_key, enc_iv, ts_ms, output_path=out_filename)
-                        if dec_path:
-                            decrypted_files.append(dec_path)
+                        aes_key_hex = aes_key.hex()
+                        sep = "&" if "?" in furl else "?"
+                        final_url = f"{furl}{sep}dec_aes_key={aes_key_hex}&dec_enc_key={enc_key}&dec_enc_iv={enc_iv}&dec_ts_ms={ts_ms}"
+                        decrypted_files.append(final_url)
                     else:
-                        try:
-                            resp_dl = requests.get(furl, timeout=60)
-                            resp_dl.raise_for_status()
-                            with open(out_filename, "wb") as out_f:
-                                out_f.write(resp_dl.content)
-                            decrypted_files.append(os.path.abspath(out_filename))
-                        except Exception:
-                            pass
-            return {"status": "Done", "files": decrypted_files}
+                        decrypted_files.append(furl)
+            return {"status": "Done", "files": decrypted_files, "reference_urls": uploaded_reference_urls}
 
         if status in ("Error", "Failed"):
-            return {"status": "Failed", "error": poll_json}
+            return {"status": "Failed", "error": poll_json, "reference_urls": uploaded_reference_urls}
 
-    return {"status": "Timeout"}
+    return {"status": "Timeout", "reference_urls": uploaded_reference_urls}
 
 def generate_ai_video_service(
     member_token: str,
@@ -2094,11 +2106,16 @@ def generate_ai_video_service(
     s_token_b64 = init_json["s_token"]
     raw_session_token = decrypt_myedit_aes_gcm(aes_key, s_token_b64, ts_ms, 0)
 
+    uploaded_reference_urls = []
     if prepared_media:
         media_info_list = init_json.get("media_info", [])
         for i, item in enumerate(prepared_media):
             if i < len(media_info_list) and "url" in media_info_list[i]:
                 upload_url = media_info_list[i]["url"]
+                
+                clean_url = upload_url.split("?")[0]
+                uploaded_reference_urls.append(clean_url)
+
                 with open(item["path"], 'rb') as f:
                     file_data = f.read()
                 content_type = 'video/mp4' if item["type"] == "video" else 'image/jpeg'
@@ -2242,35 +2259,28 @@ def generate_ai_video_service(
         if status == "Done":
             files = poll_json.get("files", [])
             for idx, f in enumerate(files):
-                fname = f.get("name", "")
                 furl = f.get("url", "")
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
 
-                if enc_key and enc_iv and furl:
-                    prefix = filename_prefix if filename_prefix else "generated_video"
-                    thumb_prefix = filename_prefix if filename_prefix else "thumbnail"
-                    media_prefix = filename_prefix if filename_prefix else "generated_media"
-                    if ".mp4" in fname.lower() or ".mp4" in furl.lower():
-                        out_filename = f"{prefix}_{idx+1}.mp4"
-                    elif ".jpg" in fname.lower() or ".jpeg" in fname.lower() or ".jpg" in furl.lower():
-                        out_filename = f"{thumb_prefix}_{idx+1}.jpg"
+                if furl:
+                    if enc_key and enc_iv:
+                        aes_key_hex = aes_key.hex()
+                        sep = "&" if "?" in furl else "?"
+                        final_url = f"{furl}{sep}dec_aes_key={aes_key_hex}&dec_enc_key={enc_key}&dec_enc_iv={enc_iv}&dec_ts_ms={ts_ms}"
+                        decrypted_files.append(final_url)
                     else:
-                        out_filename = f"{media_prefix}_{idx+1}.bin"
-
-                    dec_path = decrypt_downloaded_media(furl, aes_key, enc_key, enc_iv, ts_ms, output_path=out_filename)
-                    if dec_path:
-                        decrypted_files.append(dec_path)
+                        decrypted_files.append(furl)
             cleanup_temp_images()
-            return {"status": "Done", "files": decrypted_files}
+            return {"status": "Done", "files": decrypted_files, "reference_urls": uploaded_reference_urls}
 
         if status in ("Error", "Failed"):
             cleanup_temp_images()
-            return {"status": "Failed", "error": poll_json}
+            return {"status": "Failed", "error": poll_json, "reference_urls": uploaded_reference_urls}
 
     cleanup_temp_images()
-    return {"status": "Timeout"}
+    return {"status": "Timeout", "reference_urls": uploaded_reference_urls}
 
 # ==============================================================================
 # service.py LOGIC & WRAPPERS
@@ -2486,7 +2496,7 @@ def process_image_task(task_id, params, api_key_id):
         # Update database token
         token_data = json.dumps({"member_token": member_token})
         db.update_task_token(task_id, token_data)
-        db.add_task_log(task_id, f"Submitting task {task_id} using model {model}...")
+        db.add_task_log(task_id, str(task_id))
 
         # Run generate_ai_image_service
         result = generate_ai_image_service(
@@ -2499,6 +2509,10 @@ def process_image_task(task_id, params, api_key_id):
             batch_size=str(batch_size),
             filename_prefix=f"task_{task_id}"
         )
+
+        reference_urls = result.get("reference_urls", [])
+        if reference_urls:
+            db.update_task_reference_urls(task_id, reference_urls)
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
@@ -2598,7 +2612,7 @@ def process_video_task(task_id, params, api_key_id):
         # Update database token
         token_data = json.dumps({"member_token": member_token})
         db.update_task_token(task_id, token_data)
-        db.add_task_log(task_id, f"Submitting task {task_id} using model {model}...")
+        db.add_task_log(task_id, str(task_id))
 
         # Run generate_ai_video_service
         result = generate_ai_video_service(
@@ -2617,6 +2631,10 @@ def process_video_task(task_id, params, api_key_id):
             frame_mode=frame_mode,
             filename_prefix=f"task_{task_id}"
         )
+
+        reference_urls = result.get("reference_urls", [])
+        if reference_urls:
+            db.update_task_reference_urls(task_id, reference_urls)
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
@@ -2680,7 +2698,83 @@ def proxy_request(url, range_header=None):
         else:
             return iter([]), 404, []
 
-    # HTTP url streaming proxy
+    if "dec_aes_key=" in url:
+        import urllib.parse as urlparse
+        try:
+            parsed = urlparse.urlparse(url)
+            params = urlparse.parse_qs(parsed.query)
+            
+            aes_key_hex = params.get("dec_aes_key", [None])[0]
+            enc_key_b64 = params.get("dec_enc_key", [None])[0]
+            enc_iv_b64 = params.get("dec_enc_iv", [None])[0]
+            ts_ms_str = params.get("dec_ts_ms", [None])[0]
+            
+            # Reconstruct clean URL for S3 without our custom dec_* parameters
+            query_pairs = urlparse.parse_qsl(parsed.query)
+            clean_query_pairs = [(k, v) for k, v in query_pairs if not k.startswith("dec_")]
+            clean_query = urlparse.urlencode(clean_query_pairs)
+            clean_url = urlparse.urlunparse((
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                clean_query,
+                parsed.fragment
+            ))
+            
+            if aes_key_hex and enc_key_b64 and enc_iv_b64 and ts_ms_str:
+                fwd_headers = {
+                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+                }
+                resp = requests.get(clean_url, headers=fwd_headers, timeout=60)
+                resp.raise_for_status()
+                enc_bytes = resp.content
+                
+                aes_key = bytes.fromhex(aes_key_hex)
+                raw_key = decrypt_myedit_aes_gcm(aes_key, enc_key_b64, int(ts_ms_str), 0)
+                raw_iv = decrypt_myedit_aes_gcm(aes_key, enc_iv_b64, int(ts_ms_str), 0)
+                aesgcm = AESGCM(raw_key)
+                decrypted_bytes = aesgcm.decrypt(raw_iv, enc_bytes, None)
+                
+                file_size = len(decrypted_bytes)
+                mime_type = "video/mp4" if parsed.path.lower().endswith(".mp4") else "image/jpeg"
+                
+                headers = [
+                    ("Content-Type", mime_type),
+                    ("Accept-Ranges", "bytes")
+                ]
+                
+                start = 0
+                end = file_size - 1
+                status_code = 200
+                
+                if range_header and range_header.startswith("bytes="):
+                    try:
+                        ranges = range_header.replace("bytes=", "").split("-")
+                        if ranges[0]:
+                            start = int(ranges[0])
+                        if len(ranges) > 1 and ranges[1]:
+                            end = int(ranges[1])
+                        status_code = 206
+                        headers.append(("Content-Range", f"bytes {start}-{end}/{file_size}"))
+                    except Exception:
+                        pass
+                
+                headers.append(("Content-Length", str(end - start + 1)))
+                
+                def iter_bytes():
+                    offset = start
+                    while offset <= end:
+                        chunk_end = min(offset + 8192, end + 1)
+                        yield decrypted_bytes[offset:chunk_end]
+                        offset = chunk_end
+                        
+                return iter_bytes(), status_code, headers
+        except Exception as e:
+            print(f"Decryption proxy error: {e}")
+            return iter([]), 500, []
+
+    # Standard HTTP url streaming proxy
     fwd_headers = {
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
     }

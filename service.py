@@ -2787,10 +2787,65 @@ def proxy_request(url, range_header=None):
     is_myedit_s3 = "cl-aol-media" in url or "cyberlink" in url
     
     if is_myedit_s3:
-        # Match task from database using URL path
+        import hashlib
         parsed_url = urlparse.urlparse(url)
         url_path = parsed_url.path  # e.g. /Vgen/results/Credit/59723825/thumbnail.jpg or /source/Tti/2zcmqgbdbdrks/input.1.jpg
         
+        # Create MD5 hash of the url_path to serve as a unique, safe filename
+        url_path_hash = hashlib.md5(url_path.encode('utf-8')).hexdigest()
+        ext = ".mp4" if url_path.lower().endswith(".mp4") else ".jpg"
+        
+        cache_dir = "cache"
+        if not os.path.exists(cache_dir):
+            try:
+                os.makedirs(cache_dir)
+            except Exception:
+                pass
+        
+        local_cache_path = os.path.join(cache_dir, f"{url_path_hash}{ext}")
+
+        # A. If already cached locally, stream it directly from disk (supports seek/range!)
+        if os.path.exists(local_cache_path):
+            file_size = os.path.getsize(local_cache_path)
+            mime_type = "video/mp4" if ext == ".mp4" else "image/jpeg"
+            headers = [
+                ("Content-Type", mime_type),
+                ("Accept-Ranges", "bytes")
+            ]
+            
+            start = 0
+            end = file_size - 1
+            status_code = 200
+
+            if range_header and range_header.startswith("bytes="):
+                try:
+                    ranges = range_header.replace("bytes=", "").split("-")
+                    if ranges[0]:
+                        start = int(ranges[0])
+                    if len(ranges) > 1 and ranges[1]:
+                        end = int(ranges[1])
+                    status_code = 206
+                    headers.append(("Content-Range", f"bytes {start}-{end}/{file_size}"))
+                except Exception:
+                    pass
+
+            headers.append(("Content-Length", str(end - start + 1)))
+
+            def iter_cached_file():
+                with open(local_cache_path, "rb") as f:
+                    f.seek(start)
+                    offset = start
+                    while offset <= end:
+                        chunk_end = min(offset + 8192, end + 1)
+                        chunk = f.read(chunk_end - offset)
+                        if not chunk:
+                            break
+                        yield chunk
+                        offset += len(chunk)
+
+            return iter_cached_file(), status_code, headers
+
+        # B. If not cached, lookup task in database to fetch decryption keys / base64
         conn = db.get_connection()
         cursor = conn.cursor()
         task_row = None
@@ -2821,7 +2876,7 @@ def proxy_request(url, range_header=None):
             except Exception:
                 task_data = {}
 
-            # Case A: Requesting a reference image/video from the database
+            # Case B1: Requesting a reference image/video from the database
             if "source" in url_path or "input." in url_path:
                 filename = os.path.basename(url_path)
                 match = re.search(r'(?:input\.|source_)(\d+)', filename)
@@ -2862,6 +2917,14 @@ def proxy_request(url, range_header=None):
                     if "," in b64_data:
                         b64_data = b64_data.split(",")[1]
                     media_bytes = base64.b64decode(b64_data)
+                    
+                    # Write decoded data to local cache
+                    try:
+                        with open(local_cache_path, "wb") as f:
+                            f.write(media_bytes)
+                    except Exception:
+                        pass
+
                     file_size = len(media_bytes)
                     headers = [
                         ("Content-Type", mime_type),
@@ -2875,72 +2938,79 @@ def proxy_request(url, range_header=None):
                 else:
                     return iter([]), 404, []
 
-            # Case B: Requesting a VGEN result video (which requires decryption keys)
+            # Case B2: Requesting a VGEN result video/image (requires decryption if keys are present)
             dec_aes_key = task_data.get("dec_aes_key")
             dec_enc_key = task_data.get("dec_enc_key")
             dec_enc_iv = task_data.get("dec_enc_iv")
             dec_ts_ms = task_data.get("dec_ts_ms")
 
-            if dec_aes_key and dec_enc_key and dec_enc_iv and dec_ts_ms:
-                try:
-                    fwd_headers = {
-                        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
-                    }
-                    resp = requests.get(url, headers=fwd_headers, timeout=60)
-                    resp.raise_for_status()
-                    enc_bytes = resp.content
+            try:
+                fwd_headers = {
+                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+                }
+                resp = requests.get(url, headers=fwd_headers, timeout=60)
+                resp.raise_for_status()
+                raw_bytes = resp.content
 
+                if dec_aes_key and dec_enc_key and dec_enc_iv and dec_ts_ms:
+                    # File is encrypted, decrypt it
                     aes_key = bytes.fromhex(dec_aes_key)
-                    
-                    # Restore '+' characters in base64 URL params if corrupted
                     dec_enc_key = dec_enc_key.replace(" ", "+")
                     dec_enc_iv = dec_enc_iv.replace(" ", "+")
 
                     raw_key = decrypt_myedit_aes_gcm(aes_key, dec_enc_key, int(dec_ts_ms), 0)
                     raw_iv = decrypt_myedit_aes_gcm(aes_key, dec_enc_iv, int(dec_ts_ms), 0)
                     aesgcm = AESGCM(raw_key)
-                    decrypted_bytes = aesgcm.decrypt(raw_iv, enc_bytes, None)
+                    decrypted_bytes = aesgcm.decrypt(raw_iv, raw_bytes, None)
+                else:
+                    # File is not encrypted, use raw bytes directly
+                    decrypted_bytes = raw_bytes
 
-                    file_size = len(decrypted_bytes)
-                    mime_type = "video/mp4" if url_path.lower().endswith(".mp4") else "image/jpeg"
+                # Write to local cache
+                try:
+                    with open(local_cache_path, "wb") as f:
+                        f.write(decrypted_bytes)
+                except Exception:
+                    pass
 
-                    headers = [
-                        ("Content-Type", mime_type),
-                        ("Accept-Ranges", "bytes")
-                    ]
+                file_size = len(decrypted_bytes)
+                mime_type = "video/mp4" if url_path.lower().endswith(".mp4") else "image/jpeg"
 
-                    start = 0
-                    end = file_size - 1
-                    status_code = 200
+                headers = [
+                    ("Content-Type", mime_type),
+                    ("Accept-Ranges", "bytes")
+                ]
 
-                    if range_header and range_header.startswith("bytes="):
-                        try:
-                            ranges = range_header.replace("bytes=", "").split("-")
-                            if ranges[0]:
-                                start = int(ranges[0])
-                            if len(ranges) > 1 and ranges[1]:
-                                end = int(ranges[1])
-                            status_code = 206
-                            headers.append(("Content-Range", f"bytes {start}-{end}/{file_size}"))
-                        except Exception:
-                            pass
+                start = 0
+                end = file_size - 1
+                status_code = 200
 
-                    headers.append(("Content-Length", str(end - start + 1)))
+                if range_header and range_header.startswith("bytes="):
+                    try:
+                        ranges = range_header.replace("bytes=", "").split("-")
+                        if ranges[0]:
+                            start = int(ranges[0])
+                        if len(ranges) > 1 and ranges[1]:
+                            end = int(ranges[1])
+                        status_code = 206
+                        headers.append(("Content-Range", f"bytes {start}-{end}/{file_size}"))
+                    except Exception:
+                        pass
 
-                    def iter_bytes():
-                        offset = start
-                        while offset <= end:
-                            chunk_end = min(offset + 8192, end + 1)
-                            yield decrypted_bytes[offset:chunk_end]
-                            offset = chunk_end
+                headers.append(("Content-Length", str(end - start + 1)))
 
-                    return iter_bytes(), status_code, headers
-                except Exception as e:
-                    print(f"Decryption proxy error: {e}")
-                    return iter([]), 500, []
+                def iter_bytes():
+                    offset = start
+                    while offset <= end:
+                        chunk_end = min(offset + 8192, end + 1)
+                        yield decrypted_bytes[offset:chunk_end]
+                        offset = chunk_end
 
-        # If it is a private MyEdit S3 URL but not found in tasks or has no decryption keys,
-        # return 404 directly to avoid connection hangs/timeout.
+                return iter_bytes(), status_code, headers
+            except Exception as e:
+                print(f"Proxy fetch/decryption error: {e}")
+                return iter([]), 500, []
+
         return iter([]), 404, []
 
     # 3. Standard HTTP url streaming proxy (for other non-MyEdit URLs)

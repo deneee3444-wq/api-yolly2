@@ -1817,7 +1817,7 @@ def generate_ai_image_service(
             uploaded_sources_list.append(idx + 1)
 
         if task_id and uploaded_reference_urls:
-            proxy_ref_urls = [f"https://api-yolly2-fiqk.onrender.com/proxy?url={url}" for url in uploaded_reference_urls]
+            proxy_ref_urls = [f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={url}" for url in uploaded_reference_urls]
             db.update_task_reference_urls(task_id, proxy_ref_urls)
 
     sources_str = json.dumps(uploaded_sources_list)
@@ -2158,7 +2158,7 @@ def generate_ai_video_service(
                 resp_upload = requests.put(upload_url, data=file_data, headers={'Content-Type': content_type})
 
         if task_id and uploaded_reference_urls:
-            proxy_ref_urls = [f"https://api-yolly2-fiqk.onrender.com/proxy?url={url}" for url in uploaded_reference_urls]
+            proxy_ref_urls = [f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={url}" for url in uploaded_reference_urls]
             db.update_task_reference_urls(task_id, proxy_ref_urls)
 
     req_ts_ms = int(time.time() * 1000)
@@ -2554,7 +2554,7 @@ def process_image_task(task_id, params, api_key_id):
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
             if completed_files:
-                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/proxy?url={completed_files[0]}")
+                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={completed_files[0]}")
             else:
                 db.update_task_status(task_id, 'failed')
                 db.add_task_log(task_id, "No generated files returned.")
@@ -2674,9 +2674,9 @@ def process_video_task(task_id, params, api_key_id):
             completed_files = result.get("files", [])
             video_file = next((f for f in completed_files if f.endswith(".mp4")), None)
             if video_file:
-                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/proxy?url={video_file}")
+                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={video_file}")
             else:
-                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/proxy?url={completed_files[0]}" if completed_files else "")
+                db.update_task_status(task_id, 'completed', f"https://api-yolly2-fiqk.onrender.com/api/proxy?url={completed_files[0]}" if completed_files else "")
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
             db.release_account(api_key_id, account['email'])

@@ -2687,9 +2687,8 @@ def process_video_task(task_id, params, api_key_id):
         )
 
         if result.get("status") == "Done":
-            import urllib.parse as urlparse
             completed_files = result.get("files", [])
-            video_file = next((f for f in completed_files if urlparse.urlparse(f).path.lower().endswith(".mp4")), None)
+            video_file = next((f for f in completed_files if ".mp4" in f.lower() and "thumbnail" not in f.lower()), None)
             dec_metadata = result.get("decryption_metadata")
             token_data_dict = {
                 "member_token": member_token,

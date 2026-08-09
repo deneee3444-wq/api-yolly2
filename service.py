@@ -25,6 +25,34 @@ import database as db
 _shutdown_event = threading.Event()
 atexit.register(lambda: _shutdown_event.set())
 
+class SimpleLRUCache:
+    def __init__(self, maxsize=100):
+        self.maxsize = maxsize
+        self.cache = {}
+        self.keys = []
+        self.lock = threading.Lock()
+
+    def set(self, key, value):
+        with self.lock:
+            if key in self.cache:
+                self.keys.remove(key)
+            self.cache[key] = value
+            self.keys.append(key)
+            if len(self.keys) > self.maxsize:
+                oldest = self.keys.pop(0)
+                self.cache.pop(oldest, None)
+
+    def get(self, key):
+        with self.lock:
+            if key in self.cache:
+                self.keys.remove(key)
+                self.keys.append(key)
+                return self.cache[key]
+            return None
+
+REFERENCE_CACHE = SimpleLRUCache(maxsize=100)
+
+
 # ==============================================================================
 # MYEDIT API ENDPOINT'LERI VE SABITLER
 # ==============================================================================
@@ -1782,6 +1810,7 @@ def generate_ai_image_service(
             
             clean_url = storage_url.split("?")[0]
             uploaded_reference_urls.append(clean_url)
+            REFERENCE_CACHE.set(clean_url, (img_bytes, "image/jpeg"))
 
             resp_upload = requests.put(storage_url, data=img_bytes, headers=put_headers, timeout=30)
             resp_upload.raise_for_status()
@@ -2125,6 +2154,7 @@ def generate_ai_video_service(
                 with open(item["path"], 'rb') as f:
                     file_data = f.read()
                 content_type = 'video/mp4' if item["type"] == "video" else 'image/jpeg'
+                REFERENCE_CACHE.set(clean_url, (file_data, content_type))
                 resp_upload = requests.put(upload_url, data=file_data, headers={'Content-Type': content_type})
 
         if task_id and uploaded_reference_urls:
@@ -2753,6 +2783,17 @@ def get_reference_media_by_url_from_db(url):
 
 def proxy_request(url, range_header=None):
     """Local or HTTP Proxy implementation for serving files."""
+    import urllib.parse as urlparse
+    while True:
+        if "/proxy?url=" in url:
+            parsed_temp = urlparse.urlparse(url)
+            params_temp = urlparse.parse_qs(parsed_temp.query)
+            nested_url = params_temp.get("url", [None])[0]
+            if nested_url:
+                url = nested_url
+                continue
+        break
+
     if not url.startswith("http://") and not url.startswith("https://"):
         # Local file path
         if os.path.exists(url):
@@ -2775,6 +2816,22 @@ def proxy_request(url, range_header=None):
             return iter([]), 404, []
 
     if "Vgen/source" in url or "TEXT_TO_IMAGE_source" in url or "input." in url:
+        # 1. Check in-memory cache first
+        cached = REFERENCE_CACHE.get(url)
+        if cached:
+            media_bytes, mime_type = cached
+            file_size = len(media_bytes)
+            headers = [
+                ("Content-Type", mime_type),
+                ("Content-Length", str(file_size)),
+                ("Accept-Ranges", "bytes")
+            ]
+            def iter_bytes():
+                for offset in range(0, file_size, 8192):
+                    yield media_bytes[offset:offset+8192]
+            return iter_bytes(), 200, headers
+
+        # 2. Check DB fallback
         try:
             media_bytes, mime_type = get_reference_media_by_url_from_db(url)
             if media_bytes:
@@ -2791,6 +2848,10 @@ def proxy_request(url, range_header=None):
         except Exception as e:
             print(f"DB reference proxy error: {e}")
             return iter([]), 500, []
+
+        # 3. If missing from cache & DB, and belongs to private MyEdit S3, return 404 directly to prevent hangs.
+        if "cl-aol-media" in url or "cyberlink" in url:
+            return iter([]), 404, []
 
     if "dec_aes_key=" in url:
         import urllib.parse as urlparse

@@ -1938,7 +1938,7 @@ def _fetch_real_video_url_from_consume(consume_task_id, aes_key, raw_session_tok
             rf_task = rf.get("task", {})
             if rf_name.lower().endswith(".mp4") or (".mp4" in rf_url.lower() and "thumbnail" not in rf_url.lower()):
                 print(f"[THUMBNAIL-FIX] Found real video URL: {rf_url[:100]}...")
-                result = {"url": rf_url}
+                result = {"url": rf_url, "req_ts_ms": req_ts_ms}
                 pkey = rf_task.get("permanent_key")
                 piv = rf_task.get("permanent_iv")
                 if pkey and piv:
@@ -1952,7 +1952,7 @@ def _fetch_real_video_url_from_consume(consume_task_id, aes_key, raw_session_tok
             rf_task = result_files[0].get("task", {})
             if first_url and "thumbnail" not in first_url.lower():
                 print(f"[THUMBNAIL-FIX] Using fallback first file URL: {first_url[:100]}...")
-                result = {"url": first_url}
+                result = {"url": first_url, "req_ts_ms": req_ts_ms}
                 pkey = rf_task.get("permanent_key")
                 piv = rf_task.get("permanent_iv")
                 if pkey and piv:
@@ -2388,7 +2388,7 @@ def generate_ai_video_service(
                                     "aes_key": aes_key.hex(),
                                     "enc_key": consume_result["permanent_key"],
                                     "enc_iv": consume_result["permanent_iv"],
-                                    "ts_ms": ts_ms
+                                    "ts_ms": consume_result.get("req_ts_ms", ts_ms)
                                 }
                 except Exception as consume_err:
                     print(f"[THUMBNAIL-FIX] Failed to fetch real URL via consume API: {consume_err}")

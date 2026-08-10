@@ -2276,104 +2276,6 @@ def generate_ai_video_service(
         status = poll_json.get("status")
 
         if status == "Done":
-            # Attempt 1: Fetch the actual video files and decryption keys from info/consume/.../tasks/files
-            try:
-                consume_url = f"https://myedit.online/info/consume/{enc_token_hex}-{s_id_str}-{req_ts_ms}/tasks/files"
-                consume_headers = {
-                    "User-Agent": HEADERS["User-Agent"],
-                    "Authorization": f"Bearer {member_token}",
-                    "x-subscription-token": headers_init.get("x-subscription-token", "")
-                }
-                consume_data = {
-                    "consume_task_id": (None, str(task_id)),
-                    "sync_status": (None, "1,2"),
-                    "sort_by": (None, "created_time asc")
-                }
-                resp_consume = requests.post(consume_url, headers=consume_headers, files=consume_data, timeout=30)
-                if resp_consume.status_code == 200:
-                    consume_json = resp_consume.json()
-                    consume_files = consume_json.get("files", [])
-                    if consume_files:
-                        s3_files = []
-                        dec_metadata = None
-                        for idx, f in enumerate(consume_files):
-                            furl = f.get("url", "")
-                            task_info = f.get("task", {})
-                            enc_key = task_info.get("permanent_key") or init_json.get("p_key")
-                            enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
-                            
-                            if furl:
-                                s3_files.append(furl)
-                                if enc_key and enc_iv and not dec_metadata:
-                                    dec_metadata = {
-                                        "aes_key": aes_key.hex(),
-                                        "enc_key": enc_key,
-                                        "enc_iv": enc_iv,
-                                        "ts_ms": ts_ms
-                                    }
-                        if s3_files:
-                            cleanup_temp_images()
-                            return {
-                                "status": "Done",
-                                "files": s3_files,
-                                "reference_urls": uploaded_reference_urls,
-                                "decryption_metadata": dec_metadata
-                            }
-            except Exception as consume_err:
-                print(f"Consume files endpoint error: {consume_err}")
-
-            # Attempt 2: Fetch files from storage/results or storage/result endpoints
-            candidates = [
-                f"https://myedit.online/vgen/effect/{enc_token_hex}-{s_id_str}-{req_ts_ms}/storage/results",
-                f"https://myedit.online/vgen/effect/{enc_token_hex}-{s_id_str}-{req_ts_ms}/storage/result",
-                f"https://myedit.online/vgen/effect/{enc_token_hex}-{s_id_str}-{req_ts_ms}/{task_id}/storage/results",
-                f"https://myedit.online/vgen/effect/{enc_token_hex}-{s_id_str}-{req_ts_ms}/{task_id}/storage/result"
-            ]
-            for storage_url in candidates:
-                try:
-                    storage_headers = {
-                        "User-Agent": HEADERS["User-Agent"],
-                        "Authorization": f"Bearer {member_token}",
-                        "x-subscription-token": headers_init.get("x-subscription-token", "")
-                    }
-                    resp_storage = requests.get(storage_url, headers=storage_headers, timeout=30)
-                    if resp_storage.status_code == 200:
-                        storage_json = resp_storage.json()
-                        storage_val = storage_json.get("storage")
-                        s3_files = []
-                        if isinstance(storage_val, list):
-                            for item in storage_val:
-                                if isinstance(item, dict):
-                                    furl = item.get("url") or item.get("storage")
-                                    if furl:
-                                        s3_files.append(furl)
-                                elif isinstance(item, str) and item:
-                                    s3_files.append(item)
-                        elif isinstance(storage_val, str) and storage_val:
-                            s3_files.append(storage_val)
-
-                        if s3_files:
-                            enc_key = init_json.get("p_key")
-                            enc_iv = init_json.get("p_iv")
-                            dec_metadata = None
-                            if enc_key and enc_iv:
-                                dec_metadata = {
-                                    "aes_key": aes_key.hex(),
-                                    "enc_key": enc_key,
-                                    "enc_iv": enc_iv,
-                                    "ts_ms": ts_ms
-                                }
-                            cleanup_temp_images()
-                            return {
-                                "status": "Done",
-                                "files": s3_files,
-                                "reference_urls": uploaded_reference_urls,
-                                "decryption_metadata": dec_metadata
-                            }
-                except Exception as storage_err:
-                    print(f"Error querying candidate storage URL {storage_url}: {storage_err}")
-
-            # Attempt 3 (Fallback): Fetch from the standard polling files list
             files = poll_json.get("files", [])
             s3_files = []
             dec_metadata = None
@@ -2786,9 +2688,7 @@ def process_video_task(task_id, params, api_key_id):
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
-            db.add_task_log(task_id, f"Completed files from MyEdit: {json.dumps(completed_files)}")
             video_file = next((f for f in completed_files if ".mp4" in f.lower() and "thumbnail" not in f.lower()), None)
-            db.add_task_log(task_id, f"Selected video file: {video_file}")
             dec_metadata = result.get("decryption_metadata")
             token_data_dict = {
                 "member_token": member_token,

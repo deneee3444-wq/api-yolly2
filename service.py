@@ -1889,8 +1889,9 @@ def generate_ai_image_service(
             for idx, f in enumerate(files):
                 furl = f.get("url", "")
                 task_info = f.get("task", {})
-                enc_key = task_info.get("permanent_key") or init_json.get("p_key")
-                enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
+                # Her zaman ilk oturum anahtari (p_key) kullanilmalidir.
+                enc_key = init_json.get("p_key")
+                enc_iv = init_json.get("p_iv")
 
                 if furl:
                     s3_files.append(furl)
@@ -2282,8 +2283,9 @@ def generate_ai_video_service(
             for idx, f in enumerate(files):
                 furl = f.get("url", "")
                 task_info = f.get("task", {})
-                enc_key = task_info.get("permanent_key") or init_json.get("p_key")
-                enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
+                # Her zaman ilk oturum anahtari (p_key) kullanilmalidir.
+                enc_key = init_json.get("p_key")
+                enc_iv = init_json.get("p_iv")
 
                 if furl:
                     # If this is a thumbnail URL returned instead of the video, fetch the real mp4 URL
@@ -2323,8 +2325,7 @@ def generate_ai_video_service(
                                     
                                     furl = mp4_file.get("url", furl)
                                     rf_task = mp4_file.get("task", {})
-                                    enc_key = rf_task.get("permanent_key") or enc_key
-                                    enc_iv = rf_task.get("permanent_iv") or enc_iv
+                                    # Her zaman ilk oturum anahtari kullanilmaya devam edilmelidir.
                         except Exception as e:
                             print(f"[THUMBNAIL-FIX] Failed to fetch real video URL: {e}")
 

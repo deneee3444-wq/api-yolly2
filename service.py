@@ -2279,6 +2279,7 @@ def generate_ai_video_service(
             files = poll_json.get("files", [])
             s3_files = []
             dec_metadata = None
+            dec_ts = ts_ms
             for idx, f in enumerate(files):
                 furl = f.get("url", "")
                 task_info = f.get("task", {})
@@ -2325,6 +2326,7 @@ def generate_ai_video_service(
                                     rf_task = mp4_file.get("task", {})
                                     enc_key = rf_task.get("permanent_key") or enc_key
                                     enc_iv = rf_task.get("permanent_iv") or enc_iv
+                                    dec_ts = rf_task.get("created_time") or rf_task.get("applied_time") or ts_ms
                         except Exception as e:
                             print(f"[THUMBNAIL-FIX] Failed to fetch real video URL: {e}")
 
@@ -2334,7 +2336,7 @@ def generate_ai_video_service(
                             "aes_key": aes_key.hex(),
                             "enc_key": enc_key,
                             "enc_iv": enc_iv,
-                            "ts_ms": ts_ms
+                            "ts_ms": dec_ts
                         }
             cleanup_temp_images()
             return {

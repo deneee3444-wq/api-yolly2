@@ -2276,6 +2276,53 @@ def generate_ai_video_service(
         status = poll_json.get("status")
 
         if status == "Done":
+            # Fetch the actual video files and decryption keys from info/consume/.../tasks/files
+            try:
+                consume_url = f"https://myedit.online/info/consume/{enc_token_hex}-{s_id_str}-{req_ts_ms}/tasks/files"
+                consume_headers = {
+                    "User-Agent": HEADERS["User-Agent"],
+                    "Authorization": f"Bearer {member_token}",
+                    "x-subscription-token": f"Bearer {sub_token}"
+                }
+                consume_data = {
+                    "consume_task_id": (None, str(task_id)),
+                    "sync_status": (None, "1,2"),
+                    "sort_by": (None, "created_time asc")
+                }
+                resp_consume = requests.post(consume_url, headers=consume_headers, files=consume_data, timeout=30)
+                if resp_consume.status_code == 200:
+                    consume_json = resp_consume.json()
+                    consume_files = consume_json.get("files", [])
+                    if consume_files:
+                        s3_files = []
+                        dec_metadata = None
+                        for idx, f in enumerate(consume_files):
+                            furl = f.get("url", "")
+                            task_info = f.get("task", {})
+                            enc_key = task_info.get("permanent_key") or init_json.get("p_key")
+                            enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
+                            
+                            if furl:
+                                s3_files.append(furl)
+                                if enc_key and enc_iv and not dec_metadata:
+                                    dec_metadata = {
+                                        "aes_key": aes_key.hex(),
+                                        "enc_key": enc_key,
+                                        "enc_iv": enc_iv,
+                                        "ts_ms": ts_ms
+                                    }
+                        if s3_files:
+                            cleanup_temp_images()
+                            return {
+                                "status": "Done",
+                                "files": s3_files,
+                                "reference_urls": uploaded_reference_urls,
+                                "decryption_metadata": dec_metadata
+                            }
+            except Exception as consume_err:
+                print(f"Consume files endpoint error: {consume_err}")
+
+            # Fallback to the standard polling response if the consume endpoint call failed or returned no files
             files = poll_json.get("files", [])
             s3_files = []
             dec_metadata = None

@@ -2284,7 +2284,6 @@ def generate_ai_video_service(
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
-                dec_ts = (init_json.get("applied_time") or ts_ms) if task_info.get("permanent_key") else ts_ms
 
                 if furl:
                     # If this is a thumbnail URL returned instead of the video, fetch the real mp4 URL
@@ -2326,7 +2325,6 @@ def generate_ai_video_service(
                                     rf_task = mp4_file.get("task", {})
                                     enc_key = rf_task.get("permanent_key") or enc_key
                                     enc_iv = rf_task.get("permanent_iv") or enc_iv
-                                    dec_ts = init_json.get("applied_time") or ts_ms
                         except Exception as e:
                             print(f"[THUMBNAIL-FIX] Failed to fetch real video URL: {e}")
 
@@ -2336,7 +2334,7 @@ def generate_ai_video_service(
                             "aes_key": aes_key.hex(),
                             "enc_key": enc_key,
                             "enc_iv": enc_iv,
-                            "ts_ms": dec_ts
+                            "ts_ms": ts_ms
                         }
             cleanup_temp_images()
             return {

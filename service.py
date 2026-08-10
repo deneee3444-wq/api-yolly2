@@ -43,6 +43,7 @@ SUB_AUTH_URL = "https://myedit.online/api/cloud/subscriptions/auth"
 MYEDIT_TTI_URL = "https://myedit.online/tti/effect"
 MYEDIT_VGEN_URL = "https://myedit.online/vgen/effect"
 MYEDIT_VGEN_BUSY_URL = "https://myedit.online/vgen/effect/busy"
+MYEDIT_CONSUME_URL = "https://myedit.online/info/consume"
 
 AES_IV = b"CyberLinkCSE"  # CSE modulu icin 12 byte sabit IV
 CREDIT_IV = b"CyberLinkCredit"  # Credit modulu icin 16 byte IV ve AAD
@@ -1913,6 +1914,155 @@ def generate_ai_image_service(
 
     return {"status": "Timeout", "reference_urls": uploaded_reference_urls}
 
+def _fetch_real_video_url_from_consume(member_token, aes_key, ts_ms, rsa_pub_key, effect_mode, headers_init):
+    """Fetch real video URL from /info/consume/tasks/files endpoint.
+    
+    The VGEN polling endpoint sometimes returns thumbnail.jpg URLs for video results.
+    The consume API provides the actual .mp4 download URL.
+    
+    Flow:
+    1. POST /info/consume -> get consume session (s_id, s_token)
+    2. POST /info/consume/{token}/tasks -> get consume_task_id
+    3. POST /info/consume/{token}/tasks/files -> get real video URL
+    """
+    try:
+        # Step 1: Init consume session
+        consume_aes_key = AESGCM.generate_key(bit_length=256)
+        consume_ts_ms = int(time.time() * 1000)
+        key_param = rsa_encrypt_aes_key(rsa_pub_key, consume_aes_key)
+
+        # Encrypt receipt (minimal, no consumption needed for queries)
+        receipt_obj = {
+            "product": "MyEdit",
+            "version": "3.9.0",
+            "versiontype": "3.9.0",
+            "platform": "web"
+        }
+        receipt_json = json.dumps(receipt_obj, separators=(',', ':'))
+        receipt_param = encrypt_myedit_aes_gcm(consume_aes_key, receipt_json, consume_ts_ms, 0)
+
+        # Encrypt member_token
+        member_token_param = encrypt_myedit_aes_gcm(consume_aes_key, member_token, consume_ts_ms, 0)
+
+        consume_headers = {
+            "User-Agent": HEADERS["User-Agent"],
+            "Origin": "https://myedit.online",
+            "Referer": "https://myedit.online/en/create/library/video/text-to-video",
+        }
+
+        files_init = {
+            "receipt": (None, receipt_param),
+            "member_token": (None, member_token_param),
+            "key": (None, key_param),
+            "timestamp": (None, str(consume_ts_ms)),
+        }
+
+        resp_init = requests.post(MYEDIT_CONSUME_URL, files=files_init, headers=consume_headers, timeout=30)
+        resp_init.raise_for_status()
+        consume_init = resp_init.json()
+
+        c_s_id_str = str(consume_init["s_id"])
+        c_s_id_int = int(c_s_id_str)
+        c_s_token_b64 = consume_init["s_token"]
+        c_raw_session_token = decrypt_myedit_aes_gcm(consume_aes_key, c_s_token_b64, consume_ts_ms, 0)
+
+        print(f"[THUMBNAIL-FIX] Consume session initialized: s_id={c_s_id_str}")
+
+        # Step 2: Get consume_task_id via /tasks
+        req_ts_ms = int(time.time() * 1000)
+        enc_token_hex = encrypt_myedit_aes_gcm_hex(consume_aes_key, c_raw_session_token, req_ts_ms, c_s_id_int)
+        tasks_url = f"{MYEDIT_CONSUME_URL}/{enc_token_hex}-{c_s_id_str}-{req_ts_ms}/tasks"
+
+        # Map effect_mode to feature_id list for consume API
+        feature_ids = "TextToVideo,ReferenceToVideo" if effect_mode in ("TextToVideo", "ReferenceToVideo") else "ImageToVideo,TextToVideo,ReferenceToVideo"
+
+        tasks_form = {
+            "cl_sid": (None, SID_AOL_POL),
+            "feature_id": (None, feature_ids),
+            "sync_status": (None, "1,2"),
+        }
+
+        resp_tasks = requests.post(tasks_url, files=tasks_form, headers=consume_headers, timeout=30)
+        resp_tasks.raise_for_status()
+        tasks_json = resp_tasks.json()
+
+        tasks_list = tasks_json.get("tasks", [])
+        if not tasks_list:
+            print(f"[THUMBNAIL-FIX] No tasks found in consume response")
+            return None
+
+        # Get the most recent task (last in list, or first with status Done)
+        consume_task_id = None
+        for t in tasks_list:
+            if t.get("status") == "Done":
+                consume_task_id = t.get("consume_task_id")
+                break
+        if not consume_task_id and tasks_list:
+            consume_task_id = tasks_list[0].get("consume_task_id")
+
+        if not consume_task_id:
+            print(f"[THUMBNAIL-FIX] No consume_task_id found")
+            return None
+
+        print(f"[THUMBNAIL-FIX] Found consume_task_id: {consume_task_id}")
+
+        # Step 3: Get real file URL via /tasks/files
+        req_ts_ms2 = int(time.time() * 1000)
+        enc_token_hex2 = encrypt_myedit_aes_gcm_hex(consume_aes_key, c_raw_session_token, req_ts_ms2, c_s_id_int)
+        files_url = f"{MYEDIT_CONSUME_URL}/{enc_token_hex2}-{c_s_id_str}-{req_ts_ms2}/tasks/files"
+
+        files_form = {
+            "consume_task_id": (None, str(consume_task_id)),
+            "sync_status": (None, "1,2"),
+            "sort_by": (None, "created_time asc"),
+        }
+
+        resp_files = requests.post(files_url, files=files_form, headers=consume_headers, timeout=30)
+        resp_files.raise_for_status()
+        files_json = resp_files.json()
+
+        result_files = files_json.get("files", [])
+        for rf in result_files:
+            rf_url = rf.get("url", "")
+            rf_name = rf.get("name", "")
+            rf_task = rf.get("task", {})
+            if rf_name.lower().endswith(".mp4") or (".mp4" in rf_url.lower() and "thumbnail" not in rf_url.lower()):
+                print(f"[THUMBNAIL-FIX] Found real video URL: {rf_url[:100]}...")
+                result = {"url": rf_url}
+                # Include permanent_key/iv from consume response for decryption
+                pkey = rf_task.get("permanent_key")
+                piv = rf_task.get("permanent_iv")
+                if pkey and piv:
+                    result["permanent_key"] = pkey
+                    result["permanent_iv"] = piv
+                    result["consume_aes_key"] = consume_aes_key.hex()
+                    result["consume_ts_ms"] = consume_ts_ms
+                return result
+
+        # Fallback: return first file URL if any
+        if result_files:
+            first_url = result_files[0].get("url", "")
+            rf_task = result_files[0].get("task", {})
+            if first_url and "thumbnail" not in first_url.lower():
+                print(f"[THUMBNAIL-FIX] Using fallback first file URL: {first_url[:100]}...")
+                result = {"url": first_url}
+                pkey = rf_task.get("permanent_key")
+                piv = rf_task.get("permanent_iv")
+                if pkey and piv:
+                    result["permanent_key"] = pkey
+                    result["permanent_iv"] = piv
+                    result["consume_aes_key"] = consume_aes_key.hex()
+                    result["consume_ts_ms"] = consume_ts_ms
+                return result
+
+        print(f"[THUMBNAIL-FIX] No real video URL found in tasks/files response")
+        return None
+
+    except Exception as e:
+        print(f"[THUMBNAIL-FIX] Error in consume API flow: {e}")
+        return None
+
+
 def generate_ai_video_service(
     member_token: str,
     user_prompt: str = "a cute astronaut cat floating in space station, cinematic lighting",
@@ -2295,6 +2445,42 @@ def generate_ai_video_service(
                             "enc_iv": enc_iv,
                             "ts_ms": ts_ms
                         }
+
+            # --- Thumbnail URL fix: fetch real video URL via consume/tasks/files ---
+            # The polling endpoint sometimes returns thumbnail.jpg URL even for video results.
+            # When this happens, we need to fetch the actual .mp4 URL from the consume API.
+            has_only_thumbnail_urls = all(
+                "thumbnail" in f_item.get("url", "").lower()
+                for f_item in files if f_item.get("url")
+            )
+            if has_only_thumbnail_urls and s3_files:
+                try:
+                    consume_result = _fetch_real_video_url_from_consume(
+                        member_token, aes_key, ts_ms, rsa_pub_key,
+                        effect_mode, headers_init
+                    )
+                    if consume_result and consume_result.get("url"):
+                        real_url = consume_result["url"]
+                        # Replace the thumbnail URL with the real video URL
+                        for sf in s3_files:
+                            if sf.get("name", "").lower().endswith(".mp4") or "thumbnail" in sf.get("url", "").lower():
+                                print(f"[THUMBNAIL-FIX] Replacing thumbnail URL with real video URL")
+                                sf["url"] = real_url
+                                break
+                        # Update decryption metadata from consume response
+                        # The consume endpoint provides its own permanent_key/iv which
+                        # correspond to the actual video file's encryption
+                        if consume_result.get("permanent_key") and consume_result.get("permanent_iv"):
+                            dec_metadata = {
+                                "aes_key": consume_result.get("consume_aes_key", aes_key.hex()),
+                                "enc_key": consume_result["permanent_key"],
+                                "enc_iv": consume_result["permanent_iv"],
+                                "ts_ms": consume_result.get("consume_ts_ms", ts_ms)
+                            }
+                except Exception as consume_err:
+                    print(f"[THUMBNAIL-FIX] Failed to fetch real URL via consume API: {consume_err}")
+            # --- End thumbnail URL fix ---
+
             cleanup_temp_images()
             return {
                 "status": "Done",

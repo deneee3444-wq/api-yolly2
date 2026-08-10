@@ -2282,40 +2282,6 @@ def generate_ai_video_service(
             for idx, f in enumerate(files):
                 furl = f.get("url", "")
                 fname = f.get("name", "")
-                
-                # If URL looks like a thumbnail but name implies video, get real URL from tasks/files
-                if furl and ("thumbnail.jpg" in furl.lower() or furl.lower().endswith(".jpg") or furl.lower().endswith(".jpeg")):
-                    import re
-                    match = re.search(r'/Credit/(\d+)/', furl)
-                    if match:
-                        consume_task_id = match.group(1)
-                        try:
-                            files_url = f"https://myedit.online/info/consume/{enc_token_hex}-{s_id_str}-{req_ts_ms}/tasks/files"
-                            files_payload = {
-                                "consume_task_id": (None, str(consume_task_id)),
-                                "sync_status": (None, "1,2"),
-                                "sort_by": (None, "created_time asc")
-                            }
-                            files_headers = {
-                                "User-Agent": HEADERS["User-Agent"],
-                                "Origin": "https://myedit.online",
-                                "Referer": referer_url,
-                                "Accept": "application/json, text/plain, */*"
-                            }
-                            resp_files = requests.post(files_url, files=files_payload, headers=files_headers, timeout=30)
-                            if resp_files.status_code == 200:
-                                files_data = resp_files.json().get("files", [])
-                                if files_data:
-                                    video_file_item = next((item for item in files_data if item.get("name", "").lower().endswith(".mp4")), files_data[0])
-                                    new_url = video_file_item.get("url")
-                                    if new_url:
-                                        print(f"  [+] Replacing thumbnail URL with actual video URL from tasks/files: {new_url}")
-                                        furl = new_url
-                                        fname = video_file_item.get("name", fname)
-                                        f = video_file_item
-                        except Exception as e:
-                            print(f"  [-] Failed to fetch real video URL from tasks/files: {e}")
-
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")

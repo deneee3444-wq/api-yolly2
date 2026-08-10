@@ -2281,12 +2281,13 @@ def generate_ai_video_service(
             dec_metadata = None
             for idx, f in enumerate(files):
                 furl = f.get("url", "")
+                fname = f.get("name", "")
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
 
                 if furl:
-                    s3_files.append(furl)
+                    s3_files.append({"url": furl, "name": fname})
                     if enc_key and enc_iv and not dec_metadata:
                         dec_metadata = {
                             "aes_key": aes_key.hex(),
@@ -2688,7 +2689,31 @@ def process_video_task(task_id, params, api_key_id):
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
-            video_file = next((f for f in completed_files if ".mp4" in f.lower() and "thumbnail" not in f.lower()), None)
+            # completed_files is now a list of dicts: {"url": ..., "name": ...}
+            # Use 'name' field to identify video files since API sometimes returns
+            # thumbnail.jpg URL for actual video results
+            video_entry = None
+            for f_entry in completed_files:
+                if isinstance(f_entry, dict):
+                    f_name = f_entry.get("name", "").lower()
+                    f_url = f_entry.get("url", "").lower()
+                    if f_name.endswith(".mp4") or (".mp4" in f_url and "thumbnail" not in f_url):
+                        video_entry = f_entry
+                        break
+                elif isinstance(f_entry, str):
+                    # Backward compat: eski format (sadece URL string)
+                    if ".mp4" in f_entry.lower() and "thumbnail" not in f_entry.lower():
+                        video_entry = f_entry
+                        break
+
+            # Extract the URL for storage
+            if isinstance(video_entry, dict):
+                video_file = video_entry.get("url", "")
+            elif isinstance(video_entry, str):
+                video_file = video_entry
+            else:
+                video_file = None
+
             dec_metadata = result.get("decryption_metadata")
             token_data_dict = {
                 "member_token": member_token,
@@ -2709,7 +2734,11 @@ def process_video_task(task_id, params, api_key_id):
             if video_file:
                 db.update_task_status(task_id, 'completed', video_file)
             else:
-                db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
+                # Fallback: ilk dosyanın URL'sini al
+                first_file = completed_files[0] if completed_files else ""
+                if isinstance(first_file, dict):
+                    first_file = first_file.get("url", "")
+                db.update_task_status(task_id, 'completed', first_file)
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
             db.release_account(api_key_id, account['email'])
@@ -2793,6 +2822,7 @@ def proxy_request(url, range_header=None):
         
         # Create MD5 hash of the url_path to serve as a unique, safe filename
         url_path_hash = hashlib.md5(url_path.encode('utf-8')).hexdigest()
+        # Initial extension guess from URL (may be wrong for thumbnail.jpg containing video)
         ext = ".mp4" if url_path.lower().endswith(".mp4") else ".jpg"
         
         cache_dir = "cache"
@@ -2985,7 +3015,33 @@ def proxy_request(url, range_header=None):
                     pass
 
                 file_size = len(decrypted_bytes)
-                mime_type = "video/mp4" if url_path.lower().endswith(".mp4") else "image/jpeg"
+                # Detect actual file type from magic bytes (URL path may be misleading,
+                # e.g. thumbnail.jpg URL containing encrypted video data)
+                if decrypted_bytes[:4] in (b'\x00\x00\x00\x18', b'\x00\x00\x00\x1c', b'\x00\x00\x00\x20', b'\x00\x00\x00\x14') and b'ftyp' in decrypted_bytes[:12]:
+                    # MP4 file (ftyp box)
+                    actual_ext = ".mp4"
+                    mime_type = "video/mp4"
+                elif decrypted_bytes[:3] == b'\xff\xd8\xff':
+                    # JPEG file
+                    actual_ext = ".jpg"
+                    mime_type = "image/jpeg"
+                elif decrypted_bytes[:4] == b'\x89PNG':
+                    # PNG file
+                    actual_ext = ".png"
+                    mime_type = "image/png"
+                elif decrypted_bytes[:4] == b'RIFF' and decrypted_bytes[8:12] == b'WEBP':
+                    # WEBP file
+                    actual_ext = ".webp"
+                    mime_type = "image/webp"
+                else:
+                    # Fallback to URL path detection
+                    actual_ext = ext
+                    mime_type = "video/mp4" if ext == ".mp4" else "image/jpeg"
+                
+                # If actual content type differs from URL-based guess, update cache path
+                if actual_ext != ext:
+                    ext = actual_ext
+                    local_cache_path = os.path.join(cache_dir, f"{url_path_hash}{ext}")
 
                 headers = [
                     ("Content-Type", mime_type),

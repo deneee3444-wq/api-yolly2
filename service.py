@@ -2688,7 +2688,9 @@ def process_video_task(task_id, params, api_key_id):
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
+            db.add_task_log(task_id, f"Completed files from MyEdit: {json.dumps(completed_files)}")
             video_file = next((f for f in completed_files if ".mp4" in f.lower() and "thumbnail" not in f.lower()), None)
+            db.add_task_log(task_id, f"Selected video file: {video_file}")
             dec_metadata = result.get("decryption_metadata")
             token_data_dict = {
                 "member_token": member_token,

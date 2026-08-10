@@ -43,7 +43,6 @@ SUB_AUTH_URL = "https://myedit.online/api/cloud/subscriptions/auth"
 MYEDIT_TTI_URL = "https://myedit.online/tti/effect"
 MYEDIT_VGEN_URL = "https://myedit.online/vgen/effect"
 MYEDIT_VGEN_BUSY_URL = "https://myedit.online/vgen/effect/busy"
-MYEDIT_CONSUME_URL = "https://myedit.online/info/consume"
 
 AES_IV = b"CyberLinkCSE"  # CSE modulu icin 12 byte sabit IV
 CREDIT_IV = b"CyberLinkCredit"  # Credit modulu icin 16 byte IV ve AAD
@@ -1914,60 +1913,6 @@ def generate_ai_image_service(
 
     return {"status": "Timeout", "reference_urls": uploaded_reference_urls}
 
-def _fetch_real_video_url_from_consume(consume_task_id, aes_key, raw_session_token, s_id_str, s_id_int, headers_init):
-    """Fetch real video URL from /info/consume/tasks/files endpoint by reusing VGEN session."""
-    try:
-        req_ts_ms = int(time.time() * 1000)
-        enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
-        files_url = f"{MYEDIT_CONSUME_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}/tasks/files"
-
-        files_form = {
-            "consume_task_id": (None, str(consume_task_id)),
-            "sync_status": (None, "1,2"),
-            "sort_by": (None, "created_time asc"),
-        }
-
-        resp_files = requests.post(files_url, files=files_form, headers=headers_init, timeout=30)
-        resp_files.raise_for_status()
-        files_json = resp_files.json()
-
-        result_files = files_json.get("files", [])
-        for rf in result_files:
-            rf_url = rf.get("url", "")
-            rf_name = rf.get("name", "")
-            rf_task = rf.get("task", {})
-            if rf_name.lower().endswith(".mp4") or (".mp4" in rf_url.lower() and "thumbnail" not in rf_url.lower()):
-                print(f"[THUMBNAIL-FIX] Found real video URL: {rf_url[:100]}...")
-                result = {"url": rf_url, "req_ts_ms": req_ts_ms}
-                pkey = rf_task.get("permanent_key")
-                piv = rf_task.get("permanent_iv")
-                if pkey and piv:
-                    result["permanent_key"] = pkey
-                    result["permanent_iv"] = piv
-                return result
-
-        # Fallback: return first file URL if any
-        if result_files:
-            first_url = result_files[0].get("url", "")
-            rf_task = result_files[0].get("task", {})
-            if first_url and "thumbnail" not in first_url.lower():
-                print(f"[THUMBNAIL-FIX] Using fallback first file URL: {first_url[:100]}...")
-                result = {"url": first_url, "req_ts_ms": req_ts_ms}
-                pkey = rf_task.get("permanent_key")
-                piv = rf_task.get("permanent_iv")
-                if pkey and piv:
-                    result["permanent_key"] = pkey
-                    result["permanent_iv"] = piv
-                return result
-
-        print(f"[THUMBNAIL-FIX] No real video URL found in tasks/files response")
-        return None
-
-    except Exception as e:
-        print(f"[THUMBNAIL-FIX] Error in consume API simple flow: {e}")
-        return None
-
-
 def generate_ai_video_service(
     member_token: str,
     user_prompt: str = "a cute astronaut cat floating in space station, cinematic lighting",
@@ -2336,13 +2281,54 @@ def generate_ai_video_service(
             dec_metadata = None
             for idx, f in enumerate(files):
                 furl = f.get("url", "")
-                fname = f.get("name", "")
                 task_info = f.get("task", {})
                 enc_key = task_info.get("permanent_key") or init_json.get("p_key")
                 enc_iv = task_info.get("permanent_iv") or init_json.get("p_iv")
 
                 if furl:
-                    s3_files.append({"url": furl, "name": fname})
+                    # If this is a thumbnail URL returned instead of the video, fetch the real mp4 URL
+                    if "thumbnail" in furl.lower() and idx == 0:
+                        try:
+                            import re
+                            match = re.search(r'/Credit/(\d+)/', furl)
+                            if match:
+                                consume_task_id = match.group(1)
+                                req_ts_ms_consume = int(time.time() * 1000)
+                                enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms_consume, s_id_int)
+                                consume_url = f"https://myedit.online/info/consume/{enc_token_hex}-{s_id_str}-{req_ts_ms_consume}/tasks/files"
+                                
+                                files_form = {
+                                    "consume_task_id": (None, str(consume_task_id)),
+                                    "sync_status": (None, "1,2"),
+                                    "sort_by": (None, "created_time asc"),
+                                }
+                                
+                                resp_consume = requests.post(consume_url, files=files_form, headers=headers_init, timeout=30)
+                                resp_consume.raise_for_status()
+                                consume_json = resp_consume.json()
+                                
+                                result_files = consume_json.get("files", [])
+                                if result_files:
+                                    # Find the mp4 file in the consume files list
+                                    mp4_file = None
+                                    for rf in result_files:
+                                        rf_url = rf.get("url", "")
+                                        rf_name = rf.get("name", "")
+                                        if rf_name.lower().endswith(".mp4") or (".mp4" in rf_url.lower() and "thumbnail" not in rf_url.lower()):
+                                            mp4_file = rf
+                                            break
+                                    
+                                    if not mp4_file:
+                                        mp4_file = result_files[0]
+                                    
+                                    furl = mp4_file.get("url", furl)
+                                    rf_task = mp4_file.get("task", {})
+                                    enc_key = rf_task.get("permanent_key") or enc_key
+                                    enc_iv = rf_task.get("permanent_iv") or enc_iv
+                        except Exception as e:
+                            print(f"[THUMBNAIL-FIX] Failed to fetch real video URL: {e}")
+
+                    s3_files.append(furl)
                     if enc_key and enc_iv and not dec_metadata:
                         dec_metadata = {
                             "aes_key": aes_key.hex(),
@@ -2350,50 +2336,6 @@ def generate_ai_video_service(
                             "enc_iv": enc_iv,
                             "ts_ms": ts_ms
                         }
-
-            # --- Thumbnail URL fix: fetch real video URL via consume/tasks/files ---
-            # The polling endpoint sometimes returns thumbnail.jpg URL even for video results.
-            # When this happens, we need to fetch the actual .mp4 URL from the consume API.
-            has_only_thumbnail_urls = all(
-                "thumbnail" in f_item.get("url", "").lower()
-                for f_item in files if f_item.get("url")
-            )
-            if has_only_thumbnail_urls and s3_files:
-                try:
-                    import re
-                    consume_task_id = None
-                    for sf in s3_files:
-                        furl = sf.get("url", "")
-                        match = re.search(r'/Credit/(\d+)/', furl)
-                        if match:
-                            consume_task_id = match.group(1)
-                            break
-                    
-                    if consume_task_id:
-                        consume_result = _fetch_real_video_url_from_consume(
-                            consume_task_id, aes_key, raw_session_token,
-                            s_id_str, s_id_int, headers_init
-                        )
-                        if consume_result and consume_result.get("url"):
-                            real_url = consume_result["url"]
-                            # Replace the thumbnail URL with the real video URL
-                            for sf in s3_files:
-                                if sf.get("name", "").lower().endswith(".mp4") or "thumbnail" in sf.get("url", "").lower():
-                                    print(f"[THUMBNAIL-FIX] Replacing thumbnail URL with real video URL: {real_url[:100]}...")
-                                    sf["url"] = real_url
-                                    break
-                            # Update decryption metadata from consume response
-                            if consume_result.get("permanent_key") and consume_result.get("permanent_iv"):
-                                dec_metadata = {
-                                    "aes_key": aes_key.hex(),
-                                    "enc_key": consume_result["permanent_key"],
-                                    "enc_iv": consume_result["permanent_iv"],
-                                    "ts_ms": ts_ms
-                                }
-                except Exception as consume_err:
-                    print(f"[THUMBNAIL-FIX] Failed to fetch real URL via consume API: {consume_err}")
-            # --- End thumbnail URL fix ---
-
             cleanup_temp_images()
             return {
                 "status": "Done",
@@ -2788,31 +2730,7 @@ def process_video_task(task_id, params, api_key_id):
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
-            # completed_files is now a list of dicts: {"url": ..., "name": ...}
-            # Use 'name' field to identify video files since API sometimes returns
-            # thumbnail.jpg URL for actual video results
-            video_entry = None
-            for f_entry in completed_files:
-                if isinstance(f_entry, dict):
-                    f_name = f_entry.get("name", "").lower()
-                    f_url = f_entry.get("url", "").lower()
-                    if f_name.endswith(".mp4") or (".mp4" in f_url and "thumbnail" not in f_url):
-                        video_entry = f_entry
-                        break
-                elif isinstance(f_entry, str):
-                    # Backward compat: eski format (sadece URL string)
-                    if ".mp4" in f_entry.lower() and "thumbnail" not in f_entry.lower():
-                        video_entry = f_entry
-                        break
-
-            # Extract the URL for storage
-            if isinstance(video_entry, dict):
-                video_file = video_entry.get("url", "")
-            elif isinstance(video_entry, str):
-                video_file = video_entry
-            else:
-                video_file = None
-
+            video_file = next((f for f in completed_files if ".mp4" in f.lower() and "thumbnail" not in f.lower()), None)
             dec_metadata = result.get("decryption_metadata")
             token_data_dict = {
                 "member_token": member_token,
@@ -2833,11 +2751,7 @@ def process_video_task(task_id, params, api_key_id):
             if video_file:
                 db.update_task_status(task_id, 'completed', video_file)
             else:
-                # Fallback: ilk dosyanın URL'sini al
-                first_file = completed_files[0] if completed_files else ""
-                if isinstance(first_file, dict):
-                    first_file = first_file.get("url", "")
-                db.update_task_status(task_id, 'completed', first_file)
+                db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
             db.release_account(api_key_id, account['email'])
@@ -2921,7 +2835,6 @@ def proxy_request(url, range_header=None):
         
         # Create MD5 hash of the url_path to serve as a unique, safe filename
         url_path_hash = hashlib.md5(url_path.encode('utf-8')).hexdigest()
-        # Initial extension guess from URL (may be wrong for thumbnail.jpg containing video)
         ext = ".mp4" if url_path.lower().endswith(".mp4") else ".jpg"
         
         cache_dir = "cache"
@@ -2982,7 +2895,7 @@ def proxy_request(url, range_header=None):
             # We look for url_path in result_url or reference_image_urls
             query_val = f"%{url_path}%"
             if db.DB_TYPE == 'postgresql':
-                cursor.execute('SELECT token FROM tasks WHERE result_url ILIKE %s OR reference_image_urls ILIKE %s', (query_val, query_val))
+                cursor.execute('SELECT token FROM tasks WHERE result_url LIKE %s OR reference_image_urls LIKE %s', (query_val, query_val))
             else:
                 cursor.execute('SELECT token FROM tasks WHERE result_url LIKE ? OR reference_image_urls LIKE ?', (query_val, query_val))
             row = cursor.fetchone()
@@ -3114,33 +3027,7 @@ def proxy_request(url, range_header=None):
                     pass
 
                 file_size = len(decrypted_bytes)
-                # Detect actual file type from magic bytes (URL path may be misleading,
-                # e.g. thumbnail.jpg URL containing encrypted video data)
-                if decrypted_bytes[:4] in (b'\x00\x00\x00\x18', b'\x00\x00\x00\x1c', b'\x00\x00\x00\x20', b'\x00\x00\x00\x14') and b'ftyp' in decrypted_bytes[:12]:
-                    # MP4 file (ftyp box)
-                    actual_ext = ".mp4"
-                    mime_type = "video/mp4"
-                elif decrypted_bytes[:3] == b'\xff\xd8\xff':
-                    # JPEG file
-                    actual_ext = ".jpg"
-                    mime_type = "image/jpeg"
-                elif decrypted_bytes[:4] == b'\x89PNG':
-                    # PNG file
-                    actual_ext = ".png"
-                    mime_type = "image/png"
-                elif decrypted_bytes[:4] == b'RIFF' and decrypted_bytes[8:12] == b'WEBP':
-                    # WEBP file
-                    actual_ext = ".webp"
-                    mime_type = "image/webp"
-                else:
-                    # Fallback to URL path detection
-                    actual_ext = ext
-                    mime_type = "video/mp4" if ext == ".mp4" else "image/jpeg"
-                
-                # If actual content type differs from URL-based guess, update cache path
-                if actual_ext != ext:
-                    ext = actual_ext
-                    local_cache_path = os.path.join(cache_dir, f"{url_path_hash}{ext}")
+                mime_type = "video/mp4" if url_path.lower().endswith(".mp4") else "image/jpeg"
 
                 headers = [
                     ("Content-Type", mime_type),

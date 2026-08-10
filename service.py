@@ -2388,7 +2388,7 @@ def generate_ai_video_service(
                                     "aes_key": aes_key.hex(),
                                     "enc_key": consume_result["permanent_key"],
                                     "enc_iv": consume_result["permanent_iv"],
-                                    "ts_ms": consume_result.get("req_ts_ms", ts_ms)
+                                    "ts_ms": ts_ms
                                 }
                 except Exception as consume_err:
                     print(f"[THUMBNAIL-FIX] Failed to fetch real URL via consume API: {consume_err}")
@@ -2982,7 +2982,7 @@ def proxy_request(url, range_header=None):
             # We look for url_path in result_url or reference_image_urls
             query_val = f"%{url_path}%"
             if db.DB_TYPE == 'postgresql':
-                cursor.execute('SELECT token FROM tasks WHERE result_url LIKE %s OR reference_image_urls LIKE %s', (query_val, query_val))
+                cursor.execute('SELECT token FROM tasks WHERE result_url ILIKE %s OR reference_image_urls ILIKE %s', (query_val, query_val))
             else:
                 cursor.execute('SELECT token FROM tasks WHERE result_url LIKE ? OR reference_image_urls LIKE ?', (query_val, query_val))
             row = cursor.fetchone()

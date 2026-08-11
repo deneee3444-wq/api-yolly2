@@ -1455,6 +1455,44 @@ def check_task_bonus(member_token: str, feature_id: str = "TextToImage"):
     except Exception:
         return None
 
+def collect_all_bonuses(member_token: str):
+    """Kullanicinin tum aktif task bonuslarini (kredilerini) ve gunluk bonusunu toplar (toplam 174 kredi)."""
+    print("\n[Bonuses] Tum gunluk ve gorev bonuslari toplaniyor...")
+    
+    # 1. Gunluk Bonus (+3 Kredi)
+    try:
+        daily_res = get_daily_bonus(member_token)
+        print(f"  -> Gunluk Bonus Toplama Sonucu: {daily_res.get('result', daily_res)}")
+    except Exception as e:
+        print(f"  [!] Gunluk bonus toplama hatasi: {e}")
+        
+    # 2. Aktif Gorev Bonuslari (Toplam 171 Kredi)
+    active_tasks = [
+        "TextToImage",      # 14 Kredi
+        "AICollage",        # 6 Kredi
+        "AIReplacement",    # 6 Kredi
+        "TextToVideo",      # 50 Kredi
+        "ImageToVideo",     # 50 Kredi
+        "Storytelling",     # 40 Kredi
+        "LyricsToSong"      # 5 Kredi
+    ]
+    
+    for task_id in active_tasks:
+        try:
+            check_task_bonus(member_token, feature_id=task_id)
+            claim_task_bonus(member_token, feature_id=task_id)
+        except Exception as e:
+            print(f"  [!] Gorev bonusu ({task_id}) toplanirken hata: {e}")
+            
+    # Toplam Kredi Durumunu Yazdir
+    try:
+        credits_json = get_member_remaining_credits(member_token)
+        if credits_json:
+            total_remain = credits_json.get("total_remain", 0)
+            print(f"  -> Kalan Kredi Detayi: {total_remain} Kredi")
+    except Exception:
+        pass
+
 def sync_feature_credit(feature_id: str = "TextToImage", action_id: str = "genimage_1_img_openai_gptimage2_none_1K", credit: int = 3):
     try:
         url = f"https://credit.cyberlink.com/v1/featurelist/feature?feature_id={feature_id}&action_id={action_id}&credit={credit}&min_unit=1&is_main=false&discount=0&sid={SID_AOL_POL}"
@@ -2386,30 +2424,12 @@ def create_myedit_account(api_key_id):
         if not member_token:
             print("[-] Login failed, no memberToken.")
             return None, None
-
-        # 5. Claim initial daily bonus and event task bonuses (required for credits)
+        
+        # 5. Collect all daily and task bonuses (174 credits total)
         try:
-            get_daily_bonus(member_token)
+            collect_all_bonuses(member_token)
         except Exception as e:
-            print(f"[!] Daily bonus claim failed: {e}")
-
-        try:
-            claim_task_bonus(member_token, "TextToImage")
-            check_task_bonus(member_token, "TextToImage")
-        except Exception as e:
-            print(f"[!] TextToImage bonus claim failed: {e}")
-
-        try:
-            claim_task_bonus(member_token, "ImageToVideo")
-            check_task_bonus(member_token, "ImageToVideo")
-        except Exception as e:
-            print(f"[!] ImageToVideo bonus claim failed: {e}")
-
-        try:
-            claim_task_bonus(member_token, "TextToVideo")
-            check_task_bonus(member_token, "TextToVideo")
-        except Exception as e:
-            print(f"[!] TextToVideo bonus claim failed: {e}")
+            print(f"[!] Bonus collection failed: {e}")
 
         # Add account to database
         db.add_account(api_key_id, email, password)

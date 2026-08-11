@@ -74,6 +74,8 @@ HEADERS = {
 IMAGE_MODELS_CONFIG = {
     "flux_2_pro": {
         "name": "Flux 2 Pro",
+        "group_id": "flux",
+        "group_name": "Flux",
         "vendor": "BlackForest",
         "actionId_prefix": "genimage_1_img_blackforest_flux2pro",
         "promptLength": 2500,
@@ -88,6 +90,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "flux_dev": {
         "name": "Flux Dev 1",
+        "group_id": "flux",
+        "group_name": "Flux",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_fluxdev1",
         "promptLength": 800,
@@ -101,6 +105,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "z_image": {
         "name": "Z-Image",
+        "group_id": "z_image",
+        "group_name": "Z-Image",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_zimageturbo",
         "promptLength": 2500,
@@ -114,6 +120,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "stable_diffusion": {
         "name": "Stable Diffusion XL",
+        "group_id": "stable_diffusion",
+        "group_name": "Stable Diffusion XL",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_stablediffusion",
         "promptLength": 2500,
@@ -129,6 +137,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "gemini_3_1_flash_lite": {
         "name": "Gemini 3.1 Flash Lite (Nano Banana 2 Lite)",
+        "group_id": "gemini_image",
+        "group_name": "Gemini",
         "vendor": "Google",
         "actionId_prefix": "genimage_1_img_google_gemini3.1flashlite",
         "promptLength": 2500,
@@ -143,6 +153,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "gemini_3_1_flash": {
         "name": "Gemini 3.1 Flash (Nano Banana 2)",
+        "group_id": "gemini_image",
+        "group_name": "Gemini",
         "vendor": "Google",
         "actionId_prefix": "genimage_1_img_google_gemini3.1flash",
         "promptLength": 2500,
@@ -157,6 +169,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "gemini_3_pro": {
         "name": "Gemini 3 Pro (Nano Banana Pro)",
+        "group_id": "gemini_image",
+        "group_name": "Gemini",
         "vendor": "Google",
         "actionId_prefix": "genimage_1_img_google_gemini3pro",
         "promptLength": 2500,
@@ -171,6 +185,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "kling_o1": {
         "name": "Kling O1",
+        "group_id": "kling_image",
+        "group_name": "Kling",
         "vendor": "Kling",
         "actionId_prefix": "genimage_1_img_kling_o1",
         "promptLength": 2500,
@@ -185,6 +201,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "kling_o3": {
         "name": "Kling O3",
+        "group_id": "kling_image",
+        "group_name": "Kling",
         "vendor": "Kling",
         "actionId_prefix": "genimage_1_img_kling_o3",
         "promptLength": 2500,
@@ -199,6 +217,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "seedream_5_lite": {
         "name": "SeeDream 5.0 Lite",
+        "group_id": "seedream",
+        "group_name": "SeeDream",
         "vendor": "ByteDance",
         "actionId_prefix": "genimage_1_img_bytedance_seedream5.0lite",
         "promptLength": 600,
@@ -213,6 +233,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "gpt_image_1": {
         "name": "GPT-Image-1",
+        "group_id": "gpt_image",
+        "group_name": "GPT-Image",
         "vendor": "OpenAI",
         "actionId_prefix": "genimage_1_img_openai_gptimage1",
         "promptLength": 2500,
@@ -227,6 +249,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "gpt_image_1_5": {
         "name": "GPT-Image-1.5",
+        "group_id": "gpt_image",
+        "group_name": "GPT-Image",
         "vendor": "OpenAI",
         "actionId_prefix": "genimage_1_img_openai_gptimage1.5",
         "promptLength": 2500,
@@ -241,6 +265,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "gpt_image_2": {
         "name": "GPT-Image-2",
+        "group_id": "gpt_image",
+        "group_name": "GPT-Image",
         "vendor": "OpenAI",
         "actionId_prefix": "genimage_1_img_openai_gptimage2",
         "promptLength": 8000,
@@ -255,6 +281,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "seedream_5_pro": {
         "name": "SeeDream 5.0 Pro",
+        "group_id": "seedream",
+        "group_name": "SeeDream",
         "vendor": "ByteDance",
         "actionId_prefix": "genimage_1_img_bytedance_seedream5.0pro",
         "promptLength": 600,
@@ -269,6 +297,8 @@ IMAGE_MODELS_CONFIG = {
     },
     "gemini_2_5_flash": {
         "name": "Gemini 2.5 Flash (Nano Banana)",
+        "group_id": "gemini_image",
+        "group_name": "Gemini",
         "vendor": "Google",
         "actionId_prefix": "genimage_1_img_google_gemini2.5flash",
         "promptLength": 2500,
@@ -1583,6 +1613,49 @@ def get_available_models(mode=None):
         for model in flat_video_models:
             m_id = model["id"]
             m_cfg = VIDEO_MODELS_CONFIG.get(m_id, {})
+            g_id = m_cfg.get("group_id", m_id)
+            g_name = m_cfg.get("group_name", m_cfg.get("name"))
+            vendor = m_cfg.get("vendor", "")
+            
+            sub_name = model["name"]
+            # Strip the group name case-insensitively if it's inside the sub_name
+            if g_name.lower() in sub_name.lower():
+                pattern = re.compile(re.escape(g_name), re.IGNORECASE)
+                sub_name = pattern.sub("", sub_name).strip()
+            # Also check if vendor name is in the sub_name and strip it
+            if vendor.lower() in sub_name.lower():
+                pattern = re.compile(re.escape(vendor), re.IGNORECASE)
+                sub_name = pattern.sub("", sub_name).strip()
+                
+            if not sub_name:
+                sub_name = "Standard"
+                
+            sub_model = model.copy()
+            sub_model["name"] = sub_name
+            
+            if g_id not in group_map:
+                group_entry = {
+                    "group_id": g_id,
+                    "group_name": g_name,
+                    "vendor": vendor,
+                    "sub_models": []
+                }
+                grouped_list.append(group_entry)
+                group_map[g_id] = len(grouped_list) - 1
+                
+            grouped_list[group_map[g_id]]["sub_models"].append(sub_model)
+            
+        return grouped_list
+
+    if mode == "image":
+        import re
+        flat_image_models = AVAILABLE_MODELS.get("image", [])
+        grouped_list = []
+        group_map = {}
+        
+        for model in flat_image_models:
+            m_id = model["id"]
+            m_cfg = IMAGE_MODELS_CONFIG.get(m_id, {})
             g_id = m_cfg.get("group_id", m_id)
             g_name = m_cfg.get("group_name", m_cfg.get("name"))
             vendor = m_cfg.get("vendor", "")

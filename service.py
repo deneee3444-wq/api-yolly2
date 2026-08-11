@@ -289,6 +289,8 @@ IMAGE_MODELS_CONFIG = {
 VIDEO_MODELS_CONFIG = {
     "seedance_2_0_fast": {
         "name": "Seedance 2.0 Fast",
+        "group_id": "seedance_2_0",
+        "group_name": "Seedance 2.0",
         "model": "dreamina-seedance-2-0-fast-260128",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
@@ -319,6 +321,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "seedance_2_0_mini": {
         "name": "Seedance 2.0 Mini",
+        "group_id": "seedance_2_0",
+        "group_name": "Seedance 2.0",
         "model": "dreamina-seedance-2-0-mini-260615",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
@@ -349,6 +353,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "seedance_2_0_pro": {
         "name": "Seedance 2.0 Pro",
+        "group_id": "seedance_2_0",
+        "group_name": "Seedance 2.0",
         "model": "dreamina-seedance-2-0-260128",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
@@ -379,6 +385,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "happy_horse_1_1": {
         "name": "Happy Horse 1.1",
+        "group_id": "happy_horse_1_1",
+        "group_name": "Happy Horse 1.1",
         "model": {
             "TextToVideo": "happyhorse-1.1-t2v",
             "ImageToVideo": "happyhorse-1.1-i2v",
@@ -410,6 +418,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "wan_2_7": {
         "name": "Wan 2.7",
+        "group_id": "wan_2_7",
+        "group_name": "Wan 2.7",
         "model": {
             "TextToVideo": "wan2.7-t2v",
             "ImageToVideo": "wan2.7-i2v",
@@ -445,6 +455,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "veo_3_1_fast": {
         "name": "Veo 3.1 Fast",
+        "group_id": "google_veo3_1",
+        "group_name": "Veo 3.1",
         "model": "veo-3.1-fast-generate-preview",
         "vendor": "Google",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -473,6 +485,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "veo_3_1": {
         "name": "Veo 3.1",
+        "group_id": "google_veo3_1",
+        "group_name": "Veo 3.1",
         "model": "veo-3.1-generate-preview",
         "vendor": "Google",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -501,6 +515,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "veo_3_1_lite": {
         "name": "Veo 3.1 Lite",
+        "group_id": "google_veo3_1",
+        "group_name": "Veo 3.1",
         "model": "veo-3.1-lite-generate-001",
         "vendor": "Google",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -525,33 +541,45 @@ VIDEO_MODELS_CONFIG = {
         "credit": 3,
         "mode": "std",
     },
-    "kling_o3": {
-        "name": "Kling O3",
+    "kling_o3_std": {
+        "name": "Kling O3 Standard",
+        "group_id": "kling_o3",
+        "group_name": "Kling O3",
         "model": "kling-v3-omni",
         "vendor": "Kling",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["720p", "1080p", "4k"],
+        "supported_resolutions": ["720p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
-        "supported_resolutions_by_mode": {
-            "ImageToVideo": ["720p", "1080p"],
-            "TextToVideo": ["720p", "1080p", "4k"],
-            "ReferenceToVideo": ["720p", "1080p", "4k"],
-        },
-        "action_id": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
-        "action_id_overrides": {
-            "720p": "genvideo_1_sec_kling_o3std_{sound}_720p",
-            "1080p": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
-            "4k": "genvideo_1_sec_kling_o34k_{sound}_4k",
-        },
-        "action_id_i2v_overrides": {
-            "720p": "genvideo_1_sec_kling_custom_o3std_{sound}_{frame_mode}_720p",
-            "1080p": "genvideo_1_sec_kling_custom_o3pro_{sound}_{frame_mode}_1080p",
-        },
+        "action_id": "genvideo_1_sec_kling_o3std_{sound}_720p",
+        "action_id_i2v": "genvideo_1_sec_kling_custom_o3std_{sound}_{frame_mode}_720p",
         "credit_map": {
-            ("none", "720p"): 4, ("none", "1080p"): 5, ("none", "4k"): 14,
-            ("vendor", "720p"): 5, ("vendor", "1080p"): 6, ("vendor", "4k"): 14,
+            ("none", "720p"): 4,
+            ("vendor", "720p"): 5,
+        },
+        "credit": 4,
+        "reference_media_limit": {
+            "supported_types": ["image"],
+            "max_images": 7,
+        },
+    },
+    "kling_o3_pro": {
+        "name": "Kling O3 Pro",
+        "group_id": "kling_o3",
+        "group_name": "Kling O3",
+        "model": "kling-v3-omni",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "action_id": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
+        "action_id_i2v": "genvideo_1_sec_kling_custom_o3pro_{sound}_{frame_mode}_1080p",
+        "credit_map": {
+            ("none", "1080p"): 5,
+            ("vendor", "1080p"): 6,
         },
         "credit": 5,
         "reference_media_limit": {
@@ -559,37 +587,88 @@ VIDEO_MODELS_CONFIG = {
             "max_images": 7,
         },
     },
-    "kling_3_0": {
-        "name": "Kling 3.0",
+    "kling_o3_4k": {
+        "name": "Kling O3 4K",
+        "group_id": "kling_o3",
+        "group_name": "Kling O3",
+        "model": "kling-v3-omni",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo", "ReferenceToVideo"],
+        "supported_frame_modes": ["single"],
+        "supported_resolutions": ["4k"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "action_id": "genvideo_1_sec_kling_o34k_{sound}_4k",
+        "credit_map": {
+            ("none", "4k"): 14,
+            ("vendor", "4k"): 14,
+        },
+        "credit": 14,
+        "reference_media_limit": {
+            "supported_types": ["image"],
+            "max_images": 7,
+        },
+    },
+    "kling_3_0_std": {
+        "name": "Kling 3.0 Standard",
+        "group_id": "kling_3_0",
+        "group_name": "Kling 3.0",
         "model": "kling-v3",
         "vendor": "Kling",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["720p", "1080p", "4k"],
+        "supported_resolutions": ["720p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
-        "supported_resolutions_by_mode": {
-            "ImageToVideo": ["720p", "1080p"],
-            "TextToVideo": ["720p", "1080p", "4k"],
-        },
-        "action_id": "genvideo_1_sec_kling_3.0pro_{sound}_1080p",
-        "action_id_overrides": {
-            "720p": "genvideo_1_sec_kling_3.0std_{sound}_720p",
-            "1080p": "genvideo_1_sec_kling_3.0pro_{sound}_1080p",
-            "4k": "genvideo_1_sec_kling_3.04k_{sound}_4k",
-        },
-        "action_id_i2v_overrides": {
-            "720p": "genvideo_1_sec_kling_custom_3.0std_{sound}_{frame_mode}_720p",
-            "1080p": "genvideo_1_sec_kling_custom_3.0pro_{sound}_{frame_mode}_1080p",
-        },
+        "action_id": "genvideo_1_sec_kling_3.0std_{sound}_720p",
+        "action_id_i2v": "genvideo_1_sec_kling_custom_3.0std_{sound}_{frame_mode}_720p",
         "credit_map": {
-            ("none", "720p"): 4, ("none", "1080p"): 5, ("none", "4k"): 14,
-            ("vendor", "720p"): 6, ("vendor", "1080p"): 8, ("vendor", "4k"): 14,
+            ("none", "720p"): 4,
+            ("vendor", "720p"): 6,
+        },
+        "credit": 4,
+    },
+    "kling_3_0_pro": {
+        "name": "Kling 3.0 Pro",
+        "group_id": "kling_3_0",
+        "group_name": "Kling 3.0",
+        "model": "kling-v3",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "action_id": "genvideo_1_sec_kling_3.0pro_{sound}_1080p",
+        "action_id_i2v": "genvideo_1_sec_kling_custom_3.0pro_{sound}_{frame_mode}_1080p",
+        "credit_map": {
+            ("none", "1080p"): 5,
+            ("vendor", "1080p"): 8,
         },
         "credit": 5,
     },
+    "kling_3_0_4k": {
+        "name": "Kling 3.0 4K",
+        "group_id": "kling_3_0",
+        "group_name": "Kling 3.0",
+        "model": "kling-v3",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo"],
+        "supported_frame_modes": ["single"],
+        "supported_resolutions": ["4k"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "action_id": "genvideo_1_sec_kling_3.04k_{sound}_4k",
+        "credit_map": {
+            ("none", "4k"): 14,
+            ("vendor", "4k"): 14,
+        },
+        "credit": 14,
+    },
     "kling_2_6": {
         "name": "Kling 2.6",
+        "group_id": "kling_2_6",
+        "group_name": "Kling 2.6",
         "model": "kling-v2-6",
         "vendor": "Kling",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -610,6 +689,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "kling_2_5_std": {
         "name": "Kling 2.5 Standard",
+        "group_id": "kling_2_5",
+        "group_name": "Kling 2.5",
         "model": "kling-v2-5-turbo",
         "vendor": "Kling",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -630,6 +711,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "kling_2_5_pro": {
         "name": "Kling 2.5 Pro",
+        "group_id": "kling_2_5",
+        "group_name": "Kling 2.5",
         "model": "kling-v2-5-turbo",
         "vendor": "Kling",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -650,6 +733,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "vidu_q3_turbo": {
         "name": "Vidu Q3 Turbo",
+        "group_id": "vidu_q3",
+        "group_name": "Vidu Q3",
         "model": "viduq3-turbo",
         "vendor": "Vidu",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
@@ -680,6 +765,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "vidu_q3_pro": {
         "name": "Vidu Q3 Pro",
+        "group_id": "vidu_q3",
+        "group_name": "Vidu Q3",
         "model": "viduq3-pro",
         "vendor": "Vidu",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -705,6 +792,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "vidu_q2": {
         "name": "Vidu Q2",
+        "group_id": "vidu_q2",
+        "group_name": "Vidu Q2",
         "model": "viduq2-turbo",
         "vendor": "Vidu",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -741,6 +830,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "pixverse_v6": {
         "name": "PixVerse V6",
+        "group_id": "pixverse_v6",
+        "group_name": "PixVerse V6",
         "model": "v6",
         "vendor": "Pixverse",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
@@ -783,6 +874,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "sora_2_std": {
         "name": "Sora 2 Standard",
+        "group_id": "openai_sora_2",
+        "group_name": "Sora 2",
         "model": "sora-2",
         "vendor": "OpenAI",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -802,6 +895,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "sora_2_pro": {
         "name": "Sora 2 Pro",
+        "group_id": "openai_sora_2",
+        "group_name": "Sora 2",
         "model": "sora-2-pro",
         "vendor": "OpenAI",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -831,6 +926,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "seedance_2_5": {
         "name": "Seedance 2.5",
+        "group_id": "seedance_2_5",
+        "group_name": "Seedance 2.5",
         "model": "dreamina-seedance-2-5-260628",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -860,6 +957,8 @@ VIDEO_MODELS_CONFIG = {
     },
     "gemini_omni_flash": {
         "name": "Gemini Omni Flash",
+        "group_id": "gemini_omni_flash",
+        "group_name": "Gemini Omni Flash",
         "model": "gemini-omni-flash-preview",
         "vendor": "Google",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -1198,34 +1297,98 @@ AVAILABLE_MODELS = {
             "max_prompt_length": 2000
         },
         {
-            "id": "kling_o3",
-            "name": "Kling O3",
-            "description": "Kling O3 by Kling - Supports Start/End Frame, up to 7 Reference Images",
+            "id": "kling_o3_std",
+            "name": "Kling O3 Standard",
+            "description": "Kling O3 Standard by Kling - Supports Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
             "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["720p", "1080p", "4k"],
+            "supported_resolutions": ["720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_o3_pro",
+            "name": "Kling O3 Pro",
+            "description": "Kling O3 Pro by Kling - Supports Start/End Frame, up to 7 Reference Images",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": True,
+            "max_reference_images": 7,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["1080p"],
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 5,
             "max_prompt_length": 2000
         },
         {
-            "id": "kling_3_0",
-            "name": "Kling 3.0",
-            "description": "Kling 3.0 by Kling - Supports Start/End Frame",
+            "id": "kling_o3_4k",
+            "name": "Kling O3 4K",
+            "description": "Kling O3 4K by Kling - Supports up to 7 Reference Images",
+            "supports_start_frame": False,
+            "supports_end_frame": False,
+            "supports_reference_images": True,
+            "max_reference_images": 7,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["4k"],
+            "default_size": "16:9",
+            "default_resolution": "4k",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_3_0_std",
+            "name": "Kling 3.0 Standard",
+            "description": "Kling 3.0 Standard by Kling - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
             "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["720p", "1080p", "4k"],
+            "supported_resolutions": ["720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_3_0_pro",
+            "name": "Kling 3.0 Pro",
+            "description": "Kling 3.0 Pro by Kling - Supports Start/End Frame",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "max_reference_images": 0,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["1080p"],
             "default_size": "16:9",
             "default_resolution": "1080p",
+            "default_duration": 5,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_3_0_4k",
+            "name": "Kling 3.0 4K",
+            "description": "Kling 3.0 4K by Kling",
+            "supports_start_frame": False,
+            "supports_end_frame": False,
+            "supports_reference_images": False,
+            "max_reference_images": 0,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["4k"],
+            "default_size": "16:9",
+            "default_resolution": "4k",
             "default_duration": 5,
             "max_prompt_length": 2000
         },
@@ -1411,6 +1574,49 @@ AVAILABLE_MODELS = {
 }
 
 def get_available_models(mode=None):
+    if mode == "video":
+        import re
+        flat_video_models = AVAILABLE_MODELS.get("video", [])
+        grouped_list = []
+        group_map = {}
+        
+        for model in flat_video_models:
+            m_id = model["id"]
+            m_cfg = VIDEO_MODELS_CONFIG.get(m_id, {})
+            g_id = m_cfg.get("group_id", m_id)
+            g_name = m_cfg.get("group_name", m_cfg.get("name"))
+            vendor = m_cfg.get("vendor", "")
+            
+            sub_name = model["name"]
+            # Strip the group name case-insensitively if it's inside the sub_name
+            if g_name.lower() in sub_name.lower():
+                pattern = re.compile(re.escape(g_name), re.IGNORECASE)
+                sub_name = pattern.sub("", sub_name).strip()
+            # Also check if vendor name is in the sub_name and strip it
+            if vendor.lower() in sub_name.lower():
+                pattern = re.compile(re.escape(vendor), re.IGNORECASE)
+                sub_name = pattern.sub("", sub_name).strip()
+                
+            if not sub_name:
+                sub_name = "Standard"
+                
+            sub_model = model.copy()
+            sub_model["name"] = sub_name
+            
+            if g_id not in group_map:
+                group_entry = {
+                    "group_id": g_id,
+                    "group_name": g_name,
+                    "vendor": vendor,
+                    "sub_models": []
+                }
+                grouped_list.append(group_entry)
+                group_map[g_id] = len(grouped_list) - 1
+                
+            grouped_list[group_map[g_id]]["sub_models"].append(sub_model)
+            
+        return grouped_list
+        
     if mode:
         return AVAILABLE_MODELS.get(mode, [])
     return AVAILABLE_MODELS

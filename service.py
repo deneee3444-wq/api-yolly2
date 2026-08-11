@@ -319,7 +319,7 @@ VIDEO_MODELS_CONFIG = {
     },
     "seedance_2_0_mini": {
         "name": "Seedance 2.0 Mini",
-        "model": "dreamina-seedance-2-0-mini",
+        "model": "dreamina-seedance-2-0-mini-260615",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
@@ -820,7 +820,7 @@ VIDEO_MODELS_CONFIG = {
     },
     "seedance_2_5": {
         "name": "Seedance 2.5",
-        "model": "dreamina-seedance-2-5-std",
+        "model": "dreamina-seedance-2-5-260628",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single"],
@@ -828,7 +828,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15, 30],
         "action_id": "genvideo_1_sec_bytedance_seedance2.5std_{sound}_{resolution}",
-        "action_id_i2v": "genvideo_1_sec_bytedance_custom_seedance2.5std_{sound}_{frame_mode}",
+        "action_id_i2v": "genvideo_1_sec_bytedance_custom_seedance2.5std_{sound}_{frame_mode}_{resolution}",
         "credit_map": {
             ("none", "480p"): 5, ("none", "720p"): 10,
             ("vendor", "480p"): 5, ("vendor", "720p"): 10,
@@ -845,7 +845,7 @@ VIDEO_MODELS_CONFIG = {
     },
     "gemini_omni_flash": {
         "name": "Gemini Omni Flash",
-        "model": "omniflash",
+        "model": "gemini-omni-flash-preview",
         "vendor": "Google",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single"],
@@ -853,7 +853,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_aspect_ratios": ["16:9", "9:16"],
         "supported_durations": [5, 10],
         "action_id": "genvideo_1_sec_google_geminiomniflash_{sound}_{resolution}",
-        "action_id_i2v": "genvideo_1_sec_google_custom_geminiomniflash_{sound}_{frame_mode}",
+        "action_id_i2v": "genvideo_1_sec_google_custom_geminiomniflash_{sound}_{frame_mode}_{resolution}",
         "credit_map": {
             ("none", "720p"): 5,
             ("vendor", "720p"): 5,
@@ -2147,6 +2147,9 @@ def generate_ai_video_service(
     filename_prefix: str = "",
     task_id: str = None,
 ):
+    if model_key == "gemini_omni_flash":
+        sound = "vendor"
+
     model_data = VIDEO_MODELS_CONFIG.get(model_key, VIDEO_MODELS_CONFIG["seedance_2_0_fast"])
     if isinstance(model_data["model"], dict):
         model_name_str = model_data["model"].get(effect_mode, list(model_data["model"].values())[0])

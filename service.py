@@ -823,8 +823,12 @@ VIDEO_MODELS_CONFIG = {
         "model": "dreamina-seedance-2-5-260628",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
-        "supported_frame_modes": ["single"],
+        "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["480p", "720p"],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["720p"],
+            "TextToVideo": ["480p", "720p"],
+        },
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15, 30],
         "action_id": "genvideo_1_sec_bytedance_seedance2.5std_{sound}_{resolution}",
@@ -2147,9 +2151,6 @@ def generate_ai_video_service(
     filename_prefix: str = "",
     task_id: str = None,
 ):
-    if model_key == "gemini_omni_flash":
-        sound = "vendor"
-
     model_data = VIDEO_MODELS_CONFIG.get(model_key, VIDEO_MODELS_CONFIG["seedance_2_0_fast"])
     if isinstance(model_data["model"], dict):
         model_name_str = model_data["model"].get(effect_mode, list(model_data["model"].values())[0])

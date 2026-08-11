@@ -252,6 +252,34 @@ IMAGE_MODELS_CONFIG = {
             "enable": {"1K": 3, "2K": 6}
         },
         "default_style": "Style_1002_Custom_ChatGPT"
+    },
+    "seedream_5_pro": {
+        "name": "SeeDream 5.0 Pro",
+        "vendor": "ByteDance",
+        "actionId_prefix": "genimage_1_img_bytedance_seedream5.0pro",
+        "promptLength": 600,
+        "ref_img_limit": 10,
+        "supported_resolutions": ["1K", "2K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 3, "2K": 5},
+            "enable": {"1K": 3, "2K": 5}
+        },
+        "default_style": "Style_9000_Custom_Seedream"
+    },
+    "gemini_2_5_flash": {
+        "name": "Gemini 2.5 Flash (Nano Banana)",
+        "vendor": "Google",
+        "actionId_prefix": "genimage_1_img_google_gemini2.5flash",
+        "promptLength": 2500,
+        "ref_img_limit": 3,
+        "supported_resolutions": ["1K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 2},
+            "enable": {"1K": 2}
+        },
+        "default_style": "Style_3003_Custom_Gemini"
     }
 }
 
@@ -281,6 +309,36 @@ VIDEO_MODELS_CONFIG = {
         },
         "credit": 3,
         "mode": "fast",
+        "reference_media_limit": {
+            "supported_types": ["image", "video"],
+            "max_images": 9,
+            "max_videos": 3,
+            "max_total": 12,
+            "max_video_duration": 15,
+        },
+    },
+    "seedance_2_0_mini": {
+        "name": "Seedance 2.0 Mini",
+        "model": "dreamina-seedance-2-0-mini",
+        "vendor": "BytePlus",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["480p", "720p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["480p", "720p"],
+            "TextToVideo": ["480p", "720p"],
+            "ReferenceToVideo": ["480p", "720p"],
+        },
+        "action_id": "genvideo_1_sec_bytedance_seedance2.0mini_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_bytedance_custom_seedance2.0mini_{sound}_{frame_mode}_{resolution}",
+        "credit_map": {
+            ("none", "480p"): 2, ("none", "720p"): 4,
+            ("vendor", "480p"): 2, ("vendor", "720p"): 4,
+        },
+        "credit": 2,
+        "mode": "mini",
         "reference_media_limit": {
             "supported_types": ["image", "video"],
             "max_images": 9,
@@ -759,6 +817,54 @@ VIDEO_MODELS_CONFIG = {
         "credit": 18,
         "mode": "pro",
         "default_sound": "vendor",
+    },
+    "seedance_2_5": {
+        "name": "Seedance 2.5",
+        "model": "dreamina-seedance-2-5-std",
+        "vendor": "BytePlus",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single"],
+        "supported_resolutions": ["480p", "720p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15, 30],
+        "action_id": "genvideo_1_sec_bytedance_seedance2.5std_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_bytedance_custom_seedance2.5std_{sound}_{frame_mode}",
+        "credit_map": {
+            ("none", "480p"): 5, ("none", "720p"): 10,
+            ("vendor", "480p"): 5, ("vendor", "720p"): 10,
+        },
+        "credit": 10,
+        "mode": "std",
+        "reference_media_limit": {
+            "supported_types": ["image", "video"],
+            "max_images": 20,
+            "max_videos": 10,
+            "max_total": 20,
+            "max_video_duration": 30,
+        },
+    },
+    "gemini_omni_flash": {
+        "name": "Gemini Omni Flash",
+        "model": "omniflash",
+        "vendor": "Google",
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single"],
+        "supported_resolutions": ["720p"],
+        "supported_aspect_ratios": ["16:9", "9:16"],
+        "supported_durations": [5, 10],
+        "action_id": "genvideo_1_sec_google_geminiomniflash_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_google_custom_geminiomniflash_{sound}_{frame_mode}",
+        "credit_map": {
+            ("none", "720p"): 5,
+            ("vendor", "720p"): 5,
+        },
+        "credit": 5,
+        "mode": "std",
+        "default_sound": "vendor",
+        "reference_media_limit": {
+            "supported_types": ["image"],
+            "max_images": 5,
+        },
     }
 }
 
@@ -921,6 +1027,30 @@ AVAILABLE_MODELS = {
             "default_size": "1:1",
             "default_resolution": "1K",
             "max_prompt_length": 8000
+        },
+        {
+            "id": "seedream_5_pro",
+            "name": "SeeDream 5.0 Pro",
+            "description": "SeeDream 5.0 Pro by ByteDance - Supports up to 10 Reference Images",
+            "supports_reference_images": True,
+            "max_reference_images": 10,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K", "2K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 600
+        },
+        {
+            "id": "gemini_2_5_flash",
+            "name": "Gemini 2.5 Flash (Nano Banana)",
+            "description": "Gemini 2.5 Flash (Nano Banana) by Google - Supports up to 3 Reference Images",
+            "supports_reference_images": True,
+            "max_reference_images": 3,
+            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+            "supported_resolutions": ["1K"],
+            "default_size": "1:1",
+            "default_resolution": "1K",
+            "max_prompt_length": 2500
         }
     ],
     "video": [
@@ -939,6 +1069,22 @@ AVAILABLE_MODELS = {
             "default_resolution": "720p",
             "default_duration": 5,
             "max_prompt_length": 2000
+        },
+        {
+            "id": "seedance_2_0_mini",
+            "name": "Seedance 2.0 Mini",
+            "description": "Seedance 2.0 Mini by BytePlus - Supports Start/End Frame, up to 9 Reference Images",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": True,
+            "max_reference_images": 9,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["480p", "720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 5,
+            "max_prompt_length": 1000
         },
         {
             "id": "seedance_2_0_pro",
@@ -1211,6 +1357,38 @@ AVAILABLE_MODELS = {
             "default_resolution": "1080p",
             "default_duration": 8,
             "max_prompt_length": 2000
+        },
+        {
+            "id": "seedance_2_5",
+            "name": "Seedance 2.5",
+            "description": "Seedance 2.5 by BytePlus - Supports Start Frame, up to 20 Reference Images & 10 Videos",
+            "supports_start_frame": True,
+            "supports_end_frame": False,
+            "supports_reference_images": True,
+            "max_reference_images": 20,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15, 30],
+            "supported_resolutions": ["480p", "720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 5,
+            "max_prompt_length": 9900
+        },
+        {
+            "id": "gemini_omni_flash",
+            "name": "Gemini Omni Flash",
+            "description": "Gemini Omni Flash by Google - Supports up to 5 Reference Images",
+            "supports_start_frame": False,
+            "supports_end_frame": False,
+            "supports_reference_images": True,
+            "max_reference_images": 5,
+            "supported_sizes": ["16:9", "9:16"],
+            "supported_durations": [5, 10],
+            "supported_resolutions": ["720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 5,
+            "max_prompt_length": 3500
         }
     ],
     "tts": [],

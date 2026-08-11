@@ -1604,95 +1604,57 @@ AVAILABLE_MODELS = {
 }
 
 def get_available_models(mode=None):
-    if mode == "video":
-        import re
-        flat_video_models = AVAILABLE_MODELS.get("video", [])
-        grouped_list = []
-        group_map = {}
-        
-        for model in flat_video_models:
-            m_id = model["id"]
-            m_cfg = VIDEO_MODELS_CONFIG.get(m_id, {})
-            g_id = m_cfg.get("group_id", m_id)
-            g_name = m_cfg.get("group_name", m_cfg.get("name"))
-            vendor = m_cfg.get("vendor", "")
-            
-            sub_name = model["name"]
-            # Strip the group name case-insensitively if it's inside the sub_name
-            if g_name.lower() in sub_name.lower():
-                pattern = re.compile(re.escape(g_name), re.IGNORECASE)
-                sub_name = pattern.sub("", sub_name).strip()
-            # Also check if vendor name is in the sub_name and strip it
-            if vendor.lower() in sub_name.lower():
-                pattern = re.compile(re.escape(vendor), re.IGNORECASE)
-                sub_name = pattern.sub("", sub_name).strip()
-                
-            if not sub_name:
-                sub_name = "Standard"
-                
-            sub_model = model.copy()
-            sub_model["name"] = sub_name
-            
-            if g_id not in group_map:
-                group_entry = {
-                    "group_id": g_id,
-                    "group_name": g_name,
-                    "vendor": vendor,
-                    "sub_models": []
-                }
-                grouped_list.append(group_entry)
-                group_map[g_id] = len(grouped_list) - 1
-                
-            grouped_list[group_map[g_id]]["sub_models"].append(sub_model)
-            
-        return grouped_list
-
-    if mode == "image":
-        import re
-        flat_image_models = AVAILABLE_MODELS.get("image", [])
-        grouped_list = []
-        group_map = {}
-        
-        for model in flat_image_models:
-            m_id = model["id"]
-            m_cfg = IMAGE_MODELS_CONFIG.get(m_id, {})
-            g_id = m_cfg.get("group_id", m_id)
-            g_name = m_cfg.get("group_name", m_cfg.get("name"))
-            vendor = m_cfg.get("vendor", "")
-            
-            sub_name = model["name"]
-            # Strip the group name case-insensitively if it's inside the sub_name
-            if g_name.lower() in sub_name.lower():
-                pattern = re.compile(re.escape(g_name), re.IGNORECASE)
-                sub_name = pattern.sub("", sub_name).strip()
-            # Also check if vendor name is in the sub_name and strip it
-            if vendor.lower() in sub_name.lower():
-                pattern = re.compile(re.escape(vendor), re.IGNORECASE)
-                sub_name = pattern.sub("", sub_name).strip()
-                
-            if not sub_name:
-                sub_name = "Standard"
-                
-            sub_model = model.copy()
-            sub_model["name"] = sub_name
-            
-            if g_id not in group_map:
-                group_entry = {
-                    "group_id": g_id,
-                    "group_name": g_name,
-                    "vendor": vendor,
-                    "sub_models": []
-                }
-                grouped_list.append(group_entry)
-                group_map[g_id] = len(grouped_list) - 1
-                
-            grouped_list[group_map[g_id]]["sub_models"].append(sub_model)
-            
-        return grouped_list
-        
+    """Düz (flat) model listesi döndürür — api.py tarafından kullanılır."""
     if mode:
         return AVAILABLE_MODELS.get(mode, [])
     return AVAILABLE_MODELS
+
+
+def get_grouped_models(mode):
+    """Modelleri group_id/group_name bazında gruplu formatta döndürür."""
+    import re
+    config_map = VIDEO_MODELS_CONFIG if mode == "video" else IMAGE_MODELS_CONFIG
+    flat_models = AVAILABLE_MODELS.get(mode, [])
+    grouped_list = []
+    group_map = {}
+
+    for model in flat_models:
+        m_id = model["id"]
+        m_cfg = config_map.get(m_id, {})
+        g_id = m_cfg.get("group_id", m_id)
+        g_name = m_cfg.get("group_name", m_cfg.get("name"))
+        vendor = m_cfg.get("vendor", "")
+
+        sub_name = model["name"]
+        # Strip the group name case-insensitively if it's inside the sub_name
+        if g_name and g_name.lower() in sub_name.lower():
+            pattern = re.compile(re.escape(g_name), re.IGNORECASE)
+            sub_name = pattern.sub("", sub_name).strip()
+        # Also check if vendor name is in the sub_name and strip it
+        if vendor and vendor.lower() in sub_name.lower():
+            pattern = re.compile(re.escape(vendor), re.IGNORECASE)
+            sub_name = pattern.sub("", sub_name).strip()
+
+        if not sub_name:
+            sub_name = "Standard"
+
+        sub_model = model.copy()
+        sub_model["name"] = sub_name
+
+        if g_id not in group_map:
+            group_entry = {
+                "group_id": g_id,
+                "group_name": g_name,
+                "vendor": vendor,
+                "sub_models": []
+            }
+            grouped_list.append(group_entry)
+            group_map[g_id] = len(grouped_list) - 1
+
+        grouped_list[group_map[g_id]]["sub_models"].append(sub_model)
+
+    return grouped_list
+
 
 # ==============================================================================
 # MYEDIT ONLINE ALTYAPI VE KRIPTOGRAFİK YARDIMCILAR (SINGLE FILE)

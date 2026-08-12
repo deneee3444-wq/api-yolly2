@@ -2440,7 +2440,7 @@
             }
         }
 
-        function onI2vModelChange() {
+        function onI2vModelChange(skipTabReset) {
             const modelId = document.getElementById('i2vModel').value;
             const model = modelsData?.video?.find(m => m.id === modelId);
             if (!model) return;
@@ -2478,14 +2478,16 @@
             const refImagesLabel = document.getElementById('i2vRefImagesFormLabel');
             if (refImagesLabel) refImagesLabel.textContent = supportsRef ? 'REFERENCE IMAGES *' : 'REFERENCE IMAGES';
 
-            // Reference Images paneli: reset
-            document.getElementById('subtab-refimages').style.display = 'none';
-            document.getElementById('subtab-startend').style.display = 'block';
+            // Reference Images paneli: reset (sadece model değişince, tab geçişlerinde değil)
+            if (!skipTabReset) {
+                document.getElementById('subtab-refimages').style.display = 'none';
+                document.getElementById('subtab-startend').style.display = 'block';
 
-            // Sub-tab butonlarını sıfırla
-            document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-            const firstSubBtn = document.querySelector('.sub-tab-btn');
-            if (firstSubBtn) firstSubBtn.classList.add('active');
+                // Sub-tab butonlarını sıfırla
+                document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+                const firstSubBtn = document.querySelector('.sub-tab-btn');
+                if (firstSubBtn) firstSubBtn.classList.add('active');
+            }
 
             // Resolution select + Duration select
             const resSelect = document.getElementById('i2vResolution');
@@ -2798,8 +2800,8 @@
             document.getElementById(id).style.display = 'block';
             event.currentTarget.classList.add('active');
 
-            // Sub-tab değişince çözünürlükleri güncelle
-            onI2vModelChange();
+            // Sub-tab değişince çözünürlükleri güncelle (tab sıfırlamayı atla)
+            onI2vModelChange(true);
         }
 
         // Generate Text to Video

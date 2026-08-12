@@ -421,9 +421,10 @@ VIDEO_MODELS_CONFIG = {
             "TextToVideo": "happyhorse-1.1-t2v",
             "ImageToVideo": "happyhorse-1.1-i2v",
             "ReferenceToVideo": "happyhorse-1.1-r2v",
+            "VideoToVideo": "happyhorse-1.0-video-edit",
         },
         "vendor": "Alibaba",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -432,10 +433,14 @@ VIDEO_MODELS_CONFIG = {
             "ImageToVideo": ["1080p"],
             "TextToVideo": ["720p", "1080p"],
             "ReferenceToVideo": ["720p", "1080p"],
+            "VideoToVideo": ["720p", "1080p"],
         },
         "action_id": "genvideo_1_sec_alibaba_happyhorse1.1_{sound}_{resolution}",
         "action_id_i2v": "genvideo_1_sec_alibaba_custom_happyhorse1.1_{sound}_{frame_mode}_{resolution}",
+        "action_id_v2v": "genvideo_1_sec_alibaba_happyhorse1.0_{ref}_{sound}_{resolution}",
         "credit_map": {
+            ("VideoToVideo", "none", "720p"): 4, ("VideoToVideo", "none", "1080p"): 7,
+            ("VideoToVideo", "vendor", "720p"): 4, ("VideoToVideo", "vendor", "1080p"): 7,
             ("none", "720p"): 5, ("none", "1080p"): 8,
             ("vendor", "720p"): 5, ("vendor", "1080p"): 8,
         },
@@ -454,9 +459,10 @@ VIDEO_MODELS_CONFIG = {
             "TextToVideo": "wan2.7-t2v",
             "ImageToVideo": "wan2.7-i2v",
             "ReferenceToVideo": "wan2.7-r2v",
+            "VideoToVideo": "wan2.7-v2v",
         },
         "vendor": "Alibaba",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -465,10 +471,14 @@ VIDEO_MODELS_CONFIG = {
             "ImageToVideo": ["1080p"],
             "TextToVideo": ["720p", "1080p"],
             "ReferenceToVideo": ["720p", "1080p"],
+            "VideoToVideo": ["720p", "1080p"],
         },
         "action_id": "genvideo_1_sec_alibaba_wan2.7_{sound}_{resolution}",
         "action_id_i2v": "genvideo_1_sec_alibaba_custom_wan2.7_{sound}_{frame_mode}_{resolution}",
+        "action_id_v2v": "genvideo_1_sec_alibaba_wan2.7_{ref}_{sound}_{resolution}",
         "credit_map": {
+            ("VideoToVideo", "none", "720p"): 3, ("VideoToVideo", "none", "1080p"): 5,
+            ("VideoToVideo", "vendor", "720p"): 3, ("VideoToVideo", "vendor", "1080p"): 5,
             ("none", "720p"): 5, ("none", "1080p"): 8,
             ("vendor", "720p"): 5, ("vendor", "1080p"): 8,
         },
@@ -577,14 +587,17 @@ VIDEO_MODELS_CONFIG = {
         "group_name": "Kling O3",
         "model": "kling-v3-omni",
         "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
         "action_id": "genvideo_1_sec_kling_o3std_{sound}_720p",
         "action_id_i2v": "genvideo_1_sec_kling_custom_o3std_{sound}_{frame_mode}_720p",
+        "action_id_v2v": "genvideo_1_sec_kling_o3std_{ref}_{sound}_{resolution}",
         "credit_map": {
+            ("VideoToVideo", "none", "720p"): 4,
+            ("VideoToVideo", "vendor", "720p"): 4,
             ("none", "720p"): 4,
             ("vendor", "720p"): 5,
         },
@@ -600,14 +613,20 @@ VIDEO_MODELS_CONFIG = {
         "group_name": "Kling O3",
         "model": "kling-v3-omni",
         "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
+        "supported_resolutions_by_mode": {
+            "VideoToVideo": ["1080p", "4k"],
+        },
         "action_id": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
         "action_id_i2v": "genvideo_1_sec_kling_custom_o3pro_{sound}_{frame_mode}_1080p",
+        "action_id_v2v": "genvideo_1_sec_kling_o3pro_{ref}_{sound}_{resolution}",
         "credit_map": {
+            ("VideoToVideo", "none", "1080p"): 5, ("VideoToVideo", "none", "4k"): 12,
+            ("VideoToVideo", "vendor", "1080p"): 5, ("VideoToVideo", "vendor", "4k"): 12,
             ("none", "1080p"): 5,
             ("vendor", "1080p"): 6,
         },
@@ -864,7 +883,7 @@ VIDEO_MODELS_CONFIG = {
         "group_name": "PixVerse V6",
         "model": "v6",
         "vendor": "Pixverse",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -873,13 +892,17 @@ VIDEO_MODELS_CONFIG = {
             "ImageToVideo": ["1080p"],
             "TextToVideo": ["540p", "720p", "1080p"],
             "ReferenceToVideo": ["540p", "720p", "1080p"],
+            "VideoToVideo": ["360p", "540p", "720p"],
         },
         "action_id": "genvideo_1_sec_motivai_pixverse6_{sound}_{resolution}",
         "action_id_i2v_overrides": {
             "720p": "genvideo_1_sec_motivai_custom_pixverse6_{sound}_{frame_mode}_720p",
             "1080p": "genvideo_1_sec_motivai_custom_pixverse6_{sound}_{frame_mode}_1080p",
         },
+        "action_id_v2v": "genvideo_1_sec_motivai_pixverse6_{ref}_{sound}_{resolution}",
         "credit_map": {
+            ("VideoToVideo", "none", "360p"): 1, ("VideoToVideo", "none", "540p"): 2, ("VideoToVideo", "none", "720p"): 3,
+            ("VideoToVideo", "vendor", "360p"): 1, ("VideoToVideo", "vendor", "540p"): 2, ("VideoToVideo", "vendor", "720p"): 3,
             ("ImageToVideo", "none", "single", "720p"): 2,
             ("ImageToVideo", "none", "startend", "720p"): 3,
             ("ImageToVideo", "vendor", "single", "720p"): 2,
@@ -1249,10 +1272,11 @@ AVAILABLE_MODELS = {
         {
             "id": "happy_horse_1_1",
             "name": "Happy Horse 1.1",
-            "description": "Happy Horse 1.1 by Alibaba - Supports Start/End Frame, up to 9 Reference Images",
+            "description": "Happy Horse 1.1 by Alibaba - Supports Video-to-Video (V2V), Start/End Frame, up to 9 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "supports_video_to_video": True,
             "max_reference_images": 9,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -1265,10 +1289,11 @@ AVAILABLE_MODELS = {
         {
             "id": "wan_2_7",
             "name": "Wan 2.7",
-            "description": "Wan 2.7 model by Alibaba - Supports Start/End Frame, up to 5 Reference Images",
+            "description": "Wan 2.7 model by Alibaba - Supports Video-to-Video (V2V), Start/End Frame, up to 5 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "supports_video_to_video": True,
             "max_reference_images": 5,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -1329,10 +1354,11 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_o3_std",
             "name": "Kling O3 Standard",
-            "description": "Kling O3 Standard by Kling - Supports Start/End Frame, up to 7 Reference Images",
+            "description": "Kling O3 Standard by Kling - Supports Video-to-Video (V2V), Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "supports_video_to_video": True,
             "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -1345,10 +1371,11 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_o3_pro",
             "name": "Kling O3 Pro",
-            "description": "Kling O3 Pro by Kling - Supports Start/End Frame, up to 7 Reference Images",
+            "description": "Kling O3 Pro by Kling - Supports Video-to-Video (V2V), Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "supports_video_to_video": True,
             "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -1521,10 +1548,11 @@ AVAILABLE_MODELS = {
         {
             "id": "pixverse_v6",
             "name": "PixVerse V6",
-            "description": "PixVerse V6 by Pixverse - Supports Start/End Frame, up to 7 Reference Images",
+            "description": "PixVerse V6 by Pixverse - Supports Video-to-Video (V2V), Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
+            "supports_video_to_video": True,
             "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -2486,6 +2514,34 @@ def generate_ai_video_service(
                 "is_temp": temp2 != last_image_path
             })
             
+    elif effect_mode == "VideoToVideo":
+        video_path = None
+        if source_image_path and os.path.exists(source_image_path) and source_image_path.lower().endswith(('.mp4', '.mov', '.avi', '.webm')):
+            video_path = source_image_path
+        elif ref_videos:
+            item = ref_videos[0]
+            video_path = item["path"] if isinstance(item, dict) else item
+            
+        if video_path and os.path.exists(video_path):
+            prepared_media.append({
+                "path": video_path,
+                "tag": "@video1",
+                "type": "video",
+                "is_temp": False
+            })
+            
+        if ref_images:
+            for idx, item in enumerate(ref_images):
+                img_path = item["path"] if isinstance(item, dict) else item
+                if os.path.exists(img_path):
+                    tag = item.get("tag", f"@image{idx+1}") if isinstance(item, dict) else f"@image{idx+1}"
+                    prepared_media.append({
+                        "path": img_path,
+                        "tag": tag,
+                        "type": "image",
+                        "is_temp": False
+                    })
+                    
     elif effect_mode == "ReferenceToVideo":
         if ref_images:
             for idx, item in enumerate(ref_images):
@@ -2507,7 +2563,18 @@ def generate_ai_video_service(
                     pass
 
     action_id_sound = {"vendor": "enable", "none": "none", "auto": "enable"}.get(sound, sound)
-    if effect_mode == "ImageToVideo":
+    if effect_mode == "VideoToVideo":
+        ref_val = "enable" if ref_images else "none"
+        sound_val = "enable" if sound in ["vendor", "auto", "on", "On", "enable"] else "none"
+        action_id_pattern = model_data.get("action_id_v2v")
+        if not action_id_pattern:
+            action_id_pattern = "genvideo_1_sec_{vendor}_{model}_{ref}_{sound}_{resolution}"
+        action_id_str = action_id_pattern.format(
+            ref=ref_val,
+            sound=sound_val,
+            resolution=resolution
+        )
+    elif effect_mode == "ImageToVideo":
         overrides = model_data.get("action_id_i2v_overrides", {})
         if resolution in overrides:
             action_id_str = overrides[resolution].format(sound=action_id_sound, resolution=resolution, frame_mode=frame_mode)
@@ -2543,7 +2610,12 @@ def generate_ai_video_service(
 
     rsa_pub_key = get_myedit_rsa_public_key()
     sub_token = get_subscription_token(member_token)
-    referer_url = "https://myedit.online/en/video-editor/image-to-video/edit" if effect_mode == "ImageToVideo" else "https://myedit.online/en/video-editor/text-to-video/edit"
+    if effect_mode == "VideoToVideo":
+        referer_url = "https://myedit.online/en/video-editor/video-to-video/edit"
+    elif effect_mode == "ImageToVideo":
+        referer_url = "https://myedit.online/en/video-editor/image-to-video/edit"
+    else:
+        referer_url = "https://myedit.online/en/video-editor/text-to-video/edit"
 
     aes_key = AESGCM.generate_key(bit_length=256)
     ts_ms = int(time.time() * 1000)
@@ -2700,6 +2772,32 @@ def generate_ai_video_service(
                 else:
                     form_data_apply["sources"] = json.dumps([first_frame_id])
                     
+        elif effect_mode == "VideoToVideo":
+            form_data_apply["sources"] = json.dumps(media_ids)
+            video_id = media_ids[0]
+            form_data_apply["video_list"] = json.dumps([{"media_id": video_id}], separators=(",", ":"))
+            form_data_apply["audio_spec"] = json.dumps({"mode": "video_list"}, separators=(",", ":"))
+            
+            image_list_obj = []
+            for j, item in enumerate(prepared_media[1:]):
+                media_idx = j + 1
+                if item["type"] == "image":
+                    w_j, h_j = get_image_dimensions(item["path"])
+                    size_j = os.path.getsize(item["path"])
+                    image_list_obj.append({
+                        "media_id": media_ids[media_idx],
+                        "tag": item["tag"],
+                        "width": w_j,
+                        "height": h_j
+                    })
+            if image_list_obj:
+                form_data_apply["image_list"] = json.dumps(image_list_obj, separators=(",", ":"))
+                
+            form_data_apply["aspect_ratio"] = aspect_ratio
+            form_data_apply["resolution"] = resolution
+            if model_mode:
+                form_data_apply["mode"] = model_mode
+
         elif effect_mode == "ReferenceToVideo":
             form_data_apply["sources"] = json.dumps(media_ids)
             form_data_apply["effect"] = "RefToVideo"

@@ -200,6 +200,14 @@ def generate_video():
     if not model_meta:
         return jsonify({"error": f"Unknown model: {model}"}), 400
 
+    # 0. Validate VideoToVideo support
+    is_v2v = data.get('mode') == 'VideoToVideo' or data.get('effect_mode') == 'VideoToVideo'
+    if is_v2v:
+        if 'VideoToVideo' not in model_meta.get('supported_modes', []):
+            return jsonify({"error": f"{model} model does not support Video to Video"}), 400
+        if not data.get('start_frame'):
+            return jsonify({"error": "Video to Video requires a source video file"}), 400
+
     # 1. Validate Prompt
     max_prompt = model_meta.get('max_prompt_length', 2000)
     if len(data.get('prompt', '')) > max_prompt:
@@ -530,4 +538,3 @@ def delete_account(email):
         return jsonify({"message": f"Account {email} deleted"})
     else:
         return jsonify({"error": "Account not found"}), 404
-    app.run(host='127.0.0.1', port=5000, debug=False)

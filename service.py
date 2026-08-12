@@ -74,8 +74,6 @@ HEADERS = {
 IMAGE_MODELS_CONFIG = {
     "flux_2_pro": {
         "name": "Flux 2 Pro",
-        "group_id": "flux",
-        "group_name": "Flux",
         "vendor": "BlackForest",
         "actionId_prefix": "genimage_1_img_blackforest_flux2pro",
         "promptLength": 2500,
@@ -90,8 +88,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "flux_dev": {
         "name": "Flux Dev 1",
-        "group_id": "flux",
-        "group_name": "Flux",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_fluxdev1",
         "promptLength": 800,
@@ -105,8 +101,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "z_image": {
         "name": "Z-Image",
-        "group_id": "z_image",
-        "group_name": "Z-Image",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_zimageturbo",
         "promptLength": 2500,
@@ -120,8 +114,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "stable_diffusion": {
         "name": "Stable Diffusion XL",
-        "group_id": "stable_diffusion",
-        "group_name": "Stable Diffusion XL",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_stablediffusion",
         "promptLength": 2500,
@@ -137,8 +129,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "gemini_3_1_flash_lite": {
         "name": "Gemini 3.1 Flash Lite (Nano Banana 2 Lite)",
-        "group_id": "gemini_image",
-        "group_name": "Gemini",
         "vendor": "Google",
         "actionId_prefix": "genimage_1_img_google_gemini3.1flashlite",
         "promptLength": 2500,
@@ -153,8 +143,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "gemini_3_1_flash": {
         "name": "Gemini 3.1 Flash (Nano Banana 2)",
-        "group_id": "gemini_image",
-        "group_name": "Gemini",
         "vendor": "Google",
         "actionId_prefix": "genimage_1_img_google_gemini3.1flash",
         "promptLength": 2500,
@@ -169,8 +157,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "gemini_3_pro": {
         "name": "Gemini 3 Pro (Nano Banana Pro)",
-        "group_id": "gemini_image",
-        "group_name": "Gemini",
         "vendor": "Google",
         "actionId_prefix": "genimage_1_img_google_gemini3pro",
         "promptLength": 2500,
@@ -185,8 +171,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "kling_o1": {
         "name": "Kling O1",
-        "group_id": "kling_image",
-        "group_name": "Kling",
         "vendor": "Kling",
         "actionId_prefix": "genimage_1_img_kling_o1",
         "promptLength": 2500,
@@ -201,8 +185,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "kling_o3": {
         "name": "Kling O3",
-        "group_id": "kling_image",
-        "group_name": "Kling",
         "vendor": "Kling",
         "actionId_prefix": "genimage_1_img_kling_o3",
         "promptLength": 2500,
@@ -217,8 +199,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "seedream_5_lite": {
         "name": "SeeDream 5.0 Lite",
-        "group_id": "seedream",
-        "group_name": "SeeDream",
         "vendor": "ByteDance",
         "actionId_prefix": "genimage_1_img_bytedance_seedream5.0lite",
         "promptLength": 600,
@@ -233,8 +213,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "gpt_image_1": {
         "name": "GPT-Image-1",
-        "group_id": "gpt_image",
-        "group_name": "GPT-Image",
         "vendor": "OpenAI",
         "actionId_prefix": "genimage_1_img_openai_gptimage1",
         "promptLength": 2500,
@@ -249,8 +227,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "gpt_image_1_5": {
         "name": "GPT-Image-1.5",
-        "group_id": "gpt_image",
-        "group_name": "GPT-Image",
         "vendor": "OpenAI",
         "actionId_prefix": "genimage_1_img_openai_gptimage1.5",
         "promptLength": 2500,
@@ -265,8 +241,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "gpt_image_2": {
         "name": "GPT-Image-2",
-        "group_id": "gpt_image",
-        "group_name": "GPT-Image",
         "vendor": "OpenAI",
         "actionId_prefix": "genimage_1_img_openai_gptimage2",
         "promptLength": 8000,
@@ -281,8 +255,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "seedream_5_pro": {
         "name": "SeeDream 5.0 Pro",
-        "group_id": "seedream",
-        "group_name": "SeeDream",
         "vendor": "ByteDance",
         "actionId_prefix": "genimage_1_img_bytedance_seedream5.0pro",
         "promptLength": 600,
@@ -297,8 +269,6 @@ IMAGE_MODELS_CONFIG = {
     },
     "gemini_2_5_flash": {
         "name": "Gemini 2.5 Flash (Nano Banana)",
-        "group_id": "gemini_image",
-        "group_name": "Gemini",
         "vendor": "Google",
         "actionId_prefix": "genimage_1_img_google_gemini2.5flash",
         "promptLength": 2500,
@@ -319,8 +289,6 @@ IMAGE_MODELS_CONFIG = {
 VIDEO_MODELS_CONFIG = {
     "seedance_2_0_fast": {
         "name": "Seedance 2.0 Fast",
-        "group_id": "seedance_2_0",
-        "group_name": "Seedance 2.0",
         "model": "dreamina-seedance-2-0-fast-260128",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
@@ -351,8 +319,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "seedance_2_0_mini": {
         "name": "Seedance 2.0 Mini",
-        "group_id": "seedance_2_0",
-        "group_name": "Seedance 2.0",
         "model": "dreamina-seedance-2-0-mini-260615",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
@@ -383,8 +349,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "seedance_2_0_pro": {
         "name": "Seedance 2.0 Pro",
-        "group_id": "seedance_2_0",
-        "group_name": "Seedance 2.0",
         "model": "dreamina-seedance-2-0-260128",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
@@ -415,16 +379,13 @@ VIDEO_MODELS_CONFIG = {
     },
     "happy_horse_1_1": {
         "name": "Happy Horse 1.1",
-        "group_id": "happy_horse_1_1",
-        "group_name": "Happy Horse 1.1",
         "model": {
             "TextToVideo": "happyhorse-1.1-t2v",
             "ImageToVideo": "happyhorse-1.1-i2v",
             "ReferenceToVideo": "happyhorse-1.1-r2v",
-            "VideoToVideo": "happyhorse-1.0-video-edit",
         },
         "vendor": "Alibaba",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -433,21 +394,15 @@ VIDEO_MODELS_CONFIG = {
             "ImageToVideo": ["1080p"],
             "TextToVideo": ["720p", "1080p"],
             "ReferenceToVideo": ["720p", "1080p"],
-            "VideoToVideo": ["720p", "1080p"],
         },
         "action_id": "genvideo_1_sec_alibaba_happyhorse1.1_{sound}_{resolution}",
         "action_id_i2v": "genvideo_1_sec_alibaba_custom_happyhorse1.1_{sound}_{frame_mode}_{resolution}",
-        "action_id_v2v": "genvideo_1_sec_alibaba_happyhorse1.0_{ref}_{sound}_{resolution}",
         "credit_map": {
-            ("VideoToVideo", "none", "720p"): 4, ("VideoToVideo", "none", "1080p"): 7,
-            ("VideoToVideo", "vendor", "720p"): 4, ("VideoToVideo", "vendor", "1080p"): 7,
             ("none", "720p"): 5, ("none", "1080p"): 8,
             ("vendor", "720p"): 5, ("vendor", "1080p"): 8,
         },
         "credit": 5,
         "default_sound": "vendor",
-        "v2v_max_ref_images": 9,
-        "v2v_supports_sound": True,
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 9,
@@ -455,16 +410,13 @@ VIDEO_MODELS_CONFIG = {
     },
     "wan_2_7": {
         "name": "Wan 2.7",
-        "group_id": "wan_2_7",
-        "group_name": "Wan 2.7",
         "model": {
             "TextToVideo": "wan2.7-t2v",
             "ImageToVideo": "wan2.7-i2v",
             "ReferenceToVideo": "wan2.7-r2v",
-            "VideoToVideo": "wan2.7-videoedit",
         },
         "vendor": "Alibaba",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -473,23 +425,16 @@ VIDEO_MODELS_CONFIG = {
             "ImageToVideo": ["1080p"],
             "TextToVideo": ["720p", "1080p"],
             "ReferenceToVideo": ["720p", "1080p"],
-            "VideoToVideo": ["720p", "1080p"],
         },
         "action_id": "genvideo_1_sec_alibaba_wan2.7_{sound}_{resolution}",
         "action_id_i2v": "genvideo_1_sec_alibaba_custom_wan2.7_{sound}_{frame_mode}_{resolution}",
-        "action_id_v2v": "genvideo_1_sec_alibaba_wan2.7_{ref}_{sound}_{resolution}",
         "credit_map": {
-            ("VideoToVideo", "none", "720p"): 3, ("VideoToVideo", "none", "1080p"): 5,
-            ("VideoToVideo", "vendor", "720p"): 3, ("VideoToVideo", "vendor", "1080p"): 5,
             ("none", "720p"): 5, ("none", "1080p"): 8,
             ("vendor", "720p"): 5, ("vendor", "1080p"): 8,
         },
         "credit": 5,
         "default_sound": "vendor",
         "mode": "std",
-        "v2v_max_ref_images": 5,
-        "v2v_supports_sound": True,
-        "v2v_aspect_ratios": ["Original", "16:9", "9:16", "1:1", "3:4", "4:3"],
         "reference_media_limit": {
             "supported_types": ["image", "video"],
             "max_images": 5,
@@ -500,8 +445,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "veo_3_1_fast": {
         "name": "Veo 3.1 Fast",
-        "group_id": "google_veo3_1",
-        "group_name": "Veo 3.1",
         "model": "veo-3.1-fast-generate-preview",
         "vendor": "Google",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -530,8 +473,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "veo_3_1": {
         "name": "Veo 3.1",
-        "group_id": "google_veo3_1",
-        "group_name": "Veo 3.1",
         "model": "veo-3.1-generate-preview",
         "vendor": "Google",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -560,8 +501,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "veo_3_1_lite": {
         "name": "Veo 3.1 Lite",
-        "group_id": "google_veo3_1",
-        "group_name": "Veo 3.1",
         "model": "veo-3.1-lite-generate-001",
         "vendor": "Google",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -588,68 +527,31 @@ VIDEO_MODELS_CONFIG = {
     },
     "kling_o3": {
         "name": "Kling O3",
-        "group_id": "kling_o3",
-        "group_name": "Kling O3",
         "model": "kling-v3-omni",
         "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p", "1080p", "4k"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
         "supported_resolutions_by_mode": {
-            "VideoToVideo": ["720p", "1080p"],
+            "ImageToVideo": ["720p", "1080p"],
+            "TextToVideo": ["720p", "1080p", "4k"],
+            "ReferenceToVideo": ["720p", "1080p", "4k"],
         },
-        "v2v_max_ref_images": 4,
-        "v2v_supports_sound": False,
-        "action_id": "genvideo_1_sec_kling_o3std_{sound}_720p",
-        "credit_map": {
-            ("VideoToVideo", "none", "720p"): 4,
-            ("VideoToVideo", "none", "1080p"): 5,
-            ("VideoToVideo", "vendor", "720p"): 4,
-            ("VideoToVideo", "vendor", "1080p"): 5,
-        },
-        "credit": 4
-    },
-    "kling_o3_std": {
-        "name": "Kling O3 Standard",
-        "group_id": "kling_o3",
-        "group_name": "Kling O3",
-        "model": "kling-v3-omni",
-        "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
-        "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["720p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 10, 15],
-        "action_id": "genvideo_1_sec_kling_o3std_{sound}_720p",
-        "action_id_i2v": "genvideo_1_sec_kling_custom_o3std_{sound}_{frame_mode}_720p",
-        "credit_map": {
-            ("none", "720p"): 4,
-            ("vendor", "720p"): 5,
-        },
-        "credit": 4,
-        "reference_media_limit": {
-            "supported_types": ["image"],
-            "max_images": 7,
-        },
-    },
-    "kling_o3_pro": {
-        "name": "Kling O3 Pro",
-        "group_id": "kling_o3",
-        "group_name": "Kling O3",
-        "model": "kling-v3-omni",
-        "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
-        "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 10, 15],
         "action_id": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
-        "action_id_i2v": "genvideo_1_sec_kling_custom_o3pro_{sound}_{frame_mode}_1080p",
+        "action_id_overrides": {
+            "720p": "genvideo_1_sec_kling_o3std_{sound}_720p",
+            "1080p": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
+            "4k": "genvideo_1_sec_kling_o34k_{sound}_4k",
+        },
+        "action_id_i2v_overrides": {
+            "720p": "genvideo_1_sec_kling_custom_o3std_{sound}_{frame_mode}_720p",
+            "1080p": "genvideo_1_sec_kling_custom_o3pro_{sound}_{frame_mode}_1080p",
+        },
         "credit_map": {
-            ("none", "1080p"): 5,
-            ("vendor", "1080p"): 6,
+            ("none", "720p"): 4, ("none", "1080p"): 5, ("none", "4k"): 14,
+            ("vendor", "720p"): 5, ("vendor", "1080p"): 6, ("vendor", "4k"): 14,
         },
         "credit": 5,
         "reference_media_limit": {
@@ -657,88 +559,37 @@ VIDEO_MODELS_CONFIG = {
             "max_images": 7,
         },
     },
-    "kling_o3_4k": {
-        "name": "Kling O3 4K",
-        "group_id": "kling_o3",
-        "group_name": "Kling O3",
-        "model": "kling-v3-omni",
-        "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ReferenceToVideo"],
-        "supported_frame_modes": ["single"],
-        "supported_resolutions": ["4k"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 10, 15],
-        "action_id": "genvideo_1_sec_kling_o34k_{sound}_4k",
-        "credit_map": {
-            ("none", "4k"): 14,
-            ("vendor", "4k"): 14,
-        },
-        "credit": 14,
-        "reference_media_limit": {
-            "supported_types": ["image"],
-            "max_images": 7,
-        },
-    },
-    "kling_3_0_std": {
-        "name": "Kling 3.0 Standard",
-        "group_id": "kling_3_0",
-        "group_name": "Kling 3.0",
+    "kling_3_0": {
+        "name": "Kling 3.0",
         "model": "kling-v3",
         "vendor": "Kling",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["720p"],
+        "supported_resolutions": ["720p", "1080p", "4k"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
-        "action_id": "genvideo_1_sec_kling_3.0std_{sound}_720p",
-        "action_id_i2v": "genvideo_1_sec_kling_custom_3.0std_{sound}_{frame_mode}_720p",
-        "credit_map": {
-            ("none", "720p"): 4,
-            ("vendor", "720p"): 6,
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["720p", "1080p"],
+            "TextToVideo": ["720p", "1080p", "4k"],
         },
-        "credit": 4,
-    },
-    "kling_3_0_pro": {
-        "name": "Kling 3.0 Pro",
-        "group_id": "kling_3_0",
-        "group_name": "Kling 3.0",
-        "model": "kling-v3",
-        "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo"],
-        "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 10, 15],
         "action_id": "genvideo_1_sec_kling_3.0pro_{sound}_1080p",
-        "action_id_i2v": "genvideo_1_sec_kling_custom_3.0pro_{sound}_{frame_mode}_1080p",
+        "action_id_overrides": {
+            "720p": "genvideo_1_sec_kling_3.0std_{sound}_720p",
+            "1080p": "genvideo_1_sec_kling_3.0pro_{sound}_1080p",
+            "4k": "genvideo_1_sec_kling_3.04k_{sound}_4k",
+        },
+        "action_id_i2v_overrides": {
+            "720p": "genvideo_1_sec_kling_custom_3.0std_{sound}_{frame_mode}_720p",
+            "1080p": "genvideo_1_sec_kling_custom_3.0pro_{sound}_{frame_mode}_1080p",
+        },
         "credit_map": {
-            ("none", "1080p"): 5,
-            ("vendor", "1080p"): 8,
+            ("none", "720p"): 4, ("none", "1080p"): 5, ("none", "4k"): 14,
+            ("vendor", "720p"): 6, ("vendor", "1080p"): 8, ("vendor", "4k"): 14,
         },
         "credit": 5,
-    },
-    "kling_3_0_4k": {
-        "name": "Kling 3.0 4K",
-        "group_id": "kling_3_0",
-        "group_name": "Kling 3.0",
-        "model": "kling-v3",
-        "vendor": "Kling",
-        "supported_modes": ["TextToVideo"],
-        "supported_frame_modes": ["single"],
-        "supported_resolutions": ["4k"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 10, 15],
-        "action_id": "genvideo_1_sec_kling_3.04k_{sound}_4k",
-        "credit_map": {
-            ("none", "4k"): 14,
-            ("vendor", "4k"): 14,
-        },
-        "credit": 14,
     },
     "kling_2_6": {
         "name": "Kling 2.6",
-        "group_id": "kling_2_6",
-        "group_name": "Kling 2.6",
         "model": "kling-v2-6",
         "vendor": "Kling",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -759,8 +610,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "kling_2_5_std": {
         "name": "Kling 2.5 Standard",
-        "group_id": "kling_2_5",
-        "group_name": "Kling 2.5",
         "model": "kling-v2-5-turbo",
         "vendor": "Kling",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -781,8 +630,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "kling_2_5_pro": {
         "name": "Kling 2.5 Pro",
-        "group_id": "kling_2_5",
-        "group_name": "Kling 2.5",
         "model": "kling-v2-5-turbo",
         "vendor": "Kling",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -803,8 +650,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "vidu_q3_turbo": {
         "name": "Vidu Q3 Turbo",
-        "group_id": "vidu_q3",
-        "group_name": "Vidu Q3",
         "model": "viduq3-turbo",
         "vendor": "Vidu",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
@@ -835,8 +680,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "vidu_q3_pro": {
         "name": "Vidu Q3 Pro",
-        "group_id": "vidu_q3",
-        "group_name": "Vidu Q3",
         "model": "viduq3-pro",
         "vendor": "Vidu",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -862,8 +705,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "vidu_q2": {
         "name": "Vidu Q2",
-        "group_id": "vidu_q2",
-        "group_name": "Vidu Q2",
         "model": "viduq2-turbo",
         "vendor": "Vidu",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -900,11 +741,9 @@ VIDEO_MODELS_CONFIG = {
     },
     "pixverse_v6": {
         "name": "PixVerse V6",
-        "group_id": "pixverse_v6",
-        "group_name": "PixVerse V6",
         "model": "v6",
         "vendor": "Pixverse",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -913,17 +752,13 @@ VIDEO_MODELS_CONFIG = {
             "ImageToVideo": ["1080p"],
             "TextToVideo": ["540p", "720p", "1080p"],
             "ReferenceToVideo": ["540p", "720p", "1080p"],
-            "VideoToVideo": ["360p", "540p", "720p"],
         },
         "action_id": "genvideo_1_sec_motivai_pixverse6_{sound}_{resolution}",
         "action_id_i2v_overrides": {
             "720p": "genvideo_1_sec_motivai_custom_pixverse6_{sound}_{frame_mode}_720p",
             "1080p": "genvideo_1_sec_motivai_custom_pixverse6_{sound}_{frame_mode}_1080p",
         },
-        "action_id_v2v": "genvideo_1_sec_motivai_pixverse6_{ref}_{sound}_{resolution}",
         "credit_map": {
-            ("VideoToVideo", "none", "360p"): 1, ("VideoToVideo", "none", "540p"): 2, ("VideoToVideo", "none", "720p"): 3,
-            ("VideoToVideo", "vendor", "360p"): 1, ("VideoToVideo", "vendor", "540p"): 2, ("VideoToVideo", "vendor", "720p"): 3,
             ("ImageToVideo", "none", "single", "720p"): 2,
             ("ImageToVideo", "none", "startend", "720p"): 3,
             ("ImageToVideo", "vendor", "single", "720p"): 2,
@@ -941,7 +776,6 @@ VIDEO_MODELS_CONFIG = {
         },
         "credit": 4,
         "mode": "std",
-        "v2v_max_ref_images": 3,
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 7,
@@ -949,8 +783,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "sora_2_std": {
         "name": "Sora 2 Standard",
-        "group_id": "openai_sora_2",
-        "group_name": "Sora 2",
         "model": "sora-2",
         "vendor": "OpenAI",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -970,8 +802,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "sora_2_pro": {
         "name": "Sora 2 Pro",
-        "group_id": "openai_sora_2",
-        "group_name": "Sora 2",
         "model": "sora-2-pro",
         "vendor": "OpenAI",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -1001,8 +831,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "seedance_2_5": {
         "name": "Seedance 2.5",
-        "group_id": "seedance_2_5",
-        "group_name": "Seedance 2.5",
         "model": "dreamina-seedance-2-5-260628",
         "vendor": "BytePlus",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -1032,8 +860,6 @@ VIDEO_MODELS_CONFIG = {
     },
     "gemini_omni_flash": {
         "name": "Gemini Omni Flash",
-        "group_id": "gemini_omni_flash",
-        "group_name": "Gemini Omni Flash",
         "model": "gemini-omni-flash-preview",
         "vendor": "Google",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
@@ -1293,8 +1119,8 @@ AVAILABLE_MODELS = {
         },
         {
             "id": "happy_horse_1_1",
-            "name": "Happy Horse 1.0",
-            "description": "Happy Horse 1.0 by Alibaba - Supports Start/End Frame, up to 9 Reference Images",
+            "name": "Happy Horse 1.1",
+            "description": "Happy Horse 1.1 by Alibaba - Supports Start/End Frame, up to 9 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
@@ -1388,98 +1214,18 @@ AVAILABLE_MODELS = {
             "max_prompt_length": 2000
         },
         {
-            "id": "kling_o3_std",
-            "name": "Kling O3 Standard",
-            "description": "Kling O3 Standard by Kling - Supports Start/End Frame, up to 7 Reference Images",
+            "id": "kling_3_0",
+            "name": "Kling 3.0",
+            "description": "Kling 3.0 by Kling - Supports Start/End Frame",
             "supports_start_frame": True,
             "supports_end_frame": True,
-            "supports_reference_images": True,
-            "max_reference_images": 7,
+            "supports_reference_images": False,
+            "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["720p"],
-            "default_size": "16:9",
-            "default_resolution": "720p",
-            "default_duration": 5,
-            "max_prompt_length": 2000
-        },
-        {
-            "id": "kling_o3_pro",
-            "name": "Kling O3 Pro",
-            "description": "Kling O3 Pro by Kling - Supports Start/End Frame, up to 7 Reference Images",
-            "supports_start_frame": True,
-            "supports_end_frame": True,
-            "supports_reference_images": True,
-            "max_reference_images": 7,
-            "supported_sizes": ["16:9", "9:16", "1:1"],
-            "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["1080p"],
+            "supported_resolutions": ["720p", "1080p", "4k"],
             "default_size": "16:9",
             "default_resolution": "1080p",
-            "default_duration": 5,
-            "max_prompt_length": 2000
-        },
-        {
-            "id": "kling_o3_4k",
-            "name": "Kling O3 4K",
-            "description": "Kling O3 4K by Kling - Supports up to 7 Reference Images",
-            "supports_start_frame": False,
-            "supports_end_frame": False,
-            "supports_reference_images": True,
-            "max_reference_images": 7,
-            "supported_sizes": ["16:9", "9:16", "1:1"],
-            "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["4k"],
-            "default_size": "16:9",
-            "default_resolution": "4k",
-            "default_duration": 5,
-            "max_prompt_length": 2000
-        },
-        {
-            "id": "kling_3_0_std",
-            "name": "Kling 3.0 Standard",
-            "description": "Kling 3.0 Standard by Kling - Supports Start/End Frame",
-            "supports_start_frame": True,
-            "supports_end_frame": True,
-            "supports_reference_images": False,
-            "max_reference_images": 0,
-            "supported_sizes": ["16:9", "9:16", "1:1"],
-            "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["720p"],
-            "default_size": "16:9",
-            "default_resolution": "720p",
-            "default_duration": 5,
-            "max_prompt_length": 2000
-        },
-        {
-            "id": "kling_3_0_pro",
-            "name": "Kling 3.0 Pro",
-            "description": "Kling 3.0 Pro by Kling - Supports Start/End Frame",
-            "supports_start_frame": True,
-            "supports_end_frame": True,
-            "supports_reference_images": False,
-            "max_reference_images": 0,
-            "supported_sizes": ["16:9", "9:16", "1:1"],
-            "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["1080p"],
-            "default_size": "16:9",
-            "default_resolution": "1080p",
-            "default_duration": 5,
-            "max_prompt_length": 2000
-        },
-        {
-            "id": "kling_3_0_4k",
-            "name": "Kling 3.0 4K",
-            "description": "Kling 3.0 4K by Kling",
-            "supports_start_frame": False,
-            "supports_end_frame": False,
-            "supports_reference_images": False,
-            "max_reference_images": 0,
-            "supported_sizes": ["16:9", "9:16", "1:1"],
-            "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["4k"],
-            "default_size": "16:9",
-            "default_resolution": "4k",
             "default_duration": 5,
             "max_prompt_length": 2000
         },
@@ -1665,102 +1411,9 @@ AVAILABLE_MODELS = {
 }
 
 def get_available_models(mode=None):
-    """Düz (flat) model listesi döndürür — api.py tarafından kullanılır."""
-    def _enrich_video(m_copy, cfg):
-        m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToVideo", "ImageToVideo"])
-        res_by_mode = cfg.get("supported_resolutions_by_mode")
-        if res_by_mode:
-            m_copy["supported_resolutions_by_mode"] = res_by_mode
-        # V2V-özel konfigürasyon
-        if "VideoToVideo" in m_copy["supported_modes"]:
-            v2v_resolutions = res_by_mode.get("VideoToVideo") if res_by_mode else cfg.get("supported_resolutions", [])
-            v2v_cfg = {
-                "resolutions": v2v_resolutions or cfg.get("supported_resolutions", []),
-                "max_ref_images": cfg.get("v2v_max_ref_images", 0),
-                "supports_sound": cfg.get("v2v_supports_sound", False),
-                "aspect_ratios": cfg.get("v2v_aspect_ratios"),
-            }
-            m_copy["v2v_config"] = v2v_cfg
-
-    def _enrich_image(m_copy, cfg):
-        m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToImage", "ImageToImage"])
-
     if mode:
-        flat_list = AVAILABLE_MODELS.get(mode, [])
-        result = []
-        for m in flat_list:
-            m_copy = m.copy()
-            if mode == "video":
-                cfg = VIDEO_MODELS_CONFIG.get(m["id"], {})
-                _enrich_video(m_copy, cfg)
-            elif mode == "image":
-                cfg = IMAGE_MODELS_CONFIG.get(m["id"], {})
-                _enrich_image(m_copy, cfg)
-            result.append(m_copy)
-        return result
-
-    # Mode verilmemişse tüm kategorileri kopyalayıp güncelleyelim
-    all_results = {}
-    for mkey, mlist in AVAILABLE_MODELS.items():
-        sub_list = []
-        for m in mlist:
-            m_copy = m.copy()
-            if mkey == "video":
-                cfg = VIDEO_MODELS_CONFIG.get(m["id"], {})
-                _enrich_video(m_copy, cfg)
-            elif mkey == "image":
-                cfg = IMAGE_MODELS_CONFIG.get(m["id"], {})
-                _enrich_image(m_copy, cfg)
-            sub_list.append(m_copy)
-        all_results[mkey] = sub_list
-    return all_results
-
-
-def get_grouped_models(mode):
-    """Modelleri group_id/group_name bazında gruplu formatta döndürür."""
-    import re
-    config_map = VIDEO_MODELS_CONFIG if mode == "video" else IMAGE_MODELS_CONFIG
-    flat_models = AVAILABLE_MODELS.get(mode, [])
-    grouped_list = []
-    group_map = {}
-
-    for model in flat_models:
-        m_id = model["id"]
-        m_cfg = config_map.get(m_id, {})
-        g_id = m_cfg.get("group_id", m_id)
-        g_name = m_cfg.get("group_name", m_cfg.get("name"))
-        vendor = m_cfg.get("vendor", "")
-
-        sub_name = model["name"]
-        # Strip the group name case-insensitively if it's inside the sub_name
-        if g_name and g_name.lower() in sub_name.lower():
-            pattern = re.compile(re.escape(g_name), re.IGNORECASE)
-            sub_name = pattern.sub("", sub_name).strip()
-        # Also check if vendor name is in the sub_name and strip it
-        if vendor and vendor.lower() in sub_name.lower():
-            pattern = re.compile(re.escape(vendor), re.IGNORECASE)
-            sub_name = pattern.sub("", sub_name).strip()
-
-        if not sub_name:
-            sub_name = "Standard"
-
-        sub_model = model.copy()
-        sub_model["name"] = sub_name
-
-        if g_id not in group_map:
-            group_entry = {
-                "group_id": g_id,
-                "group_name": g_name,
-                "vendor": vendor,
-                "sub_models": []
-            }
-            grouped_list.append(group_entry)
-            group_map[g_id] = len(grouped_list) - 1
-
-        grouped_list[group_map[g_id]]["sub_models"].append(sub_model)
-
-    return grouped_list
-
+        return AVAILABLE_MODELS.get(mode, [])
+    return AVAILABLE_MODELS
 
 # ==============================================================================
 # MYEDIT ONLINE ALTYAPI VE KRIPTOGRAFİK YARDIMCILAR (SINGLE FILE)
@@ -2592,34 +2245,6 @@ def generate_ai_video_service(
                 "is_temp": temp2 != last_image_path
             })
             
-    elif effect_mode == "VideoToVideo":
-        video_path = None
-        if source_image_path and os.path.exists(source_image_path) and source_image_path.lower().endswith(('.mp4', '.mov', '.avi', '.webm')):
-            video_path = source_image_path
-        elif ref_videos:
-            item = ref_videos[0]
-            video_path = item["path"] if isinstance(item, dict) else item
-            
-        if video_path and os.path.exists(video_path):
-            prepared_media.append({
-                "path": video_path,
-                "tag": "@video1",
-                "type": "video",
-                "is_temp": False
-            })
-            
-        if ref_images:
-            for idx, item in enumerate(ref_images):
-                img_path = item["path"] if isinstance(item, dict) else item
-                if os.path.exists(img_path):
-                    tag = item.get("tag", f"@image{idx+1}") if isinstance(item, dict) else f"@image{idx+1}"
-                    prepared_media.append({
-                        "path": img_path,
-                        "tag": tag,
-                        "type": "image",
-                        "is_temp": False
-                    })
-                    
     elif effect_mode == "ReferenceToVideo":
         if ref_images:
             for idx, item in enumerate(ref_images):
@@ -2641,18 +2266,7 @@ def generate_ai_video_service(
                     pass
 
     action_id_sound = {"vendor": "enable", "none": "none", "auto": "enable"}.get(sound, sound)
-    if effect_mode == "VideoToVideo":
-        ref_val = "enable" if ref_images else "none"
-        sound_val = "enable" if sound in ["vendor", "auto", "on", "On", "enable"] else "none"
-        action_id_pattern = model_data.get("action_id_v2v")
-        if not action_id_pattern:
-            action_id_pattern = "genvideo_1_sec_{vendor}_{model}_{ref}_{sound}_{resolution}"
-        action_id_str = action_id_pattern.format(
-            ref=ref_val,
-            sound=sound_val,
-            resolution=resolution
-        )
-    elif effect_mode == "ImageToVideo":
+    if effect_mode == "ImageToVideo":
         overrides = model_data.get("action_id_i2v_overrides", {})
         if resolution in overrides:
             action_id_str = overrides[resolution].format(sound=action_id_sound, resolution=resolution, frame_mode=frame_mode)
@@ -2688,12 +2302,7 @@ def generate_ai_video_service(
 
     rsa_pub_key = get_myedit_rsa_public_key()
     sub_token = get_subscription_token(member_token)
-    if effect_mode == "VideoToVideo":
-        referer_url = "https://myedit.online/en/video-editor/video-to-video/edit"
-    elif effect_mode == "ImageToVideo":
-        referer_url = "https://myedit.online/en/video-editor/image-to-video/edit"
-    else:
-        referer_url = "https://myedit.online/en/video-editor/text-to-video/edit"
+    referer_url = "https://myedit.online/en/video-editor/image-to-video/edit" if effect_mode == "ImageToVideo" else "https://myedit.online/en/video-editor/text-to-video/edit"
 
     aes_key = AESGCM.generate_key(bit_length=256)
     ts_ms = int(time.time() * 1000)
@@ -2850,32 +2459,6 @@ def generate_ai_video_service(
                 else:
                     form_data_apply["sources"] = json.dumps([first_frame_id])
                     
-        elif effect_mode == "VideoToVideo":
-            form_data_apply["sources"] = json.dumps(media_ids)
-            video_id = media_ids[0]
-            form_data_apply["video_list"] = json.dumps([{"media_id": video_id}], separators=(",", ":"))
-            form_data_apply["audio_spec"] = json.dumps({"mode": "video_list"}, separators=(",", ":"))
-            
-            image_list_obj = []
-            for j, item in enumerate(prepared_media[1:]):
-                media_idx = j + 1
-                if item["type"] == "image":
-                    w_j, h_j = get_image_dimensions(item["path"])
-                    size_j = os.path.getsize(item["path"])
-                    image_list_obj.append({
-                        "media_id": media_ids[media_idx],
-                        "tag": item["tag"],
-                        "width": w_j,
-                        "height": h_j
-                    })
-            if image_list_obj:
-                form_data_apply["image_list"] = json.dumps(image_list_obj, separators=(",", ":"))
-                
-            form_data_apply["aspect_ratio"] = aspect_ratio
-            form_data_apply["resolution"] = resolution
-            if model_mode:
-                form_data_apply["mode"] = model_mode
-
         elif effect_mode == "ReferenceToVideo":
             form_data_apply["sources"] = json.dumps(media_ids)
             form_data_apply["effect"] = "RefToVideo"
@@ -3281,9 +2864,6 @@ def process_video_task(task_id, params, api_key_id):
         duration = int(params.get('duration', 5))
         sound = params.get('sound', 'vendor')
 
-        if model == "kling_o3":
-            model = "kling_o3_std" if resolution == "720p" else ("kling_o3_4k" if resolution == "4k" else "kling_o3_pro")
-
         input_mode = "TextToVideo"
         source_image_path = None
         last_image_path = None
@@ -3294,13 +2874,8 @@ def process_video_task(task_id, params, api_key_id):
         # Handle start frame
         start_frame_b64 = params.get('start_frame')
         if start_frame_b64:
-            if params.get('mode') == 'VideoToVideo' or params.get('effect_mode') == 'VideoToVideo':
-                input_mode = "VideoToVideo"
-                suffix = ".mp4"
-            else:
-                input_mode = "ImageToVideo"
-                suffix = ""
-            temp_start = save_b64_to_temp_file(start_frame_b64, suffix=suffix)
+            input_mode = "ImageToVideo"
+            temp_start = save_b64_to_temp_file(start_frame_b64)
             temp_files.append(temp_start)
             source_image_path = temp_start
 
@@ -3316,8 +2891,7 @@ def process_video_task(task_id, params, api_key_id):
         images = params.get('reference_images', [])
         videos = params.get('reference_videos', [])
         if images or videos:
-            if input_mode != "VideoToVideo":
-                input_mode = "ReferenceToVideo"
+            input_mode = "ReferenceToVideo"
             for img_b64 in images:
                 temp_img = save_b64_to_temp_file(img_b64)
                 temp_files.append(temp_img)

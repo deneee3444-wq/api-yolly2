@@ -1851,28 +1851,30 @@
                                     <!-- Dinamik olarak doldurulacak -->
                                 </select>
                             </div>
-                            <div class="form-group" id="v2vSizeGroup">
-                                <label for="v2vSize">boyut *</label>
-                                <select id="v2vSize">
-                                    <!-- Dinamik boyutlar -->
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row cols-2" id="v2vSpecRow">
                             <div class="form-group">
                                 <label for="v2vResolution">çözünürlük *</label>
                                 <select id="v2vResolution">
                                     <!-- Dinamik çözünürlükler -->
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label for="v2vDurationSelect">süre *</label>
-                                <select id="v2vDurationSelect" onchange="document.getElementById('v2vDuration').value = this.value">
-                                    <!-- Dinamik süreler -->
+                        </div>
+                        <div class="form-row cols-2">
+                            <div class="form-group" id="v2vSoundGroup" style="display:none;">
+                                <label for="v2vSound">ses</label>
+                                <select id="v2vSound">
+                                    <option value="vendor">Original</option>
+                                    <option value="none">Auto</option>
                                 </select>
-                                <input type="hidden" id="v2vDuration" value="5">
+                            </div>
+                            <div class="form-group" id="v2vAspectGroup" style="display:none;">
+                                <label for="v2vAspectRatio">en-boy oranı</label>
+                                <select id="v2vAspectRatio">
+                                    <!-- Dinamik aspect ratios -->
+                                </select>
                             </div>
                         </div>
+                        <input type="hidden" id="v2vDuration" value="5">
+                        <input type="hidden" id="v2vSize" value="16:9">
 
                         <!-- Video ve Referans Yükleme Alanı -->
                         <div class="form-row cols-2">
@@ -2979,71 +2981,114 @@
                 helpEl.innerHTML = `<span style="font-size:0.75rem; flex-shrink:0;">ℹ️</span> ${model.description}`;
             }
 
-            // Size selector
-            const sizeSelect = document.getElementById('v2vSize');
-            if (sizeSelect && model.supported_sizes) {
-                sizeSelect.innerHTML = model.supported_sizes.map(s => `<option value="${s}">${s}</option>`).join('');
-                sizeSelect.disabled = model.supported_sizes.length === 1 && model.supported_sizes[0] === 'AUTO';
-                sizeSelect.value = model.default_size || model.supported_sizes[0];
-            }
+            const v2v_cfg = model.v2v_config || {
+                resolutions: model.supported_resolutions_by_mode?.VideoToVideo || model.supported_resolutions || ['720p'],
+                max_ref_images: 0,
+                supports_sound: false,
+                aspect_ratios: null
+            };
 
-            // Resolution select + Duration select
+            // Resolution select
             const resSelect = document.getElementById('v2vResolution');
-            const durSelect = document.getElementById('v2vDurationSelect');
-            const durInput  = document.getElementById('v2vDuration');
-
-            // Dynamic resolutions
-            const v2vResolutions = model.supported_resolutions_by_mode?.VideoToVideo || model.supported_resolutions;
-            if (resSelect && v2vResolutions) {
-                resSelect.innerHTML = v2vResolutions.map(r => `<option value="${r}">${r}</option>`).join('');
-                resSelect.disabled = v2vResolutions.length <= 1;
-                resSelect.value = model.default_resolution || v2vResolutions[0];
+            if (resSelect) {
+                const resolutions = v2v_cfg.resolutions;
+                resSelect.innerHTML = resolutions.map(r => `<option value="${r}">${r}</option>`).join('');
+                resSelect.disabled = resolutions.length <= 1;
+                resSelect.value = model.default_resolution || resolutions[0];
             }
 
-            // Dynamic durations
-            if (durSelect && durInput) {
-                if (model.supported_durations) {
-                    durSelect.innerHTML = model.supported_durations.map(d => `<option value="${d}">${d} saniye</option>`).join('');
-                    durSelect.disabled = model.supported_durations.length <= 1;
-                    durSelect.value = model.default_duration || model.supported_durations[0];
-                    durInput.value = durSelect.value;
-                } else if (model.duration) {
-                    durSelect.innerHTML = `<option value="${model.duration}">${model.duration} saniye</option>`;
-                    durSelect.disabled = true;
-                    durInput.value = model.duration;
+            // Sound selector
+            const soundGroup = document.getElementById('v2vSoundGroup');
+            if (soundGroup) {
+                soundGroup.style.display = v2v_cfg.supports_sound ? '' : 'none';
+            }
+
+            // Aspect Ratio selector
+            const aspectGroup = document.getElementById('v2vAspectGroup');
+            const aspectSelect = document.getElementById('v2vAspectRatio');
+            if (aspectGroup && aspectSelect) {
+                if (v2v_cfg.aspect_ratios && v2v_cfg.aspect_ratios.length > 0) {
+                    aspectGroup.style.display = '';
+                    aspectSelect.innerHTML = v2v_cfg.aspect_ratios.map(a => `<option value="${a}">${a}</option>`).join('');
+                    aspectSelect.value = v2v_cfg.aspect_ratios[0];
+                } else {
+                    aspectGroup.style.display = 'none';
+                    aspectSelect.innerHTML = '<option value="Original">Original</option>';
+                    aspectSelect.value = 'Original';
                 }
+            }
+
+            // Reference images counter
+            const maxRef = v2v_cfg.max_ref_images || 0;
+            const refImagesGroup = document.getElementById('v2vRefImagesGroup');
+            if (refImagesGroup) {
+                refImagesGroup.style.display = maxRef > 0 ? '' : 'none';
+            }
+            const refLabel = document.getElementById('v2vRefImagesLabel');
+            if (refLabel) {
+                refLabel.textContent = `RESİM SEÇ (0/${maxRef})`;
+                refLabel.classList.remove('file-selected');
+            }
+            const refInput = document.getElementById('v2vRefImages');
+            if (refInput) {
+                refInput.value = '';
             }
         }
 
         function onV2vRefChange(input) {
             const modelId = document.getElementById('v2vModel').value;
             const model = modelsData?.video?.find(m => m.id === modelId);
-            const maxRef = model?.max_reference_images || 3;
+            const v2v_cfg = model?.v2v_config || { max_ref_images: 0 };
+            const maxRef = v2v_cfg.max_ref_images || 0;
+            const refLabel = document.getElementById('v2vRefImagesLabel');
             if (input.files && input.files.length > maxRef) {
                 alert(`En fazla ${maxRef} referans görsel seçebilirsiniz!`);
                 input.value = '';
-                document.getElementById('v2vRefImagesLabel').textContent = 'RESİM SEÇ';
-                document.getElementById('v2vRefImagesLabel').classList.remove('file-selected');
+                if (refLabel) {
+                    refLabel.textContent = `RESİM SEÇ (0/${maxRef})`;
+                    refLabel.classList.remove('file-selected');
+                }
                 return;
             }
-            updateFileLabel(input, 'v2vRefImagesLabel');
+            if (refLabel) {
+                if (input.files && input.files.length > 0) {
+                    refLabel.textContent = `RESİM SEÇ (${input.files.length}/${maxRef})`;
+                    refLabel.classList.add('file-selected');
+                } else {
+                    refLabel.textContent = `RESİM SEÇ (0/${maxRef})`;
+                    refLabel.classList.remove('file-selected');
+                }
+            }
         }
 
         async function generateVideoToVideo() {
             const prompt = document.getElementById('v2vPrompt').value;
             if (!prompt) { alert('Lütfen prompt girin!'); return; }
 
+            const modelId = document.getElementById('v2vModel').value;
             const body = {
                 prompt,
-                model: document.getElementById('v2vModel').value,
+                model: modelId,
                 mode: 'VideoToVideo',
                 effect_mode: 'VideoToVideo'
             };
 
-            const modelMeta = modelsData?.video?.find(m => m.id === body.model);
-            body.size = document.getElementById('v2vSize').value;
-            body.duration = parseInt(document.getElementById('v2vDuration').value) || 5;
+            const modelMeta = modelsData?.video?.find(m => m.id === modelId);
             body.resolution = document.getElementById('v2vResolution').value;
+
+            // Aspect ratio
+            const aspectSelect = document.getElementById('v2vAspectRatio');
+            body.size = (aspectSelect && aspectSelect.parentElement.style.display !== 'none') 
+                ? aspectSelect.value 
+                : 'Original';
+
+            // Sound
+            const soundSelect = document.getElementById('v2vSound');
+            body.sound = (soundSelect && soundSelect.parentElement.style.display !== 'none')
+                ? soundSelect.value
+                : 'none';
+
+            body.duration = modelMeta?.default_duration || 5;
 
             // Source video
             const startInput = document.getElementById('v2vSourceVideo');

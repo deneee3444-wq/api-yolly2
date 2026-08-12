@@ -1629,8 +1629,34 @@ AVAILABLE_MODELS = {
 def get_available_models(mode=None):
     """Düz (flat) model listesi döndürür — api.py tarafından kullanılır."""
     if mode:
-        return AVAILABLE_MODELS.get(mode, [])
-    return AVAILABLE_MODELS
+        flat_list = AVAILABLE_MODELS.get(mode, [])
+        result = []
+        for m in flat_list:
+            m_copy = m.copy()
+            if mode == "video":
+                cfg = VIDEO_MODELS_CONFIG.get(m["id"], {})
+                m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToVideo", "ImageToVideo"])
+            elif mode == "image":
+                cfg = IMAGE_MODELS_CONFIG.get(m["id"], {})
+                m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToImage", "ImageToImage"])
+            result.append(m_copy)
+        return result
+
+    # Mode verilmemişse tüm kategorileri kopyalayıp güncelleyelim
+    all_results = {}
+    for mkey, mlist in AVAILABLE_MODELS.items():
+        sub_list = []
+        for m in mlist:
+            m_copy = m.copy()
+            if mkey == "video":
+                cfg = VIDEO_MODELS_CONFIG.get(m["id"], {})
+                m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToVideo", "ImageToVideo"])
+            elif mkey == "image":
+                cfg = IMAGE_MODELS_CONFIG.get(m["id"], {})
+                m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToImage", "ImageToImage"])
+            sub_list.append(m_copy)
+        all_results[mkey] = sub_list
+    return all_results
 
 
 def get_grouped_models(mode):

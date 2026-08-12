@@ -1420,7 +1420,7 @@
             /* 2×2 grid for mode tabs, icons stacked above text */
             .tab-nav {
                 display: grid;
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: 1fr 1fr;
                 gap: 3px;
                 padding: 3px;
             }
@@ -1609,7 +1609,6 @@
                         <button id="btn-tab-i2i" class="tab-btn" onclick="switchTab('tab-i2i')"><span class="tab-icon">🔄</span> Image to Image</button>
                         <button id="btn-tab-t2v" class="tab-btn" onclick="switchTab('tab-t2v')"><span class="tab-icon">🎬</span> Text to Video</button>
                         <button id="btn-tab-i2v" class="tab-btn" onclick="switchTab('tab-i2v')"><span class="tab-icon">🎞️</span> Image to Video</button>
-                        <button id="btn-tab-v2v" class="tab-btn" onclick="switchTab('tab-v2v')"><span class="tab-icon">📹</span> Video to Video</button>
                         <button id="btn-tab-tts" class="tab-btn" onclick="switchTab('tab-tts')" style="display: none;"><span class="tab-icon">🔊</span> Text to Speech</button>
                         <button id="btn-tab-music" class="tab-btn" onclick="switchTab('tab-music')" style="display: none;"><span class="tab-icon">🎵</span> Music</button>
                     </div>
@@ -1700,7 +1699,7 @@
                             <label for="i2iRefImages">reference image *</label>
                             <div class="file-input-wrapper">
                                 <input type="file" id="i2iRefImages" accept="image/*" multiple onchange="onI2iRefChange(this)">
-                                <label for="i2iRefImages" class="file-input-label" id="i2iRefImagesLabel">RESİM SEÇ</label>
+                                <label for="i2iRefImages" class="file-input-label" id="i2iRefImagesLabel">RESİM SEÇ (MAKS. 5)</label>
                             </div>
                             
                         </div>
@@ -1824,7 +1823,7 @@
                                 <label for="i2vRefImages" id="i2vRefImagesFormLabel">REFERENCE IMAGES *</label>
                                 <div class="file-input-wrapper">
                                     <input type="file" id="i2vRefImages" accept="image/*" multiple onchange="onI2vRefChange(this)">
-                                    <label for="i2vRefImages" class="file-input-label" id="i2vRefImagesLabel">RESİM SEÇ</label>
+                                    <label for="i2vRefImages" class="file-input-label" id="i2vRefImagesLabel">RESİM SEÇ (MAKS. 3)</label>
                                 </div>
                                 
                             </div>
@@ -1833,71 +1832,6 @@
                         <button onclick="generateImageToVideo()">🎞️ Video Oluştur</button>
                         <div id="i2vResponse" class="response-box" style="display:none;"></div>
                         <div id="i2vReadable" style="display:none; margin-top:1.25rem; width:100%; max-width:100%; overflow:hidden;"></div>
-                    </div>
-
-                    <!-- Video to Video -->
-                    <div class="tab-panel" id="tab-v2v" style="display:none;">
-                        <div class="form-group">
-                            <label for="v2vPrompt">prompt *</label>
-                            <div class="prompt-wrap">
-                                <textarea id="v2vPrompt" maxlength="2000" oninput="updateCounter('v2vPrompt','v2vPromptCounter',2000)" placeholder="Videonuzu nasıl dönüştürmek istersiniz? Stil, tema veya değişiklik açıklaması yazın..."></textarea>
-                                <span id="v2vPromptCounter" class="prompt-counter">0/2000</span>
-                            </div>
-                        </div>
-                        <div class="form-row cols-2">
-                            <div class="form-group">
-                                <label for="v2vModel">model *</label>
-                                <select id="v2vModel" onchange="onV2vModelChange()">
-                                    <!-- Dinamik olarak doldurulacak -->
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="v2vResolution">çözünürlük *</label>
-                                <select id="v2vResolution">
-                                    <!-- Dinamik çözünürlükler -->
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row cols-2">
-                            <div class="form-group" id="v2vSoundGroup" style="display:none;">
-                                <label for="v2vSound">ses</label>
-                                <select id="v2vSound">
-                                    <option value="vendor">Original</option>
-                                    <option value="none">Auto</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="v2vAspectGroup" style="display:none;">
-                                <label for="v2vAspectRatio">en-boy oranı</label>
-                                <select id="v2vAspectRatio">
-                                    <!-- Dinamik aspect ratios -->
-                                </select>
-                            </div>
-                        </div>
-                        <input type="hidden" id="v2vDuration" value="5">
-                        <input type="hidden" id="v2vSize" value="16:9">
-
-                        <!-- Video ve Referans Yükleme Alanı -->
-                        <div class="form-row cols-2">
-                            <div class="form-group">
-                                <label for="v2vSourceVideo">KAYNAK VİDEO *</label>
-                                <div class="file-input-wrapper">
-                                    <input type="file" id="v2vSourceVideo" accept="video/*" onchange="updateFileLabel(this, 'v2vSourceVideoLabel')">
-                                    <label for="v2vSourceVideo" class="file-input-label" id="v2vSourceVideoLabel">VİDEO SEÇ</label>
-                                </div>
-                            </div>
-                            <div class="form-group" id="v2vRefImagesGroup">
-                                <label for="v2vRefImages" id="v2vRefImagesFormLabel">REFERANS GÖRSELLER</label>
-                                <div class="file-input-wrapper">
-                                    <input type="file" id="v2vRefImages" accept="image/*" multiple onchange="onV2vRefChange(this)">
-                                    <label for="v2vRefImages" class="file-input-label" id="v2vRefImagesLabel">RESİM SEÇ</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <small id="v2vModelHelp" style="color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.75rem; font-size: 0.75rem;"><span style="font-size:0.75rem; flex-shrink:0;">ℹ️</span></small>
-                        <button onclick="generateVideoToVideo()">📹 Video Dönüştür (V2V)</button>
-                        <div id="v2vResponse" class="response-box" style="display:none;"></div>
-                        <div id="v2vReadable" style="display:none; margin-top:1.25rem; width:100%; max-width:100%; overflow:hidden;"></div>
                     </div>
 
                     <!-- Text to Speech -->
@@ -2176,13 +2110,11 @@
                 const i2iBtn = document.getElementById('btn-tab-i2i');
                 const t2vBtn = document.getElementById('btn-tab-t2v');
                 const i2vBtn = document.getElementById('btn-tab-i2v');
-                const v2vBtn = document.getElementById('btn-tab-v2v');
                 const ttsBtn = document.getElementById('btn-tab-tts');
                 const musicBtn = document.getElementById('btn-tab-music');
 
                 const imageAvailable = (modelsData.image || []).length > 0;
                 const videoAvailable = (modelsData.video || []).length > 0;
-                const v2vAvailable = (modelsData.video || []).some(m => m.supported_modes && m.supported_modes.includes('VideoToVideo'));
                 const ttsAvailable = (modelsData.tts || []).length > 0;
                 const musicAvailable = (modelsData.music || []).length > 0;
 
@@ -2190,14 +2122,13 @@
                 if (i2iBtn) i2iBtn.style.display = imageAvailable ? '' : 'none';
                 if (t2vBtn) t2vBtn.style.display = videoAvailable ? '' : 'none';
                 if (i2vBtn) i2vBtn.style.display = videoAvailable ? '' : 'none';
-                if (v2vBtn) v2vBtn.style.display = v2vAvailable ? '' : 'none';
                 if (ttsBtn) ttsBtn.style.display = ttsAvailable ? '' : 'none';
                 if (musicBtn) musicBtn.style.display = musicAvailable ? '' : 'none';
 
                 // If currently active tab is hidden, switch to the first available tab
                 const activeTabBtn = document.querySelector('.tab-btn.active');
                 if (activeTabBtn && activeTabBtn.style.display === 'none') {
-                    const availableTabs = ['t2i', 'i2i', 't2v', 'i2v', 'v2v', 'tts', 'music'];
+                    const availableTabs = ['t2i', 'i2i', 't2v', 'i2v', 'tts', 'music'];
                     for (const tab of availableTabs) {
                         const btn = document.getElementById(`btn-tab-${tab}`);
                         if (btn && btn.style.display !== 'none') {
@@ -2249,16 +2180,6 @@
                         i2vSelect.value = prevVal;
                     }
                     onI2vModelChange();
-                }
-                const v2vSelect = document.getElementById('v2vModel');
-                if (v2vSelect) {
-                    const prevVal = v2vSelect.value;
-                    const v2vModels = videoModels.filter(m => m.supported_modes && m.supported_modes.includes('VideoToVideo'));
-                    v2vSelect.innerHTML = v2vModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-                    if (v2vModels.some(m => m.id === prevVal)) {
-                        v2vSelect.value = prevVal;
-                    }
-                    onV2vModelChange();
                 }
 
                 // Populate TTS Models
@@ -2689,13 +2610,10 @@
 
 
         function onI2iRefChange(input) {
-            const modelId = document.getElementById('i2iModel').value;
-            const model = modelsData?.image?.find(m => m.id === modelId);
-            const maxRef = model?.max_reference_images || 5;
-            if (input.files && input.files.length > maxRef) {
-                alert(`En fazla ${maxRef} görsel seçebilirsiniz!`);
+            if (input.files && input.files.length > 5) {
+                alert('En fazla 5 görsel seçebilirsiniz!');
                 input.value = '';
-                document.getElementById('i2iRefImagesLabel').textContent = 'RESİM SEÇ';
+                document.getElementById('i2iRefImagesLabel').textContent = 'RESİM SEÇ (MAKS. 5)';
                 document.getElementById('i2iRefImagesLabel').classList.remove('file-selected');
                 return;
             }
@@ -2956,177 +2874,15 @@
         }
 
         // Reference images max-3 check
-        // Reference images dynamic limit check
         function onI2vRefChange(input) {
-            const modelId = document.getElementById('i2vModel').value;
-            const model = modelsData?.video?.find(m => m.id === modelId);
-            const maxRef = model?.max_reference_images || 3;
-            if (input.files && input.files.length > maxRef) {
-                alert(`En fazla ${maxRef} referans görsel seçebilirsiniz!`);
+            if (input.files && input.files.length > 3) {
+                alert('En fazla 3 referans görsel seçebilirsiniz!');
                 input.value = '';
-                document.getElementById('i2vRefImagesLabel').textContent = 'RESİM SEÇ';
+                document.getElementById('i2vRefImagesLabel').textContent = 'RESİM SEÇ (MAKS. 3)';
                 document.getElementById('i2vRefImagesLabel').classList.remove('file-selected');
                 return;
             }
             updateFileLabel(input, 'i2vRefImagesLabel');
-        }
-
-        function onV2vModelChange() {
-            const modelId = document.getElementById('v2vModel').value;
-            const model = modelsData?.video?.find(m => m.id === modelId);
-            if (!model) return;
-
-            const v2v_cfg = model.v2v_config || {
-                resolutions: model.supported_resolutions_by_mode?.VideoToVideo || model.supported_resolutions || ['720p'],
-                max_ref_images: 0,
-                supports_sound: false,
-                aspect_ratios: null,
-                description: model.description
-            };
-
-            const helpEl = document.getElementById('v2vModelHelp');
-            if (helpEl) {
-                const desc = v2v_cfg.description || model.description;
-                helpEl.innerHTML = `<span style="font-size:0.75rem; flex-shrink:0;">ℹ️</span> ${desc}`;
-            }
-
-            // Resolution select
-            const resSelect = document.getElementById('v2vResolution');
-            if (resSelect) {
-                const resolutions = v2v_cfg.resolutions;
-                resSelect.innerHTML = resolutions.map(r => `<option value="${r}">${r}</option>`).join('');
-                resSelect.disabled = resolutions.length <= 1;
-                resSelect.value = model.default_resolution || resolutions[0];
-            }
-
-            // Sound selector
-            const soundGroup = document.getElementById('v2vSoundGroup');
-            if (soundGroup) {
-                soundGroup.style.display = v2v_cfg.supports_sound ? '' : 'none';
-            }
-
-            // Aspect Ratio selector
-            const aspectGroup = document.getElementById('v2vAspectGroup');
-            const aspectSelect = document.getElementById('v2vAspectRatio');
-            if (aspectGroup && aspectSelect) {
-                if (v2v_cfg.aspect_ratios && v2v_cfg.aspect_ratios.length > 0) {
-                    aspectGroup.style.display = '';
-                    aspectSelect.innerHTML = v2v_cfg.aspect_ratios.map(a => `<option value="${a}">${a}</option>`).join('');
-                    aspectSelect.value = v2v_cfg.aspect_ratios[0];
-                } else {
-                    aspectGroup.style.display = 'none';
-                    aspectSelect.innerHTML = '<option value="Original">Original</option>';
-                    aspectSelect.value = 'Original';
-                }
-            }
-
-            // Reference images counter
-            const maxRef = v2v_cfg.max_ref_images || 0;
-            const refImagesGroup = document.getElementById('v2vRefImagesGroup');
-            if (refImagesGroup) {
-                refImagesGroup.style.display = maxRef > 0 ? '' : 'none';
-            }
-            const refLabel = document.getElementById('v2vRefImagesLabel');
-            if (refLabel) {
-                refLabel.textContent = `RESİM SEÇ (0/${maxRef})`;
-                refLabel.classList.remove('file-selected');
-            }
-            const refInput = document.getElementById('v2vRefImages');
-            if (refInput) {
-                refInput.value = '';
-            }
-        }
-
-        function onV2vRefChange(input) {
-            const modelId = document.getElementById('v2vModel').value;
-            const model = modelsData?.video?.find(m => m.id === modelId);
-            const v2v_cfg = model?.v2v_config || { max_ref_images: 0 };
-            const maxRef = v2v_cfg.max_ref_images || 0;
-            const refLabel = document.getElementById('v2vRefImagesLabel');
-            if (input.files && input.files.length > maxRef) {
-                alert(`En fazla ${maxRef} referans görsel seçebilirsiniz!`);
-                input.value = '';
-                if (refLabel) {
-                    refLabel.textContent = `RESİM SEÇ (0/${maxRef})`;
-                    refLabel.classList.remove('file-selected');
-                }
-                return;
-            }
-            if (refLabel) {
-                if (input.files && input.files.length > 0) {
-                    refLabel.textContent = `RESİM SEÇ (${input.files.length}/${maxRef})`;
-                    refLabel.classList.add('file-selected');
-                } else {
-                    refLabel.textContent = `RESİM SEÇ (0/${maxRef})`;
-                    refLabel.classList.remove('file-selected');
-                }
-            }
-        }
-
-        async function generateVideoToVideo() {
-            const prompt = document.getElementById('v2vPrompt').value;
-            if (!prompt) { alert('Lütfen prompt girin!'); return; }
-
-            const modelId = document.getElementById('v2vModel').value;
-            const body = {
-                prompt,
-                model: modelId,
-                mode: 'VideoToVideo',
-                effect_mode: 'VideoToVideo'
-            };
-
-            const modelMeta = modelsData?.video?.find(m => m.id === modelId);
-            body.resolution = document.getElementById('v2vResolution').value;
-
-            // Aspect ratio
-            const aspectSelect = document.getElementById('v2vAspectRatio');
-            body.size = (aspectSelect && aspectSelect.parentElement.style.display !== 'none') 
-                ? aspectSelect.value 
-                : 'Original';
-
-            // Sound
-            const soundSelect = document.getElementById('v2vSound');
-            body.sound = (soundSelect && soundSelect.parentElement.style.display !== 'none')
-                ? soundSelect.value
-                : 'none';
-
-            body.duration = modelMeta?.default_duration || 5;
-
-            // Source video
-            const startInput = document.getElementById('v2vSourceVideo');
-            if (!startInput.files || startInput.files.length === 0) {
-                alert('Lütfen kaynak video dosyasını seçin!'); return;
-            }
-            body.start_frame = await fileToBase64Raw(startInput.files[0]);
-
-            // Reference images
-            const refInput = document.getElementById('v2vRefImages');
-            if (refInput.files && refInput.files.length > 0) {
-                const refs = [];
-                for (let i = 0; i < refInput.files.length; i++) refs.push(await fileToBase64(refInput.files[i]));
-                body.reference_images = refs;
-            }
-
-            try {
-                const { response, data } = await apiCall('/api/generate/video', 'POST', body);
-                displayResponseWithReadable('v2vResponse', 'v2vReadable', data, !response.ok, 'task');
-                if (response.ok && data.task_id) document.getElementById('taskId').value = data.task_id;
-            } catch (error) {
-                displayResponseWithReadable('v2vResponse', 'v2vReadable', { error: error.message }, true, 'task');
-            }
-        }
-
-        // Helper function: File to raw Base64 (no image processing — works for video, audio, any file)
-        function fileToBase64Raw(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const base64 = reader.result.split(',')[1];
-                    resolve(base64);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
         }
 
         // Helper function: File to Base64 (with compression)

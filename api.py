@@ -240,7 +240,7 @@ def generate_video():
             return jsonify({"error": f"{model} model does not support reference_images"}), 400
         if len(ref_images) > max_ref:
             return jsonify({"error": f"Maximum {max_ref} reference images allowed"}), 400
-        if has_start or has_end:
+        if (has_start or has_end) and effect_mode != 'VideoToVideo':
             return jsonify({"error": "reference_images cannot be used together with image or end_frame"}), 400
 
     if db.get_account_count(api_key_id) == 0:

@@ -1272,11 +1272,10 @@ AVAILABLE_MODELS = {
         {
             "id": "happy_horse_1_1",
             "name": "Happy Horse 1.1",
-            "description": "Happy Horse 1.1 by Alibaba - Supports Video-to-Video (V2V), Start/End Frame, up to 9 Reference Images",
+            "description": "Happy Horse 1.1 by Alibaba - Supports Start/End Frame, up to 9 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
-            "supports_video_to_video": True,
             "max_reference_images": 9,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -1289,11 +1288,10 @@ AVAILABLE_MODELS = {
         {
             "id": "wan_2_7",
             "name": "Wan 2.7",
-            "description": "Wan 2.7 model by Alibaba - Supports Video-to-Video (V2V), Start/End Frame, up to 5 Reference Images",
+            "description": "Wan 2.7 model by Alibaba - Supports Start/End Frame, up to 5 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
-            "supports_video_to_video": True,
             "max_reference_images": 5,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -1354,11 +1352,10 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_o3_std",
             "name": "Kling O3 Standard",
-            "description": "Kling O3 Standard by Kling - Supports Video-to-Video (V2V), Start/End Frame, up to 7 Reference Images",
+            "description": "Kling O3 Standard by Kling - Supports Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
-            "supports_video_to_video": True,
             "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -1371,11 +1368,10 @@ AVAILABLE_MODELS = {
         {
             "id": "kling_o3_pro",
             "name": "Kling O3 Pro",
-            "description": "Kling O3 Pro by Kling - Supports Video-to-Video (V2V), Start/End Frame, up to 7 Reference Images",
+            "description": "Kling O3 Pro by Kling - Supports Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
-            "supports_video_to_video": True,
             "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -1548,11 +1544,10 @@ AVAILABLE_MODELS = {
         {
             "id": "pixverse_v6",
             "name": "PixVerse V6",
-            "description": "PixVerse V6 by Pixverse - Supports Video-to-Video (V2V), Start/End Frame, up to 7 Reference Images",
+            "description": "PixVerse V6 by Pixverse - Supports Start/End Frame, up to 7 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
-            "supports_video_to_video": True,
             "max_reference_images": 7,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
@@ -3213,8 +3208,13 @@ def process_video_task(task_id, params, api_key_id):
         # Handle start frame
         start_frame_b64 = params.get('start_frame')
         if start_frame_b64:
-            input_mode = "ImageToVideo"
-            temp_start = save_b64_to_temp_file(start_frame_b64)
+            if params.get('mode') == 'VideoToVideo' or params.get('effect_mode') == 'VideoToVideo':
+                input_mode = "VideoToVideo"
+                suffix = ".mp4"
+            else:
+                input_mode = "ImageToVideo"
+                suffix = ""
+            temp_start = save_b64_to_temp_file(start_frame_b64, suffix=suffix)
             temp_files.append(temp_start)
             source_image_path = temp_start
 

@@ -2494,10 +2494,13 @@
 
             // Dynamic resolutions
             if (resSelect) {
-                if (model.supported_resolutions) {
-                    resSelect.innerHTML = model.supported_resolutions.map(r => `<option value="${r}">${r}</option>`).join('');
-                    resSelect.disabled = model.supported_resolutions.length <= 1;
-                    resSelect.value = model.default_resolution || model.supported_resolutions[0];
+                const refTabActive = document.getElementById('subtab-refimages')?.style.display !== 'none';
+                const mode = refTabActive ? 'ReferenceToVideo' : 'ImageToVideo';
+                const resolutions = model.supported_resolutions_by_mode?.[mode] || model.supported_resolutions;
+                if (resolutions) {
+                    resSelect.innerHTML = resolutions.map(r => `<option value="${r}">${r}</option>`).join('');
+                    resSelect.disabled = resolutions.length <= 1;
+                    resSelect.value = model.default_resolution || resolutions[0];
                 } else if (model.resolution) {
                     resSelect.innerHTML = `<option value="${model.resolution}">${model.resolution}</option>`;
                     resSelect.disabled = true;
@@ -2507,10 +2510,13 @@
 
             // Dynamic durations
             if (durSelect && durInput) {
-                if (model.supported_durations) {
-                    durSelect.innerHTML = model.supported_durations.map(d => `<option value="${d}">${d} saniye</option>`).join('');
-                    durSelect.disabled = model.supported_durations.length <= 1;
-                    durSelect.value = model.default_duration || model.supported_durations[0];
+                const refTabActive = document.getElementById('subtab-refimages')?.style.display !== 'none';
+                const mode = refTabActive ? 'ReferenceToVideo' : 'ImageToVideo';
+                const durations = model.supported_durations_by_mode?.[mode] || model.supported_durations;
+                if (durations) {
+                    durSelect.innerHTML = durations.map(d => `<option value="${d}">${d} saniye</option>`).join('');
+                    durSelect.disabled = durations.length <= 1;
+                    durSelect.value = model.default_duration || durations[0];
                     durInput.value = durSelect.value;
                 } else if (model.duration) {
                     durSelect.innerHTML = `<option value="${model.duration}">${model.duration} saniye</option>`;
@@ -2573,10 +2579,11 @@
             const sizeSelect = document.getElementById('t2vSize');
 
             if (durSelect) {
-                if (model.supported_durations) {
-                    durSelect.innerHTML = model.supported_durations.map(d => `<option value="${d}">${d} saniye</option>`).join('');
-                    durSelect.disabled = model.supported_durations.length <= 1;
-                    durSelect.value = model.default_duration || model.supported_durations[0];
+                const durations = model.supported_durations_by_mode?.['TextToVideo'] || model.supported_durations;
+                if (durations) {
+                    durSelect.innerHTML = durations.map(d => `<option value="${d}">${d} saniye</option>`).join('');
+                    durSelect.disabled = durations.length <= 1;
+                    durSelect.value = model.default_duration || durations[0];
                 } else if (model.duration) {
                     durSelect.innerHTML = `<option value="${model.duration}">${model.duration} saniye</option>`;
                     durSelect.disabled = true;
@@ -2585,10 +2592,11 @@
             }
 
             if (resSelect) {
-                if (model.supported_resolutions) {
-                    resSelect.innerHTML = model.supported_resolutions.map(r => `<option value="${r}">${r}</option>`).join('');
-                    resSelect.disabled = model.supported_resolutions.length <= 1;
-                    resSelect.value = model.default_resolution || model.supported_resolutions[0];
+                const resolutions = model.supported_resolutions_by_mode?.['TextToVideo'] || model.supported_resolutions;
+                if (resolutions) {
+                    resSelect.innerHTML = resolutions.map(r => `<option value="${r}">${r}</option>`).join('');
+                    resSelect.disabled = resolutions.length <= 1;
+                    resSelect.value = model.default_resolution || resolutions[0];
                 } else if (model.resolution) {
                     resSelect.innerHTML = `<option value="${model.resolution}">${model.resolution}</option>`;
                     resSelect.disabled = true;
@@ -2789,6 +2797,9 @@
             document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(id).style.display = 'block';
             event.currentTarget.classList.add('active');
+
+            // Sub-tab değişince çözünürlükleri güncelle
+            onI2vModelChange();
         }
 
         // Generate Text to Video

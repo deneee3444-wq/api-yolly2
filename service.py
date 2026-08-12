@@ -537,7 +537,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["720p", "1080p"],
             "TextToVideo": ["720p", "1080p", "4k"],
-            "ReferenceToVideo": ["720p", "1080p", "4k"],
+            "ReferenceToVideo": ["720p", "1080p"],
         },
         "action_id": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
         "action_id_overrides": {
@@ -1411,9 +1411,19 @@ AVAILABLE_MODELS = {
 }
 
 def get_available_models(mode=None):
+    import copy
+    models = copy.deepcopy(AVAILABLE_MODELS)
+    for model in models.get('video', []):
+        config = VIDEO_MODELS_CONFIG.get(model['id'], {})
+        by_mode_res = config.get('supported_resolutions_by_mode')
+        by_mode_dur = config.get('supported_durations_by_mode')
+        if by_mode_res:
+            model['supported_resolutions_by_mode'] = by_mode_res
+        if by_mode_dur:
+            model['supported_durations_by_mode'] = by_mode_dur
     if mode:
-        return AVAILABLE_MODELS.get(mode, [])
-    return AVAILABLE_MODELS
+        return models.get(mode, [])
+    return models
 
 # ==============================================================================
 # MYEDIT ONLINE ALTYAPI VE KRIPTOGRAFİK YARDIMCILAR (SINGLE FILE)

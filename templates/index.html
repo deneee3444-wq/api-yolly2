@@ -2976,17 +2976,19 @@
             const model = modelsData?.video?.find(m => m.id === modelId);
             if (!model) return;
 
-            const helpEl = document.getElementById('v2vModelHelp');
-            if (helpEl && model.description) {
-                helpEl.innerHTML = `<span style="font-size:0.75rem; flex-shrink:0;">ℹ️</span> ${model.description}`;
-            }
-
             const v2v_cfg = model.v2v_config || {
                 resolutions: model.supported_resolutions_by_mode?.VideoToVideo || model.supported_resolutions || ['720p'],
                 max_ref_images: 0,
                 supports_sound: false,
-                aspect_ratios: null
+                aspect_ratios: null,
+                description: model.description
             };
+
+            const helpEl = document.getElementById('v2vModelHelp');
+            if (helpEl) {
+                const desc = v2v_cfg.description || model.description;
+                helpEl.innerHTML = `<span style="font-size:0.75rem; flex-shrink:0;">ℹ️</span> ${desc}`;
+            }
 
             // Resolution select
             const resSelect = document.getElementById('v2vResolution');

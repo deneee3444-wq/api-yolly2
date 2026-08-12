@@ -3050,7 +3050,7 @@
             if (!startInput.files || startInput.files.length === 0) {
                 alert('Lütfen kaynak video dosyasını seçin!'); return;
             }
-            body.start_frame = await fileToBase64(startInput.files[0]);
+            body.start_frame = await fileToBase64Raw(startInput.files[0]);
 
             // Reference images
             const refInput = document.getElementById('v2vRefImages');
@@ -3067,6 +3067,19 @@
             } catch (error) {
                 displayResponseWithReadable('v2vResponse', 'v2vReadable', { error: error.message }, true, 'task');
             }
+        }
+
+        // Helper function: File to raw Base64 (no image processing — works for video, audio, any file)
+        function fileToBase64Raw(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         // Helper function: File to Base64 (with compression)

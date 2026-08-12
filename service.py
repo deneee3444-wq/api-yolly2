@@ -448,6 +448,7 @@ VIDEO_MODELS_CONFIG = {
         "default_sound": "vendor",
         "v2v_max_ref_images": 5,
         "v2v_supports_sound": True,
+        "v2v_description": "Happy Horse 1.0 by Alibaba - Supports Video to Video, up to 5 Reference Images",
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 9,
@@ -490,6 +491,7 @@ VIDEO_MODELS_CONFIG = {
         "v2v_max_ref_images": 4,
         "v2v_supports_sound": True,
         "v2v_aspect_ratios": ["Original", "16:9", "9:16", "1:1", "3:4", "4:3"],
+        "v2v_description": "Wan 2.7 by Alibaba - Supports Video to Video, Aspect Ratio selection, up to 4 Reference Images",
         "reference_media_limit": {
             "supported_types": ["image", "video"],
             "max_images": 5,
@@ -586,38 +588,13 @@ VIDEO_MODELS_CONFIG = {
         "credit": 3,
         "mode": "std",
     },
-    "kling_o3": {
-        "name": "Kling O3",
-        "group_id": "kling_o3",
-        "group_name": "Kling O3",
-        "model": "kling-v3-omni",
-        "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
-        "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["720p", "1080p", "4k"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 10, 15],
-        "supported_resolutions_by_mode": {
-            "VideoToVideo": ["720p", "1080p"],
-        },
-        "v2v_max_ref_images": 4,
-        "v2v_supports_sound": False,
-        "action_id": "genvideo_1_sec_kling_o3std_{sound}_720p",
-        "credit_map": {
-            ("VideoToVideo", "none", "720p"): 4,
-            ("VideoToVideo", "none", "1080p"): 5,
-            ("VideoToVideo", "vendor", "720p"): 4,
-            ("VideoToVideo", "vendor", "1080p"): 5,
-        },
-        "credit": 4
-    },
     "kling_o3_std": {
         "name": "Kling O3 Standard",
         "group_id": "kling_o3",
         "group_name": "Kling O3",
         "model": "kling-v3-omni",
         "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -633,6 +610,7 @@ VIDEO_MODELS_CONFIG = {
         },
         "credit": 4,
         "v2v_max_ref_images": 4,
+        "v2v_description": "Kling O3 Standard by Kling - Supports Video to Video, up to 4 Reference Images",
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 7,
@@ -644,7 +622,7 @@ VIDEO_MODELS_CONFIG = {
         "group_name": "Kling O3",
         "model": "kling-v3-omni",
         "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -663,6 +641,7 @@ VIDEO_MODELS_CONFIG = {
         },
         "credit": 5,
         "v2v_max_ref_images": 4,
+        "v2v_description": "Kling O3 Pro by Kling - Supports Video to Video, up to 4 Reference Images",
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 7,
@@ -953,6 +932,7 @@ VIDEO_MODELS_CONFIG = {
         "credit": 4,
         "mode": "std",
         "v2v_max_ref_images": 3,
+        "v2v_description": "PixVerse V6 by Pixverse - Supports Video to Video, up to 3 Reference Images",
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 7,
@@ -1380,22 +1360,6 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 4,
-            "max_prompt_length": 2000
-        },
-        {
-            "id": "kling_o3",
-            "name": "Kling O3",
-            "description": "Kling O3 by Kling - Supports Start/End Frame, up to 7 Reference Images",
-            "supports_start_frame": True,
-            "supports_end_frame": True,
-            "supports_reference_images": True,
-            "max_reference_images": 7,
-            "supported_sizes": ["16:9", "9:16", "1:1"],
-            "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["720p", "1080p", "4k"],
-            "default_size": "16:9",
-            "default_resolution": "1080p",
-            "default_duration": 5,
             "max_prompt_length": 2000
         },
         {

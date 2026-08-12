@@ -446,6 +446,8 @@ VIDEO_MODELS_CONFIG = {
         },
         "credit": 5,
         "default_sound": "vendor",
+        "v2v_max_ref_images": 5,
+        "v2v_supports_sound": True,
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 9,
@@ -459,7 +461,7 @@ VIDEO_MODELS_CONFIG = {
             "TextToVideo": "wan2.7-t2v",
             "ImageToVideo": "wan2.7-i2v",
             "ReferenceToVideo": "wan2.7-r2v",
-            "VideoToVideo": "wan2.7-v2v",
+            "VideoToVideo": "wan2.7-videoedit",
         },
         "vendor": "Alibaba",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
@@ -485,6 +487,9 @@ VIDEO_MODELS_CONFIG = {
         "credit": 5,
         "default_sound": "vendor",
         "mode": "std",
+        "v2v_max_ref_images": 4,
+        "v2v_supports_sound": True,
+        "v2v_aspect_ratios": ["Original", "16:9", "9:16", "1:1", "3:4", "4:3"],
         "reference_media_limit": {
             "supported_types": ["image", "video"],
             "max_images": 5,
@@ -581,13 +586,38 @@ VIDEO_MODELS_CONFIG = {
         "credit": 3,
         "mode": "std",
     },
+    "kling_o3": {
+        "name": "Kling O3",
+        "group_id": "kling_o3",
+        "group_name": "Kling O3",
+        "model": "kling-v3-omni",
+        "vendor": "Kling",
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p", "1080p", "4k"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10, 15],
+        "supported_resolutions_by_mode": {
+            "VideoToVideo": ["720p", "1080p"],
+        },
+        "v2v_max_ref_images": 4,
+        "v2v_supports_sound": False,
+        "action_id": "genvideo_1_sec_kling_o3std_{sound}_720p",
+        "credit_map": {
+            ("VideoToVideo", "none", "720p"): 4,
+            ("VideoToVideo", "none", "1080p"): 5,
+            ("VideoToVideo", "vendor", "720p"): 4,
+            ("VideoToVideo", "vendor", "1080p"): 5,
+        },
+        "credit": 4
+    },
     "kling_o3_std": {
         "name": "Kling O3 Standard",
         "group_id": "kling_o3",
         "group_name": "Kling O3",
         "model": "kling-v3-omni",
         "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -602,6 +632,7 @@ VIDEO_MODELS_CONFIG = {
             ("vendor", "720p"): 5,
         },
         "credit": 4,
+        "v2v_max_ref_images": 4,
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 7,
@@ -613,7 +644,7 @@ VIDEO_MODELS_CONFIG = {
         "group_name": "Kling O3",
         "model": "kling-v3-omni",
         "vendor": "Kling",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo", "VideoToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
@@ -631,6 +662,7 @@ VIDEO_MODELS_CONFIG = {
             ("vendor", "1080p"): 6,
         },
         "credit": 5,
+        "v2v_max_ref_images": 4,
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 7,
@@ -920,6 +952,7 @@ VIDEO_MODELS_CONFIG = {
         },
         "credit": 4,
         "mode": "std",
+        "v2v_max_ref_images": 3,
         "reference_media_limit": {
             "supported_types": ["image"],
             "max_images": 7,
@@ -1271,8 +1304,8 @@ AVAILABLE_MODELS = {
         },
         {
             "id": "happy_horse_1_1",
-            "name": "Happy Horse 1.1",
-            "description": "Happy Horse 1.1 by Alibaba - Supports Start/End Frame, up to 9 Reference Images",
+            "name": "Happy Horse 1.0",
+            "description": "Happy Horse 1.0 by Alibaba - Supports Start/End Frame, up to 9 Reference Images",
             "supports_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": True,
@@ -1347,6 +1380,22 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 4,
+            "max_prompt_length": 2000
+        },
+        {
+            "id": "kling_o3",
+            "name": "Kling O3",
+            "description": "Kling O3 by Kling - Supports Start/End Frame, up to 7 Reference Images",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": True,
+            "max_reference_images": 7,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10, 15],
+            "supported_resolutions": ["720p", "1080p", "4k"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 5,
             "max_prompt_length": 2000
         },
         {
@@ -1628,6 +1677,25 @@ AVAILABLE_MODELS = {
 
 def get_available_models(mode=None):
     """Düz (flat) model listesi döndürür — api.py tarafından kullanılır."""
+    def _enrich_video(m_copy, cfg):
+        m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToVideo", "ImageToVideo"])
+        res_by_mode = cfg.get("supported_resolutions_by_mode")
+        if res_by_mode:
+            m_copy["supported_resolutions_by_mode"] = res_by_mode
+        # V2V-özel konfigürasyon
+        if "VideoToVideo" in m_copy["supported_modes"]:
+            v2v_resolutions = res_by_mode.get("VideoToVideo") if res_by_mode else cfg.get("supported_resolutions", [])
+            v2v_cfg = {
+                "resolutions": v2v_resolutions or cfg.get("supported_resolutions", []),
+                "max_ref_images": cfg.get("v2v_max_ref_images", 0),
+                "supports_sound": cfg.get("v2v_supports_sound", False),
+                "aspect_ratios": cfg.get("v2v_aspect_ratios"),
+            }
+            m_copy["v2v_config"] = v2v_cfg
+
+    def _enrich_image(m_copy, cfg):
+        m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToImage", "ImageToImage"])
+
     if mode:
         flat_list = AVAILABLE_MODELS.get(mode, [])
         result = []
@@ -1635,10 +1703,10 @@ def get_available_models(mode=None):
             m_copy = m.copy()
             if mode == "video":
                 cfg = VIDEO_MODELS_CONFIG.get(m["id"], {})
-                m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToVideo", "ImageToVideo"])
+                _enrich_video(m_copy, cfg)
             elif mode == "image":
                 cfg = IMAGE_MODELS_CONFIG.get(m["id"], {})
-                m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToImage", "ImageToImage"])
+                _enrich_image(m_copy, cfg)
             result.append(m_copy)
         return result
 
@@ -1650,10 +1718,10 @@ def get_available_models(mode=None):
             m_copy = m.copy()
             if mkey == "video":
                 cfg = VIDEO_MODELS_CONFIG.get(m["id"], {})
-                m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToVideo", "ImageToVideo"])
+                _enrich_video(m_copy, cfg)
             elif mkey == "image":
                 cfg = IMAGE_MODELS_CONFIG.get(m["id"], {})
-                m_copy["supported_modes"] = cfg.get("supported_modes", ["TextToImage", "ImageToImage"])
+                _enrich_image(m_copy, cfg)
             sub_list.append(m_copy)
         all_results[mkey] = sub_list
     return all_results
@@ -3224,6 +3292,9 @@ def process_video_task(task_id, params, api_key_id):
         duration = int(params.get('duration', 5))
         sound = params.get('sound', 'vendor')
 
+        if model == "kling_o3":
+            model = "kling_o3_std" if resolution == "720p" else ("kling_o3_4k" if resolution == "4k" else "kling_o3_pro")
+
         input_mode = "TextToVideo"
         source_image_path = None
         last_image_path = None
@@ -3256,7 +3327,8 @@ def process_video_task(task_id, params, api_key_id):
         images = params.get('reference_images', [])
         videos = params.get('reference_videos', [])
         if images or videos:
-            input_mode = "ReferenceToVideo"
+            if input_mode != "VideoToVideo":
+                input_mode = "ReferenceToVideo"
             for img_b64 in images:
                 temp_img = save_b64_to_temp_file(img_b64)
                 temp_files.append(temp_img)

@@ -200,14 +200,6 @@ def generate_video():
     if not model_meta:
         return jsonify({"error": f"Unknown model: {model}"}), 400
 
-    # 0. Validate VideoToVideo support
-    is_v2v = data.get('mode') == 'VideoToVideo' or data.get('effect_mode') == 'VideoToVideo'
-    if is_v2v:
-        if 'VideoToVideo' not in model_meta.get('supported_modes', []):
-            return jsonify({"error": f"{model} model does not support Video to Video"}), 400
-        if not data.get('start_frame'):
-            return jsonify({"error": "Video to Video requires a source video file"}), 400
-
     # 1. Validate Prompt
     max_prompt = model_meta.get('max_prompt_length', 2000)
     if len(data.get('prompt', '')) > max_prompt:
@@ -240,7 +232,7 @@ def generate_video():
             return jsonify({"error": f"{model} model does not support reference_images"}), 400
         if len(ref_images) > max_ref:
             return jsonify({"error": f"Maximum {max_ref} reference images allowed"}), 400
-        if (has_start or has_end) and not is_v2v:
+        if has_start or has_end:
             return jsonify({"error": "reference_images cannot be used together with image or end_frame"}), 400
 
     if db.get_account_count(api_key_id) == 0:
@@ -256,11 +248,7 @@ def generate_video():
     # 3. Resolve Size
     size = data.get('size')
     supported_sizes = model_meta.get('supported_sizes', [])
-    if is_v2v:
-        valid_v2v_sizes = ['Original', '16:9', '9:16', '1:1', '3:4', '4:3']
-        if size not in valid_v2v_sizes:
-            size = 'Original'
-    elif supported_sizes:
+    if supported_sizes:
         if size not in supported_sizes:
             size = model_meta.get('default_size') or supported_sizes[0]
     else:
@@ -283,11 +271,7 @@ def generate_video():
 
     # 5. Resolve Resolution
     resolution = data.get('resolution')
-    supported_resolutions = (model_meta.get('supported_resolutions_by_mode', {}).get('VideoToVideo') 
-                             if is_v2v else model_meta.get('supported_resolutions', []))
-    if not supported_resolutions:
-        supported_resolutions = model_meta.get('supported_resolutions', [])
-
+    supported_resolutions = model_meta.get('supported_resolutions', [])
     if supported_resolutions:
         if resolution not in supported_resolutions:
             resolution = model_meta.get('default_resolution') or supported_resolutions[0]

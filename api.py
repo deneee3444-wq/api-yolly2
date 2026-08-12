@@ -256,7 +256,11 @@ def generate_video():
     # 3. Resolve Size
     size = data.get('size')
     supported_sizes = model_meta.get('supported_sizes', [])
-    if supported_sizes:
+    if is_v2v:
+        valid_v2v_sizes = ['Original', '16:9', '9:16', '1:1', '3:4', '4:3']
+        if size not in valid_v2v_sizes:
+            size = 'Original'
+    elif supported_sizes:
         if size not in supported_sizes:
             size = model_meta.get('default_size') or supported_sizes[0]
     else:
@@ -279,7 +283,11 @@ def generate_video():
 
     # 5. Resolve Resolution
     resolution = data.get('resolution')
-    supported_resolutions = model_meta.get('supported_resolutions', [])
+    supported_resolutions = (model_meta.get('supported_resolutions_by_mode', {}).get('VideoToVideo') 
+                             if is_v2v else model_meta.get('supported_resolutions', []))
+    if not supported_resolutions:
+        supported_resolutions = model_meta.get('supported_resolutions', [])
+
     if supported_resolutions:
         if resolution not in supported_resolutions:
             resolution = model_meta.get('default_resolution') or supported_resolutions[0]

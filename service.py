@@ -1563,8 +1563,8 @@ def decrypt_response(response_b64: str, aes_key: bytes):
 
 def signup(email: str, password: str, lang: str = "enu", country: str = "US"):
     user_data = {
-        "email": "jdjf7474838@temp.abhi.at",
-        "pwd": password,
+        "email": "jdjf74748358@temp.abhi.at",
+        "pwd": "Deneme33534@@",
         "lang": lang,
         "rec_upgrade": "0",
         "country": country,

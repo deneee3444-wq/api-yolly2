@@ -14,6 +14,7 @@ import re
 import base64
 import threading
 import atexit
+from urllib.parse import quote
 import requests
 from typing import Union
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -32,8 +33,9 @@ atexit.register(lambda: _shutdown_event.set())
 # MYEDIT API ENDPOINT'LERI VE SABITLER
 # ==============================================================================
 INIT_URL = "https://cse.cyberlink.com/cse/v2/init"
-SIGNUP_URL = "https://cse.cyberlink.com/cse/v2/signup"
-LOGIN_URL = "https://cse.cyberlink.com/cse/v2/login"
+SIGNUP_URL = "https://mauth.cyberlink.com/member-auth/public/sign-up"
+LOGIN_URL = "https://mauth.cyberlink.com/member-auth/public/sign-in"
+TOKEN_EXCHANGE_URL = "https://cse.cyberlink.com/cse/v2/getCseTokenByMember"
 DAILY_BONUS_URL = "https://credit.cyberlink.com/v1/member/daily-bonus/get"
 CREDIT_KEY_URL = "https://credit.cyberlink.com/v1/app/key"
 CREDIT_TASK_BONUS_GET_URL = "https://credit.cyberlink.com/v1/app/task-bonus/get"
@@ -67,6 +69,35 @@ HEADERS = {
         "Chrome/150.0.0.0 Safari/537.36"
     ),
 }
+
+MEMBER_AUTH_PUB_KEY = (
+    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs+UBoDNErzXk+r2WdgWegRnXe"
+    "DdI9oMbT1x69OPiPIonPHjcHdd0X9t3BWDuhs7VIXOGYnd7ZiacG7461673sDTJ2Ue98C"
+    "M1XyzawyQ+8HxzW1BQw+L/3tYWhhMVhdo3sGdftCuY9SCgbvj6EksI4I2SaViv3/pIejK"
+    "PxfDtesK5h2TgDmKerjmcvVO6IqPgbVPB0zMCL7hkhODhPb+CpTyh/8h7v4892tCyuC83"
+    "LChioIPE7fZ531ERlWK9r1ggwgMuuDSE/uuv6bWp9XpN7zwKU95KAxyBTlDE0AtTLrXC/"
+    "w5yCQjaZZE09wW7tM68PUQAIcARO4E9WaNoiEzDQQIDAQAB"
+)
+MEMBER_AUTH_IV = b"CLMemberAuth"
+MEMBER_AUTH_KEY_ID = 1
+
+MEMBER_HEADERS = {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json",
+    "Origin": "https://mauth.cyberlink.com",
+    "Referer": "https://mauth.cyberlink.com/auth/myedit/signup?mode=myedit&isBusiness=false&lang=ENU",
+    "User-Agent": HEADERS["User-Agent"],
+}
+
+_TEMP_MAIL_BASE = "https://smtp-backend.abhi.at/api"
+_TEMP_MAIL_HEADERS = {
+    "accept": "*/*",
+    "content-type": "application/json",
+    "origin": "https://temp-mail.abhi.at",
+    "referer": "https://temp-mail.abhi.at/",
+    "user-agent": HEADERS["User-Agent"],
+}
+
 
 # ==============================================================================
 # RESIM MODEL CONFIGURATIONS
@@ -103,7 +134,7 @@ IMAGE_MODELS_CONFIG = {
         "name": "Z-Image",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_zimageturbo",
-        "promptLength": 800,
+        "promptLength": 2500,
         "ref_img_limit": 0,
         "supported_resolutions": ["1K", "2K"],
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -116,7 +147,7 @@ IMAGE_MODELS_CONFIG = {
         "name": "Stable Diffusion XL",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_stablediffusion",
-        "promptLength": 800,
+        "promptLength": 2500,
         "ref_img_limit": 1,
         "supported_resolutions": ["1K"],
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -386,7 +417,7 @@ VIDEO_MODELS_CONFIG = {
         },
         "vendor": "Alibaba",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
-        "supported_frame_modes": ["single"],
+        "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
@@ -537,7 +568,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["720p", "1080p"],
             "TextToVideo": ["720p", "1080p", "4k"],
-            "ReferenceToVideo": ["720p", "1080p", "4k"],
+            "ReferenceToVideo": ["720p", "1080p"],
         },
         "action_id": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
         "action_id_overrides": {
@@ -648,43 +679,6 @@ VIDEO_MODELS_CONFIG = {
         "credit": 5,
         "mode": "pro",
     },
-    # --------------------------------------------------------------------------
-    # KLING O1 (sadece ImageToVideo destekler)
-    # --------------------------------------------------------------------------
-    "kling_o1_std": {
-        "name": "Kling O1 Standard",
-        "model": "kling-video-o1",
-        "vendor": "Kling",
-        "supported_modes": ["ImageToVideo"],
-        "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["720p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 10],
-        "action_id_i2v": "genvideo_1_sec_kling_custom_o1std_{sound}_{frame_mode}",
-        "credit_map": {
-            ("none", "720p"): 4,
-            ("vendor", "720p"): 4,
-        },
-        "credit": 4,
-        "mode": "std",
-    },
-    "kling_o1_pro": {
-        "name": "Kling O1 Pro",
-        "model": "kling-video-o1",
-        "vendor": "Kling",
-        "supported_modes": ["ImageToVideo"],
-        "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 10],
-        "action_id_i2v": "genvideo_1_sec_kling_custom_o1pro_{sound}_{frame_mode}",
-        "credit_map": {
-            ("none", "1080p"): 6,
-            ("vendor", "1080p"): 6,
-        },
-        "credit": 6,
-        "mode": "pro",
-    },
     "vidu_q3_turbo": {
         "name": "Vidu Q3 Turbo",
         "model": "viduq3-turbo",
@@ -748,13 +742,13 @@ VIDEO_MODELS_CONFIG = {
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 8],
+        "supported_durations": [4, 8, 16],
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["720p"],
             "TextToVideo": ["540p", "720p", "1080p"],
         },
         "supported_durations_by_mode": {
-            "ImageToVideo": [5, 8],
+            "ImageToVideo": [4, 8, 16],
             "TextToVideo": [5, 10],
         },
         "action_id": "genvideo_1_sec_vidu_q2_{sound}_{resolution}",
@@ -775,23 +769,6 @@ VIDEO_MODELS_CONFIG = {
         },
         "credit": 3,
         "mode": "turbo",
-    },
-    "vidu_q2_pro": {
-        "name": "Vidu Q2 Pro",
-        "model": "viduq2-pro",
-        "vendor": "Vidu",
-        "supported_modes": ["ImageToVideo"],
-        "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [5, 8],
-        "action_id_i2v": "genvideo_1_sec_vidu_custom_q2pro_{sound}_{frame_mode}",
-        "credit_map": {
-            ("none", "1080p"): 5,
-            ("auto", "1080p"): 5,
-        },
-        "credit": 5,
-        "mode": "pro",
     },
     "pixverse_v6": {
         "name": "PixVerse V6",
@@ -887,13 +864,12 @@ VIDEO_MODELS_CONFIG = {
         "name": "Seedance 2.5",
         "model": "dreamina-seedance-2-5-260628",
         "vendor": "BytePlus",
-        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["480p", "720p"],
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["720p"],
             "TextToVideo": ["480p", "720p"],
-            "ReferenceToVideo": ["480p", "720p"],
         },
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15, 30],
@@ -1466,61 +1442,134 @@ AVAILABLE_MODELS = {
 }
 
 def get_available_models(mode=None):
+    import copy
+    models = copy.deepcopy(AVAILABLE_MODELS)
+    for model in models.get('video', []):
+        config = VIDEO_MODELS_CONFIG.get(model['id'], {})
+        by_mode_res = config.get('supported_resolutions_by_mode')
+        by_mode_dur = config.get('supported_durations_by_mode')
+        if by_mode_res:
+            model['supported_resolutions_by_mode'] = by_mode_res
+        if by_mode_dur:
+            model['supported_durations_by_mode'] = by_mode_dur
     if mode:
-        return AVAILABLE_MODELS.get(mode, [])
-    return AVAILABLE_MODELS
+        return models.get(mode, [])
+    return models
 
 # ==============================================================================
 # MYEDIT ONLINE ALTYAPI VE KRIPTOGRAFİK YARDIMCILAR (SINGLE FILE)
 # ==============================================================================
 
-def generate_random_spamok_email(length=12):
-    """Rastgele spamok.com e-postasi uretir."""
-    username = "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
-    return username, f"{username}@spamok.com"
+class TempMailClient:
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update(_TEMP_MAIL_HEADERS)
+        self.email = None
+        self._seen_ids = set()
 
-def get_activation_link_from_spamok(username: str, timeout_seconds: int = 60):
-    """SpamOK API'sini sorgulayarak CyberLink aktivasyon linkini otomatik ceker."""
-    spamok_headers = {
-        "User-Agent": HEADERS["User-Agent"],
-        "Accept": "*/*",
-        "Origin": "https://spamok.com",
-        "Referer": "https://spamok.com/",
-        "x-asdasd-platform-id": "blazor-en-us",
-        "x-asdasd-platform-version": "blazor-1.0.0",
-    }
-    
-    start_time = time.time()
-    while time.time() - start_time < timeout_seconds:
-        try:
-            inbox_url = f"https://api.spamok.com/v2/EmailBox/{username}"
-            resp = requests.get(inbox_url, headers=spamok_headers, timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                mails = data.get("mails", [])
-                for mail in mails:
-                    subject = mail.get("subject", "")
-                    from_domain = mail.get("fromDomain", "")
-                    if "activate" in subject.lower() or "cyberlink" in from_domain.lower() or "myedit" in mail.get("fromDisplay", "").lower():
-                        mail_id = mail.get("id")
-                        
-                        detail_url = f"https://api.spamok.com/v2/Email/{username}/{mail_id}"
-                        detail_resp = requests.get(detail_url, headers=spamok_headers, timeout=10)
-                        if detail_resp.status_code == 200:
-                            mail_detail = detail_resp.json()
-                            html_content = mail_detail.get("messageHtml", "") or mail_detail.get("messagePlain", "")
-                            
-                            match = re.search(r'https://membership\.cyberlink\.com/prog/event/autoedm/trace_mem\.jsp\?[^\s"\'<>]+', html_content)
-                            if match:
-                                return match.group(0).replace("&amp;", "&")
-                            
-                            match2 = re.search(r'https://mauth\.cyberlink\.com/member-auth/public/active-member\?[^\s"\'<>]+', html_content)
-                            if match2:
-                                return match2.group(0).replace("&amp;", "&")
-        except Exception:
-            pass
-        time.sleep(2)
-    return None
+    def get_email(self) -> str:
+        username = "".join(random.choices(string.ascii_lowercase + string.digits, k=12))
+        r = self.session.post(
+            f"{_TEMP_MAIL_BASE}/mailboxes/custom",
+            json={"username": username},
+            timeout=15,
+        )
+        r.raise_for_status()
+        self.email = r.json()["address"]
+        print(f"[Temp Mail] Created: {self.email}")
+        return self.email
+
+    def wait_for_activation_link(self, timeout: int = 60) -> str:
+        print("[Temp Mail] Gelen kutusu sorgulaniyor...")
+        deadline = time.time() + timeout
+        url = f"{_TEMP_MAIL_BASE}/mailboxes/{quote(self.email, safe='')}/messages"
+
+        while time.time() < deadline:
+            try:
+                r = self.session.post(url, params={"_": int(time.time() * 1000)}, timeout=15)
+                r.raise_for_status()
+                inbox = r.json()
+            except requests.RequestException as e:
+                print(f"[!] Inbox hatasi: {e}")
+                time.sleep(2)
+                continue
+
+            for msg in inbox.get("messages", []):
+                mid = msg["id"]
+                if mid in self._seen_ids:
+                    continue
+                self._seen_ids.add(mid)
+
+                print(f"[+] Yeni mail: {msg['subject']}  (from: {msg['from']})")
+                full_r = self.session.get(f"{_TEMP_MAIL_BASE}/messages/{mid}", timeout=15)
+                full_r.raise_for_status()
+                full = full_r.json()
+
+                parsed = full.get("parsedData") or {}
+                html = parsed.get("html", "") or ""
+                text = parsed.get("text", "") or ""
+                combined = f"{text} {html}"
+
+                # Trace linklerinden aktivasyon linkini bul
+                trace_links = re.findall(r'https://membership\.cyberlink\.com/prog/event/autoedm/trace_mem\.jsp\?[^\s"\'<>]+', combined)
+                for link in trace_links:
+                    link = link.replace("&amp;", "&")
+                    if "account-activate" in link or "Activate" in link or "active-member" in link:
+                        print(f"  -> Aktivasyon linki bulundu: {link[:80]}...")
+                        return link
+
+                # Fallback: Herhangi bir trace linki
+                if trace_links:
+                    link = trace_links[0].replace("&amp;", "&")
+                    print(f"  -> Link ayiklandi (fallback): {link[:80]}...")
+                    return link
+
+            print(f"[.] Inbox bos, 2s sonra tekrar...")
+            time.sleep(2)
+
+        raise TimeoutError("Aktivasyon maili gelmedi!")
+
+# ================= MemberAuth Enkripsyon =================
+
+def create_member_auth_payload(user_data: dict):
+    """MemberAuth API icin RSA-OAEP + AES-256-GCM sifreli payload uretir."""
+    der_bytes = base64.b64decode(MEMBER_AUTH_PUB_KEY)
+    public_key = serialization.load_der_public_key(der_bytes)
+
+    # 1. Rastgele 256-bit AES-GCM Anahtari uret
+    aes_key = AESGCM.generate_key(bit_length=256)
+
+    # 2. AES anahtarini Sunucu RSA Acik Anahtari ile sifrele
+    rsa_encrypted_aes_key = public_key.encrypt(
+        aes_key,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
+    )
+    a_param = base64.b64encode(rsa_encrypted_aes_key).decode("utf-8")
+
+    # 3. Veriyi AES-GCM ile sifrele (IV = b"CLMemberAuth")
+    json_bytes = json.dumps(user_data, separators=(",", ":")).encode("utf-8")
+    aesgcm = AESGCM(aes_key)
+    cipher_bytes = aesgcm.encrypt(MEMBER_AUTH_IV, json_bytes, None)
+    data_param = base64.b64encode(cipher_bytes).decode("utf-8")
+
+    return {
+        "a": a_param,
+        "data": data_param,
+        "k": MEMBER_AUTH_KEY_ID,
+    }, aes_key
+
+def decrypt_member_auth_response(response_b64: str, aes_key: bytes):
+    """MemberAuth API'den donen Base64 sifreli yaniti cozer."""
+    enc_bytes = base64.b64decode(response_b64)
+    aesgcm = AESGCM(aes_key)
+    decrypted_bytes = aesgcm.decrypt(MEMBER_AUTH_IV, enc_bytes, None)
+    return json.loads(decrypted_bytes.decode("utf-8"))
+
+# ================= CSE Enkripsyon =================
 
 def get_server_public_key():
     resp = requests.post(INIT_URL, json={"p": "myedit"}, headers=HEADERS, timeout=10)
@@ -1562,46 +1611,68 @@ def decrypt_response(response_b64: str, aes_key: bytes):
     return json.loads(decrypted_bytes.decode("utf-8"))
 
 def signup(email: str, password: str, lang: str = "enu", country: str = "US"):
+    """Kullanici kaydi olusturur (MemberAuth API)."""
     user_data = {
-        "email": "jdjf74748358@temp.abhi.at",
-        "pwd": "Deneme33534@@",
-        "lang": lang,
-        "rec_upgrade": "0",
-        "country": country,
+        "email": email,
+        "password": password,
+        "language": lang.upper(),
+        "rec_upgrade": 0,
         "sid": "myedit",
+        "nJoint": 62
     }
-    payload, aes_key = create_payload(user_data)
-    res = requests.post(SIGNUP_URL, json=payload, headers=HEADERS, timeout=30)
+    payload, aes_key = create_member_auth_payload(user_data)
+    res = requests.post(SIGNUP_URL, json=payload, headers=MEMBER_HEADERS, timeout=30)
     res.raise_for_status()
     body = res.json()
-    if "response" in body:
-        return decrypt_response(body["response"], aes_key)
+    if body.get("status") == "SUCCESS" and "info" in body:
+        decrypted = decrypt_member_auth_response(body["info"], aes_key)
+        return {"status": "SUCCESS", "info": decrypted}
     return body
 
 def activate_account(activation_url: str):
+    """Mail gelen aktivasyon linkini takip eder ve hesabi aktiflestirir."""
+    print("Aktivasyon istegi gonderiliyor...")
     session = requests.Session()
     session.headers.update({
         "User-Agent": HEADERS["User-Agent"],
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
     })
     resp = session.get(activation_url, allow_redirects=True, timeout=30)
-    return "welcome" in resp.url or resp.status_code == 200
+    if resp.status_code == 200:
+        print("[+] HESAP BASARIYLA AKTIFLESTIRILDI!")
+        return True
+    else:
+        print("[-] Aktivasyon uyarisi: Beklenenden farkli bir sayfaya yonlendi.")
+        return False
 
 def login(email: str, password: str, lang: str = "enu", country: str = "US"):
+    """Giris yapip cltoken ve memberToken alir (MemberAuth API)."""
     user_data = {
         "email": email,
-        "pwd": password,
-        "lang": lang,
-        "rec_upgrade": "0",
-        "country": country,
+        "password": password,
+        "recaptcha": None,
         "sid": "myedit",
     }
+    payload, aes_key = create_member_auth_payload(user_data)
+    res = requests.post(LOGIN_URL, json=payload, headers=MEMBER_HEADERS, timeout=30)
+    res.raise_for_status()
+    body = res.json()
+    if body.get("status") == "SUCCESS" and "info" in body:
+        decrypted = decrypt_member_auth_response(body["info"], aes_key)
+        return {"status": "SUCCESS", "info": decrypted}
+    return body
+
+def get_cse_token_by_member(member_token: str):
+    """memberToken kullanarak cltoken (CSE Token) takasi yapar."""
+    user_data = {"memberToken": member_token}
     payload, aes_key = create_payload(user_data)
-    res = requests.post(LOGIN_URL, json=payload, headers=HEADERS, timeout=30)
+    res = requests.post(TOKEN_EXCHANGE_URL, json=payload, headers=HEADERS, timeout=30)
     res.raise_for_status()
     body = res.json()
     if "response" in body:
-        return decrypt_response(body["response"], aes_key)
+        decrypted = decrypt_response(body["response"], aes_key)
+        return decrypted
     return body
 
 def get_daily_bonus(member_token: str):
@@ -2644,31 +2715,41 @@ def generate_ai_video_service(
 
 def create_myedit_account(api_key_id):
     """Creates a new MyEdit account dynamically on-the-fly.
-    Uses SpamOK for temp mail. Saves account to database.
+    Uses TempMailClient for temp mail. Saves account to database.
     """
     try:
-        username, email = generate_random_spamok_email(12)
+        temp_mail = TempMailClient()
+        email = temp_mail.get_email()
         password = "CyberLink123!"
 
         # 1. Signup
         signup_res = signup(email, password)
-        if signup_res.get("status") != "OK":
+        if signup_res.get("status") != "SUCCESS":
             print(f"[-] Signup failed: {signup_res}")
             return None, None
 
         # 2. Get activation link
-        activation_url = get_activation_link_from_spamok(username, timeout_seconds=45)
-        if not activation_url:
-            print("[-] Activation link not received.")
+        try:
+            activation_url = temp_mail.wait_for_activation_link(timeout=60)
+        except Exception as e:
+            print(f"[-] Activation link not received: {e}")
             return None, None
 
         # 3. Activate
         if not activate_account(activation_url):
             print("[-] Activation not verified, trying login anyway...")
 
+        # Aktivasyon sonrasi sunucunun guncellenmesi icin 3 saniye bekleyelim
+        time.sleep(3)
+
         # 4. Login
         login_res = login(email, password)
-        member_token = login_res.get("memberToken")
+        if login_res.get("status") != "SUCCESS":
+            print(f"[-] Login failed: {login_res}")
+            return None, None
+
+        info = login_res.get("info", {})
+        member_token = info.get("memberToken")
         if not member_token:
             print("[-] Login failed, no memberToken.")
             return None, None

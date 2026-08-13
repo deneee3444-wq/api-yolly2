@@ -103,7 +103,7 @@ IMAGE_MODELS_CONFIG = {
         "name": "Z-Image",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_zimageturbo",
-        "promptLength": 2500,
+        "promptLength": 800,
         "ref_img_limit": 0,
         "supported_resolutions": ["1K", "2K"],
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -116,7 +116,7 @@ IMAGE_MODELS_CONFIG = {
         "name": "Stable Diffusion XL",
         "vendor": "CyberLink",
         "actionId_prefix": "genimage_1_img_cyberlink_stablediffusion",
-        "promptLength": 2500,
+        "promptLength": 800,
         "ref_img_limit": 1,
         "supported_resolutions": ["1K"],
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -386,7 +386,7 @@ VIDEO_MODELS_CONFIG = {
         },
         "vendor": "Alibaba",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
-        "supported_frame_modes": ["single", "startend"],
+        "supported_frame_modes": ["single"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
@@ -537,7 +537,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["720p", "1080p"],
             "TextToVideo": ["720p", "1080p", "4k"],
-            "ReferenceToVideo": ["720p", "1080p"],
+            "ReferenceToVideo": ["720p", "1080p", "4k"],
         },
         "action_id": "genvideo_1_sec_kling_o3pro_{sound}_1080p",
         "action_id_overrides": {
@@ -648,6 +648,43 @@ VIDEO_MODELS_CONFIG = {
         "credit": 5,
         "mode": "pro",
     },
+    # --------------------------------------------------------------------------
+    # KLING O1 (sadece ImageToVideo destekler)
+    # --------------------------------------------------------------------------
+    "kling_o1_std": {
+        "name": "Kling O1 Standard",
+        "model": "kling-video-o1",
+        "vendor": "Kling",
+        "supported_modes": ["ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10],
+        "action_id_i2v": "genvideo_1_sec_kling_custom_o1std_{sound}_{frame_mode}",
+        "credit_map": {
+            ("none", "720p"): 4,
+            ("vendor", "720p"): 4,
+        },
+        "credit": 4,
+        "mode": "std",
+    },
+    "kling_o1_pro": {
+        "name": "Kling O1 Pro",
+        "model": "kling-video-o1",
+        "vendor": "Kling",
+        "supported_modes": ["ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10],
+        "action_id_i2v": "genvideo_1_sec_kling_custom_o1pro_{sound}_{frame_mode}",
+        "credit_map": {
+            ("none", "1080p"): 6,
+            ("vendor", "1080p"): 6,
+        },
+        "credit": 6,
+        "mode": "pro",
+    },
     "vidu_q3_turbo": {
         "name": "Vidu Q3 Turbo",
         "model": "viduq3-turbo",
@@ -711,13 +748,13 @@ VIDEO_MODELS_CONFIG = {
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [4, 8, 16],
+        "supported_durations": [5, 8],
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["720p"],
             "TextToVideo": ["540p", "720p", "1080p"],
         },
         "supported_durations_by_mode": {
-            "ImageToVideo": [4, 8, 16],
+            "ImageToVideo": [5, 8],
             "TextToVideo": [5, 10],
         },
         "action_id": "genvideo_1_sec_vidu_q2_{sound}_{resolution}",
@@ -738,6 +775,23 @@ VIDEO_MODELS_CONFIG = {
         },
         "credit": 3,
         "mode": "turbo",
+    },
+    "vidu_q2_pro": {
+        "name": "Vidu Q2 Pro",
+        "model": "viduq2-pro",
+        "vendor": "Vidu",
+        "supported_modes": ["ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 8],
+        "action_id_i2v": "genvideo_1_sec_vidu_custom_q2pro_{sound}_{frame_mode}",
+        "credit_map": {
+            ("none", "1080p"): 5,
+            ("auto", "1080p"): 5,
+        },
+        "credit": 5,
+        "mode": "pro",
     },
     "pixverse_v6": {
         "name": "PixVerse V6",
@@ -833,12 +887,13 @@ VIDEO_MODELS_CONFIG = {
         "name": "Seedance 2.5",
         "model": "dreamina-seedance-2-5-260628",
         "vendor": "BytePlus",
-        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["480p", "720p"],
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["720p"],
             "TextToVideo": ["480p", "720p"],
+            "ReferenceToVideo": ["480p", "720p"],
         },
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15, 30],
@@ -1411,19 +1466,9 @@ AVAILABLE_MODELS = {
 }
 
 def get_available_models(mode=None):
-    import copy
-    models = copy.deepcopy(AVAILABLE_MODELS)
-    for model in models.get('video', []):
-        config = VIDEO_MODELS_CONFIG.get(model['id'], {})
-        by_mode_res = config.get('supported_resolutions_by_mode')
-        by_mode_dur = config.get('supported_durations_by_mode')
-        if by_mode_res:
-            model['supported_resolutions_by_mode'] = by_mode_res
-        if by_mode_dur:
-            model['supported_durations_by_mode'] = by_mode_dur
     if mode:
-        return models.get(mode, [])
-    return models
+        return AVAILABLE_MODELS.get(mode, [])
+    return AVAILABLE_MODELS
 
 # ==============================================================================
 # MYEDIT ONLINE ALTYAPI VE KRIPTOGRAFİK YARDIMCILAR (SINGLE FILE)

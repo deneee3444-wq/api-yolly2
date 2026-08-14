@@ -3153,7 +3153,7 @@ def process_image_task(task_id, params, api_key_id):
                     "end_frame": params.get('end_frame')
                 })
                 db.update_task_token(task_id, token_data)
-                db.add_task_log(task_id, f"Task id: {task_id} (Hesap: {account['email']}, Kalan Kredi: {total_credits})")
+                db.add_task_log(task_id, f"Task id: {task_id}")
 
                 result = generate_ai_image_service(
                     member_token=member_token,
@@ -3324,7 +3324,7 @@ def process_video_task(task_id, params, api_key_id):
                     "end_frame": params.get('end_frame')
                 })
                 db.update_task_token(task_id, token_data)
-                db.add_task_log(task_id, f"Task id: {task_id} (Hesap: {account['email']}, Kalan Kredi: {total_credits})")
+                db.add_task_log(task_id, f"Task id: {task_id}")
 
                 result = generate_ai_video_service(
                     member_token=member_token,

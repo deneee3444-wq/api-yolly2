@@ -3138,6 +3138,10 @@ def process_image_task(task_id, params, api_key_id):
 
             current_token = member_token
             try:
+                credit_info = get_member_remaining_credits(member_token)
+                total_credits = credit_info.get("total_remain", "?") if credit_info else "?"
+                print(f"\n[RENDER LOG] [IMAGE TASK: {task_id}] -> Aktif Hesap: {account['email']} | Mevcut Kalan Kredi: {total_credits}")
+
                 claim_task_bonus(member_token, feature_id)
                 check_task_bonus(member_token, feature_id)
 
@@ -3149,7 +3153,7 @@ def process_image_task(task_id, params, api_key_id):
                     "end_frame": params.get('end_frame')
                 })
                 db.update_task_token(task_id, token_data)
-                db.add_task_log(task_id, f"Task id: {task_id} (using account: {account['email']})")
+                db.add_task_log(task_id, f"Task id: {task_id} (Hesap: {account['email']}, Kalan Kredi: {total_credits})")
 
                 result = generate_ai_image_service(
                     member_token=member_token,
@@ -3212,6 +3216,9 @@ def process_image_task(task_id, params, api_key_id):
             if completed_files:
                 db.update_task_status(task_id, 'completed', completed_files[0])
                 deduct_api_key_quota(api_key_id, task_id)
+                post_credits_info = get_member_remaining_credits(current_token)
+                post_credits = post_credits_info.get("total_remain", "?") if post_credits_info else "?"
+                print(f"[RENDER LOG] [IMAGE TASK: {task_id}] [TAMAMLANDI] -> Hesap: {account['email']} | Kalan Kredi: {post_credits}\n")
             else:
                 db.update_task_status(task_id, 'failed')
                 db.add_task_log(task_id, "No generated files returned.")
@@ -3302,6 +3309,10 @@ def process_video_task(task_id, params, api_key_id):
 
             current_token = member_token
             try:
+                credit_info = get_member_remaining_credits(member_token)
+                total_credits = credit_info.get("total_remain", "?") if credit_info else "?"
+                print(f"\n[RENDER LOG] [VIDEO TASK: {task_id}] -> Aktif Hesap: {account['email']} | Mevcut Kalan Kredi: {total_credits}")
+
                 claim_task_bonus(member_token, feature_id=input_mode)
                 check_task_bonus(member_token, feature_id=input_mode)
 
@@ -3313,7 +3324,7 @@ def process_video_task(task_id, params, api_key_id):
                     "end_frame": params.get('end_frame')
                 })
                 db.update_task_token(task_id, token_data)
-                db.add_task_log(task_id, f"Task id: {task_id} (using account: {account['email']})")
+                db.add_task_log(task_id, f"Task id: {task_id} (Hesap: {account['email']}, Kalan Kredi: {total_credits})")
 
                 result = generate_ai_video_service(
                     member_token=member_token,
@@ -3386,6 +3397,9 @@ def process_video_task(task_id, params, api_key_id):
             else:
                 db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
                 deduct_api_key_quota(api_key_id, task_id)
+            post_credits_info = get_member_remaining_credits(current_token)
+            post_credits = post_credits_info.get("total_remain", "?") if post_credits_info else "?"
+            print(f"[RENDER LOG] [VIDEO TASK: {task_id}] [TAMAMLANDI] -> Hesap: {account['email']} | Kalan Kredi: {post_credits}\n")
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
         else:

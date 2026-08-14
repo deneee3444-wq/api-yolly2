@@ -1979,6 +1979,23 @@ def get_subscription_token(member_token: str) -> str:
     resp.raise_for_status()
     return resp.json()["subscription_token"]
 
+def format_error_code(error) -> str:
+    """Returns strictly the HTTP status code (e.g. '429', '500', '503', '504') for client/frontend log visibility."""
+    if not error:
+        return "500"
+    if isinstance(error, requests.exceptions.RequestException):
+        if hasattr(error, 'response') and error.response is not None:
+            return str(error.response.status_code)
+    
+    err_str = str(error)
+    match = re.search(r'\b(4\d{2}|5\d{2})\b', err_str)
+    if match:
+        return match.group(1)
+    
+    if "timeout" in err_str.lower():
+        return "504"
+    return "500"
+
 def decrypt_downloaded_media(url: str, aes_key: bytes, enc_key_b64: str, enc_iv_b64: str, init_ts_ms: int, output_path: str = "output.bin"):
     try:
         resp = requests.get(url, timeout=60)
@@ -3117,7 +3134,7 @@ def process_image_task(task_id, params, api_key_id):
         model_data = IMAGE_MODELS_CONFIG.get(model)
         if not model_data:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, f"Unsupported model: {model}")
+            db.add_task_log(task_id, "400")
             return
 
         is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
@@ -3133,7 +3150,7 @@ def process_image_task(task_id, params, api_key_id):
             member_token, account = get_or_create_active_account(api_key_id, task_id=task_id, force_new=force_new)
             if not member_token:
                 db.update_task_status(task_id, 'failed')
-                db.add_task_log(task_id, "Service temporarily unavailable (could not obtain account).")
+                db.add_task_log(task_id, "503")
                 return
 
             current_token = member_token
@@ -3153,7 +3170,6 @@ def process_image_task(task_id, params, api_key_id):
                     "end_frame": params.get('end_frame')
                 })
                 db.update_task_token(task_id, token_data)
-                db.add_task_log(task_id, f"Task id: {task_id}")
 
                 result = generate_ai_image_service(
                     member_token=member_token,
@@ -3191,7 +3207,7 @@ def process_image_task(task_id, params, api_key_id):
 
         if not result:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, f"Failed after account retries: {last_error}")
+            db.add_task_log(task_id, format_error_code(last_error))
             return
 
         if result.get("status") == "Done":
@@ -3216,21 +3232,24 @@ def process_image_task(task_id, params, api_key_id):
             if completed_files:
                 db.update_task_status(task_id, 'completed', completed_files[0])
                 deduct_api_key_quota(api_key_id, task_id)
+                db.add_task_log(task_id, "200")
                 post_credits_info = get_member_remaining_credits(current_token)
                 post_credits = post_credits_info.get("total_remain", "?") if post_credits_info else "?"
                 print(f"[RENDER LOG] [IMAGE TASK: {task_id}] [TAMAMLANDI] -> Hesap: {account['email']} | Kalan Kredi: {post_credits}\n")
             else:
                 db.update_task_status(task_id, 'failed')
-                db.add_task_log(task_id, "No generated files returned.")
+                db.add_task_log(task_id, "500")
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
+            db.add_task_log(task_id, "504")
         else:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, f"Submission error: {result.get('error', 'unknown error')}")
+            db.add_task_log(task_id, format_error_code(result.get('error')))
 
     except Exception as e:
+        print(f"[ERROR] Image task {task_id} error: {e}")
         db.update_task_status(task_id, 'error')
-        db.add_task_log(task_id, str(e))
+        db.add_task_log(task_id, format_error_code(e))
     finally:
         for temp_file in temp_files:
             if os.path.exists(temp_file):
@@ -3291,7 +3310,7 @@ def process_video_task(task_id, params, api_key_id):
         model_data = VIDEO_MODELS_CONFIG.get(model)
         if not model_data:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, f"Unsupported model: {model}")
+            db.add_task_log(task_id, "400")
             return
 
         max_account_retries = 3
@@ -3304,7 +3323,7 @@ def process_video_task(task_id, params, api_key_id):
             member_token, account = get_or_create_active_account(api_key_id, task_id=task_id, force_new=force_new)
             if not member_token:
                 db.update_task_status(task_id, 'failed')
-                db.add_task_log(task_id, "Service temporarily unavailable (could not obtain account).")
+                db.add_task_log(task_id, "503")
                 return
 
             current_token = member_token
@@ -3324,7 +3343,6 @@ def process_video_task(task_id, params, api_key_id):
                     "end_frame": params.get('end_frame')
                 })
                 db.update_task_token(task_id, token_data)
-                db.add_task_log(task_id, f"Task id: {task_id}")
 
                 result = generate_ai_video_service(
                     member_token=member_token,
@@ -3368,7 +3386,7 @@ def process_video_task(task_id, params, api_key_id):
 
         if not result:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, f"Failed after account retries: {last_error}")
+            db.add_task_log(task_id, format_error_code(last_error))
             return
 
         if result.get("status") == "Done":
@@ -3394,21 +3412,25 @@ def process_video_task(task_id, params, api_key_id):
             if video_file:
                 db.update_task_status(task_id, 'completed', video_file)
                 deduct_api_key_quota(api_key_id, task_id)
+                db.add_task_log(task_id, "200")
             else:
                 db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
                 deduct_api_key_quota(api_key_id, task_id)
+                db.add_task_log(task_id, "200")
             post_credits_info = get_member_remaining_credits(current_token)
             post_credits = post_credits_info.get("total_remain", "?") if post_credits_info else "?"
             print(f"[RENDER LOG] [VIDEO TASK: {task_id}] [TAMAMLANDI] -> Hesap: {account['email']} | Kalan Kredi: {post_credits}\n")
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
+            db.add_task_log(task_id, "504")
         else:
             db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, f"Submission error: {result.get('error', 'unknown error')}")
+            db.add_task_log(task_id, format_error_code(result.get('error')))
 
     except Exception as e:
+        print(f"[ERROR] Video task {task_id} error: {e}")
         db.update_task_status(task_id, 'error')
-        db.add_task_log(task_id, str(e))
+        db.add_task_log(task_id, format_error_code(e))
     finally:
         for temp_file in temp_files:
             if os.path.exists(temp_file):
@@ -3419,11 +3441,11 @@ def process_video_task(task_id, params, api_key_id):
 
 def process_tts_task(task_id, params, api_key_id):
     db.update_task_status(task_id, 'failed')
-    db.add_task_log(task_id, "TTS is not supported by this service.")
+    db.add_task_log(task_id, "501")
 
 def process_music_task(task_id, params, api_key_id):
     db.update_task_status(task_id, 'failed')
-    db.add_task_log(task_id, "Music is not supported by this service.")
+    db.add_task_log(task_id, "501")
 
 def get_tts_voices(api_key_id):
     return [], "TTS not supported by this service"

@@ -358,7 +358,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
         "supported_resolutions_by_mode": {
-            "ImageToVideo": ["480p", "720p"],
+            "ImageToVideo": ["720p"],
             "TextToVideo": ["480p", "720p"],
             "ReferenceToVideo": ["480p", "720p"],
         },
@@ -417,7 +417,7 @@ VIDEO_MODELS_CONFIG = {
         },
         "vendor": "Alibaba",
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
-        "supported_frame_modes": ["single", "startend"],
+        "supported_frame_modes": ["single"],
         "supported_resolutions": ["1080p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15],
@@ -500,7 +500,7 @@ VIDEO_MODELS_CONFIG = {
             ("TextToVideo", "vendor", "4k"): 16,
         },
         "credit": 5,
-        "mode": "fast",
+        "mode": "std",
     },
     "veo_3_1": {
         "name": "Veo 3.1",
@@ -528,7 +528,7 @@ VIDEO_MODELS_CONFIG = {
             ("TextToVideo", "vendor", "4k"): 30,
         },
         "credit": 10,
-        "mode": "std",
+        "mode": "pro",
     },
     "veo_3_1_lite": {
         "name": "Veo 3.1 Lite",
@@ -550,8 +550,18 @@ VIDEO_MODELS_CONFIG = {
         "action_id": "genvideo_1_sec_google_veo3.1lite_{sound}_{resolution}",
         "action_id_i2v": "genvideo_1_sec_google_custom_veo3.1lite_{sound}_{frame_mode}_{resolution}",
         "credit_map": {
-            ("none", "720p"): 2, ("none", "1080p"): 3,
-            ("vendor", "720p"): 3, ("vendor", "1080p"): 5,
+            ("ImageToVideo", "none", "720p"): 3,
+            ("ImageToVideo", "none", "1080p"): 5,
+            ("ImageToVideo", "vendor", "720p"): 3,
+            ("ImageToVideo", "vendor", "1080p"): 5,
+            ("TextToVideo", "none", "720p"): 2,
+            ("TextToVideo", "none", "1080p"): 3,
+            ("TextToVideo", "vendor", "720p"): 3,
+            ("TextToVideo", "vendor", "1080p"): 5,
+            ("none", "720p"): 2,
+            ("none", "1080p"): 3,
+            ("vendor", "720p"): 3,
+            ("vendor", "1080p"): 5,
         },
         "credit": 3,
         "mode": "std",
@@ -589,6 +599,40 @@ VIDEO_MODELS_CONFIG = {
             "supported_types": ["image"],
             "max_images": 7,
         },
+    },
+    "kling_o1_std": {
+        "name": "Kling O1 Standard",
+        "model": "kling-video-o1",
+        "vendor": "Kling",
+        "supported_modes": ["ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10],
+        "action_id_i2v": "genvideo_1_sec_kling_custom_o1std_{sound}_{frame_mode}",
+        "credit_map": {
+            ("none", "720p"): 4,
+            ("vendor", "720p"): 4,
+        },
+        "credit": 4,
+        "mode": "std",
+    },
+    "kling_o1_pro": {
+        "name": "Kling O1 Pro",
+        "model": "kling-video-o1",
+        "vendor": "Kling",
+        "supported_modes": ["ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_durations": [5, 10],
+        "action_id_i2v": "genvideo_1_sec_kling_custom_o1pro_{sound}_{frame_mode}",
+        "credit_map": {
+            ("none", "1080p"): 6,
+            ("vendor", "1080p"): 6,
+        },
+        "credit": 6,
+        "mode": "pro",
     },
     "kling_3_0": {
         "name": "Kling 3.0",
@@ -736,19 +780,22 @@ VIDEO_MODELS_CONFIG = {
     },
     "vidu_q2": {
         "name": "Vidu Q2",
-        "model": "viduq2-turbo",
+        "model": {
+            "TextToVideo": "viduq2",
+            "ImageToVideo": "viduq2-turbo",
+        },
         "vendor": "Vidu",
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
-        "supported_durations": [4, 8, 16],
+        "supported_durations": [5, 8],
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["720p"],
             "TextToVideo": ["540p", "720p", "1080p"],
         },
         "supported_durations_by_mode": {
-            "ImageToVideo": [4, 8, 16],
+            "ImageToVideo": [5, 8],
             "TextToVideo": [5, 10],
         },
         "action_id": "genvideo_1_sec_vidu_q2_{sound}_{resolution}",
@@ -864,12 +911,13 @@ VIDEO_MODELS_CONFIG = {
         "name": "Seedance 2.5",
         "model": "dreamina-seedance-2-5-260628",
         "vendor": "BytePlus",
-        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["480p", "720p"],
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["720p"],
             "TextToVideo": ["480p", "720p"],
+            "ReferenceToVideo": ["480p", "720p"],
         },
         "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
         "supported_durations": [5, 10, 15, 30],
@@ -893,7 +941,7 @@ VIDEO_MODELS_CONFIG = {
         "name": "Gemini Omni Flash",
         "model": "gemini-omni-flash-preview",
         "vendor": "Google",
-        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single"],
         "supported_resolutions": ["720p"],
         "supported_aspect_ratios": ["16:9", "9:16"],
@@ -1114,7 +1162,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "720p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 4900
         },
         {
             "id": "seedance_2_0_mini",
@@ -1130,7 +1178,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "720p",
             "default_duration": 5,
-            "max_prompt_length": 1000
+            "max_prompt_length": 4900
         },
         {
             "id": "seedance_2_0_pro",
@@ -1142,18 +1190,18 @@ AVAILABLE_MODELS = {
             "max_reference_images": 9,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [5, 10, 15],
-            "supported_resolutions": ["1080p"],
+            "supported_resolutions": ["480p", "720p", "1080p"],
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 4900
         },
         {
             "id": "happy_horse_1_1",
             "name": "Happy Horse 1.1",
-            "description": "Happy Horse 1.1 by Alibaba - Supports Start/End Frame, up to 9 Reference Images",
+            "description": "Happy Horse 1.1 by Alibaba - Supports Start Frame, up to 9 Reference Images",
             "supports_start_frame": True,
-            "supports_end_frame": True,
+            "supports_end_frame": False,
             "supports_reference_images": True,
             "max_reference_images": 9,
             "supported_sizes": ["16:9", "9:16", "1:1"],
@@ -1162,7 +1210,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 2500
         },
         {
             "id": "wan_2_7",
@@ -1178,7 +1226,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 5000
         },
         {
             "id": "veo_3_1_fast",
@@ -1194,7 +1242,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 6,
-            "max_prompt_length": 2000
+            "max_prompt_length": 4000
         },
         {
             "id": "veo_3_1",
@@ -1210,7 +1258,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 6,
-            "max_prompt_length": 2000
+            "max_prompt_length": 4000
         },
         {
             "id": "veo_3_1_lite",
@@ -1221,12 +1269,12 @@ AVAILABLE_MODELS = {
             "supports_reference_images": False,
             "max_reference_images": 0,
             "supported_sizes": ["16:9", "9:16"],
-            "supported_durations": [4, 8],
+            "supported_durations": [4, 6, 8],
             "supported_resolutions": ["1080p"],
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 4,
-            "max_prompt_length": 2000
+            "max_prompt_length": 4000
         },
         {
             "id": "kling_o3",
@@ -1242,7 +1290,39 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "kling_o1_std",
+            "name": "Kling O1 Standard",
+            "description": "Kling O1 Standard by Kling - Supports Start/End Frame",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "max_reference_images": 0,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10],
+            "supported_resolutions": ["720p"],
+            "default_size": "16:9",
+            "default_resolution": "720p",
+            "default_duration": 5,
+            "max_prompt_length": 2500
+        },
+        {
+            "id": "kling_o1_pro",
+            "name": "Kling O1 Pro",
+            "description": "Kling O1 Pro by Kling - Supports Start/End Frame",
+            "supports_start_frame": True,
+            "supports_end_frame": True,
+            "supports_reference_images": False,
+            "max_reference_images": 0,
+            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_durations": [5, 10],
+            "supported_resolutions": ["1080p"],
+            "default_size": "16:9",
+            "default_resolution": "1080p",
+            "default_duration": 5,
+            "max_prompt_length": 2500
         },
         {
             "id": "kling_3_0",
@@ -1258,7 +1338,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 2500
         },
         {
             "id": "kling_2_6",
@@ -1274,7 +1354,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 2500
         },
         {
             "id": "kling_2_5_std",
@@ -1290,7 +1370,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "720p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 2500
         },
         {
             "id": "kling_2_5_pro",
@@ -1306,7 +1386,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 2500
         },
         {
             "id": "vidu_q3_turbo",
@@ -1370,7 +1450,7 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "1080p",
             "default_duration": 5,
-            "max_prompt_length": 2000
+            "max_prompt_length": 4900
         },
         {
             "id": "sora_2_std",
@@ -1407,9 +1487,9 @@ AVAILABLE_MODELS = {
         {
             "id": "seedance_2_5",
             "name": "Seedance 2.5",
-            "description": "Seedance 2.5 by BytePlus - Supports Start Frame, up to 20 Reference Images & 10 Videos",
+            "description": "Seedance 2.5 by BytePlus - Supports Start/End Frame, up to 20 Reference Images & 10 Videos",
             "supports_start_frame": True,
-            "supports_end_frame": False,
+            "supports_end_frame": True,
             "supports_reference_images": True,
             "max_reference_images": 20,
             "supported_sizes": ["16:9", "9:16", "1:1"],
@@ -1418,13 +1498,13 @@ AVAILABLE_MODELS = {
             "default_size": "16:9",
             "default_resolution": "720p",
             "default_duration": 5,
-            "max_prompt_length": 9900
+            "max_prompt_length": 10000
         },
         {
             "id": "gemini_omni_flash",
             "name": "Gemini Omni Flash",
-            "description": "Gemini Omni Flash by Google - Supports up to 5 Reference Images",
-            "supports_start_frame": False,
+            "description": "Gemini Omni Flash by Google - Supports Start Frame, up to 5 Reference Images",
+            "supports_start_frame": True,
             "supports_end_frame": False,
             "supports_reference_images": True,
             "max_reference_images": 5,

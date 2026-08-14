@@ -2339,6 +2339,8 @@ def generate_ai_image_service(
     files_apply = {k: (None, str(v)) for k, v in form_data_apply.items()}
 
     resp_apply = requests.patch(apply_url, files=files_apply, headers=apply_headers, timeout=30)
+    if task_id:
+        db.add_task_log(task_id, str(resp_apply.status_code))
     if resp_apply.status_code == 403 or "Fail to verify credit" in resp_apply.text or ("Forbidden" in resp_apply.text and "credit" in resp_apply.text.lower()):
         raise CreditExhaustedError(f"Credit verification failed: {resp_apply.text}")
     if resp_apply.status_code == 401:
@@ -2346,7 +2348,7 @@ def generate_ai_image_service(
     resp_apply.raise_for_status()
 
     apply_json = resp_apply.json()
-    task_id = apply_json.get("task_id")
+    cl_task_id = apply_json.get("task_id")
     polling = apply_json.get("polling", {})
     delay = polling.get("delay", 5)
 
@@ -2356,7 +2358,7 @@ def generate_ai_image_service(
         time.sleep(delay)
         req_ts_ms = int(time.time() * 1000)
         enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
-        poll_url = f"{MYEDIT_TTI_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}/{task_id}"
+        poll_url = f"{MYEDIT_TTI_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}/{cl_task_id}"
 
         resp_poll = requests.get(poll_url, headers=headers, timeout=30)
         resp_poll.raise_for_status()
@@ -2744,6 +2746,8 @@ def generate_ai_video_service(
 
     files_apply = {k: (None, str(v)) for k, v in form_data_apply.items()}
     resp_apply = requests.patch(apply_url, files=files_apply, headers=apply_headers, timeout=60)
+    if task_id:
+        db.add_task_log(task_id, str(resp_apply.status_code))
     if resp_apply.status_code == 403 or "Fail to verify credit" in resp_apply.text or ("Forbidden" in resp_apply.text and "credit" in resp_apply.text.lower()):
         raise CreditExhaustedError(f"Credit verification failed: {resp_apply.text}")
     if resp_apply.status_code == 401:
@@ -2751,7 +2755,7 @@ def generate_ai_video_service(
     resp_apply.raise_for_status()
 
     apply_json = resp_apply.json()
-    task_id = apply_json.get("task_id")
+    cl_task_id = apply_json.get("task_id")
     polling = apply_json.get("polling", {})
     delay = polling.get("delay", 5)
 
@@ -2761,7 +2765,7 @@ def generate_ai_video_service(
         time.sleep(delay)
         req_ts_ms = int(time.time() * 1000)
         enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
-        poll_url = f"{MYEDIT_VGEN_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}/{task_id}"
+        poll_url = f"{MYEDIT_VGEN_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}/{cl_task_id}"
 
         resp_poll = requests.get(poll_url, headers=headers_init, timeout=30)
         resp_poll.raise_for_status()
@@ -3232,7 +3236,6 @@ def process_image_task(task_id, params, api_key_id):
             if completed_files:
                 db.update_task_status(task_id, 'completed', completed_files[0])
                 deduct_api_key_quota(api_key_id, task_id)
-                db.add_task_log(task_id, "200")
                 post_credits_info = get_member_remaining_credits(current_token)
                 post_credits = post_credits_info.get("total_remain", "?") if post_credits_info else "?"
                 print(f"[RENDER LOG] [IMAGE TASK: {task_id}] [TAMAMLANDI] -> Hesap: {account['email']} | Kalan Kredi: {post_credits}\n")
@@ -3412,11 +3415,9 @@ def process_video_task(task_id, params, api_key_id):
             if video_file:
                 db.update_task_status(task_id, 'completed', video_file)
                 deduct_api_key_quota(api_key_id, task_id)
-                db.add_task_log(task_id, "200")
             else:
                 db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
                 deduct_api_key_quota(api_key_id, task_id)
-                db.add_task_log(task_id, "200")
             post_credits_info = get_member_remaining_credits(current_token)
             post_credits = post_credits_info.get("total_remain", "?") if post_credits_info else "?"
             print(f"[RENDER LOG] [VIDEO TASK: {task_id}] [TAMAMLANDI] -> Hesap: {account['email']} | Kalan Kredi: {post_credits}\n")

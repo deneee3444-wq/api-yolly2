@@ -2086,8 +2086,16 @@ def prepare_image_for_vgen(image_path: str, aspect_ratio: str, target_w: int = N
         return image_path
 
 # ==============================================================================
-# MAIN EXECUTION FUNCTIONS
+# MAIN EXECUTION FUNCTIONS & CUSTOM ERRORS
 # ==============================================================================
+
+class CreditExhaustedError(Exception):
+    """Raised when an account runs out of credits (Forbidden / Fail to verify credit)."""
+    pass
+
+class AuthExpiredError(Exception):
+    """Raised when a member token is invalid or expired (Unauthorized)."""
+    pass
 
 def generate_ai_image_service(
     member_token: str,
@@ -2192,6 +2200,10 @@ def generate_ai_image_service(
         form_data_init["filesize"] = str(len(loaded_images_bytes[0]))
 
     resp_init = requests.post(MYEDIT_TTI_URL, data=form_data_init, headers=headers, timeout=30)
+    if resp_init.status_code == 403 or "Fail to verify credit" in resp_init.text or ("Forbidden" in resp_init.text and "credit" in resp_init.text.lower()):
+        raise CreditExhaustedError(f"Credit verification failed: {resp_init.text}")
+    if resp_init.status_code == 401:
+        raise AuthExpiredError(f"Auth token expired: {resp_init.text}")
     resp_init.raise_for_status()
     init_json = resp_init.json()
     
@@ -2310,6 +2322,10 @@ def generate_ai_image_service(
     files_apply = {k: (None, str(v)) for k, v in form_data_apply.items()}
 
     resp_apply = requests.patch(apply_url, files=files_apply, headers=apply_headers, timeout=30)
+    if resp_apply.status_code == 403 or "Fail to verify credit" in resp_apply.text or ("Forbidden" in resp_apply.text and "credit" in resp_apply.text.lower()):
+        raise CreditExhaustedError(f"Credit verification failed: {resp_apply.text}")
+    if resp_apply.status_code == 401:
+        raise AuthExpiredError(f"Auth token expired: {resp_apply.text}")
     resp_apply.raise_for_status()
 
     apply_json = resp_apply.json()
@@ -2358,6 +2374,9 @@ def generate_ai_image_service(
             }
 
         if status in ("Error", "Failed"):
+            poll_err_str = json.dumps(poll_json)
+            if "credit" in poll_err_str.lower() or "Forbidden" in poll_err_str:
+                raise CreditExhaustedError(f"Task failed due to credit limit: {poll_err_str}")
             return {"status": "Failed", "error": poll_json, "reference_urls": uploaded_reference_urls}
 
     return {"status": "Timeout", "reference_urls": uploaded_reference_urls}
@@ -2563,6 +2582,10 @@ def generate_ai_video_service(
         files_init["sources"] = (None, json.dumps(sources_list, separators=(",", ":")))
 
     resp_init = requests.post(MYEDIT_VGEN_URL, files=files_init, headers=headers_init, timeout=30)
+    if resp_init.status_code == 403 or "Fail to verify credit" in resp_init.text or ("Forbidden" in resp_init.text and "credit" in resp_init.text.lower()):
+        raise CreditExhaustedError(f"Credit verification failed: {resp_init.text}")
+    if resp_init.status_code == 401:
+        raise AuthExpiredError(f"Auth token expired: {resp_init.text}")
     resp_init.raise_for_status()
     init_json = resp_init.json()
     
@@ -2704,6 +2727,10 @@ def generate_ai_video_service(
 
     files_apply = {k: (None, str(v)) for k, v in form_data_apply.items()}
     resp_apply = requests.patch(apply_url, files=files_apply, headers=apply_headers, timeout=60)
+    if resp_apply.status_code == 403 or "Fail to verify credit" in resp_apply.text or ("Forbidden" in resp_apply.text and "credit" in resp_apply.text.lower()):
+        raise CreditExhaustedError(f"Credit verification failed: {resp_apply.text}")
+    if resp_apply.status_code == 401:
+        raise AuthExpiredError(f"Auth token expired: {resp_apply.text}")
     resp_apply.raise_for_status()
 
     apply_json = resp_apply.json()
@@ -2795,18 +2822,38 @@ def generate_ai_video_service(
 
         if status in ("Error", "Failed"):
             cleanup_temp_images()
+            poll_err_str = json.dumps(poll_json)
+            if "credit" in poll_err_str.lower() or "Forbidden" in poll_err_str:
+                raise CreditExhaustedError(f"Task failed due to credit limit: {poll_err_str}")
             return {"status": "Failed", "error": poll_json, "reference_urls": uploaded_reference_urls}
 
     cleanup_temp_images()
     return {"status": "Timeout", "reference_urls": uploaded_reference_urls}
 
 # ==============================================================================
-# service.py LOGIC & WRAPPERS
+# service.py ACCOUNT CACHE & REUSE SYSTEM
 # ==============================================================================
+
+ACTIVE_ACCOUNTS = {} # {api_key_id: {"email": email, "password": password, "member_token": token, "timestamp": time.time()}}
+ACCOUNT_LOCK = threading.Lock()
+
+def mark_account_exhausted(api_key_id, email):
+    """Marks an account as used=1 (credits exhausted) in the database and removes it from active cache."""
+    with ACCOUNT_LOCK:
+        if api_key_id in ACTIVE_ACCOUNTS and ACTIVE_ACCOUNTS[api_key_id].get("email") == email:
+            del ACTIVE_ACCOUNTS[api_key_id]
+    try:
+        if db.DB_TYPE == 'postgresql':
+            db._execute_query('UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s', (api_key_id, email))
+        else:
+            db._execute_query('UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?', (api_key_id, email))
+        print(f"[ACCOUNT] Account {email} marked as used=1 (credits exhausted).")
+    except Exception as e:
+        print(f"[ACCOUNT] Error marking account exhausted: {e}")
 
 def create_myedit_account(api_key_id):
     """Creates a new MyEdit account dynamically on-the-fly.
-    Uses TempMailClient for temp mail. Saves account to database.
+    Uses TempMailClient for temp mail. Saves account to database with used=0.
     """
     try:
         temp_mail = TempMailClient()
@@ -2830,7 +2877,7 @@ def create_myedit_account(api_key_id):
         if not activate_account(activation_url):
             print("[-] Activation not verified, trying login anyway...")
 
-        # Aktivasyon sonrasi sunucunun guncellenmesi icin 3 saniye bekleyelim
+        # Wait for activation propagation
         time.sleep(3)
 
         # 4. Login
@@ -2851,7 +2898,7 @@ def create_myedit_account(api_key_id):
         except Exception as e:
             print(f"[!] Bonus collection failed: {e}")
 
-        # Add account to database
+        # Add account to database (used = 0)
         db.add_account(api_key_id, email, password)
         print(f"[+] Successfully registered and saved MyEdit account: {email}")
 
@@ -2860,98 +2907,181 @@ def create_myedit_account(api_key_id):
         print(f"[-] Account creation exception: {e}")
         return None, None
 
-def link_new_account_to_task(api_key_id, email, task_id):
-    """Updates database to link and deduct quota."""
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    consumed_email = email
-    try:
-        # 1. Mark on-the-fly account as used
-        if db.DB_TYPE == 'postgresql':
-            cursor.execute(
-                'UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s',
-                (api_key_id, email)
-            )
-        else:
-            cursor.execute(
-                'UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?',
-                (api_key_id, email)
-            )
-
-        # 2. Find a random unused account for this client
-        if db.DB_TYPE == 'postgresql':
-            cursor.execute(
-                'SELECT email FROM accounts WHERE api_key_id = %s AND used = 0 AND email != %s',
-                (api_key_id, email)
-            )
-        else:
-            cursor.execute(
-                'SELECT email FROM accounts WHERE api_key_id = ? AND used = 0 AND email != ?',
-                (api_key_id, email)
-            )
-
-        rows = cursor.fetchall()
-        if rows:
-            emails = []
-            for r in rows:
-                if isinstance(r, dict):
-                    emails.append(r['email'])
-                elif hasattr(r, 'keys') or isinstance(r, tuple) or isinstance(r, list):
-                    emails.append(r[0])
-                else:
-                    emails.append(r['email'])
-
-            if emails:
-                chosen_email = random.choice(emails)
-                print(f"[QUOTA] Consuming random unused account: {chosen_email}")
-
-                # 3. Mark the chosen random account as used = 1
-                if db.DB_TYPE == 'postgresql':
-                    cursor.execute(
-                        'UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s',
-                        (api_key_id, chosen_email)
-                    )
-                else:
-                    cursor.execute(
-                        'UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?',
-                        (api_key_id, chosen_email)
-                    )
-                consumed_email = chosen_email
-
-        # 4. Link the task to the consumed email
-        if task_id:
-            if db.DB_TYPE == 'postgresql':
-                cursor.execute(
-                    'UPDATE tasks SET account_email = %s WHERE task_id = %s',
-                    (consumed_email, task_id)
-                )
-            else:
-                cursor.execute(
-                    'UPDATE tasks SET account_email = ? WHERE task_id = ?',
-                    (consumed_email, task_id)
-                )
-        conn.commit()
-    except Exception as e:
-        print(f"Error linking account and consuming quota: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
-    return consumed_email
-
 def create_myedit_account_wrapper(api_key_id):
-    """Wrapper function matching Yolly's naming structure."""
+    """Wrapper function matching naming structure."""
     return create_myedit_account(api_key_id)
 
-def login_with_retry_and_link(api_key_id, task_id=None):
-    """On-the-fly registration wrapper. Tries creating an account up to 5 times.
-    Links the successful account to the task.
+def get_or_create_active_account(api_key_id, task_id=None, force_new=False):
+    """Gets an active account from memory cache, existing DB account, or creates a new one.
+    Ensures maximum speed by reusing the token until credits are exhausted.
     """
-    for _ in range(5):
+    # 1. Check memory cache if not force_new
+    if not force_new:
+        with ACCOUNT_LOCK:
+            if api_key_id in ACTIVE_ACCOUNTS:
+                acc = ACTIVE_ACCOUNTS[api_key_id]
+                email = acc.get("email")
+                member_token = acc.get("member_token")
+                if member_token and email:
+                    if task_id:
+                        try:
+                            if db.DB_TYPE == 'postgresql':
+                                db._execute_query('UPDATE tasks SET account_email = %s WHERE task_id = %s', (email, task_id))
+                            else:
+                                db._execute_query('UPDATE tasks SET account_email = ? WHERE task_id = ?', (email, task_id))
+                        except Exception:
+                            pass
+                    return member_token, acc
+
+    # 2. Check if DB has the most recently created valid account (ORDER BY id DESC)
+    if not force_new:
+        try:
+            query = 'SELECT email, password FROM accounts WHERE api_key_id = %s ORDER BY id DESC LIMIT 1' if db.DB_TYPE == 'postgresql' else 'SELECT email, password FROM accounts WHERE api_key_id = ? ORDER BY id DESC LIMIT 1'
+            db_acc = db._execute_query(query, (api_key_id,), fetch_one=True)
+            if db_acc and db_acc.get("email") and db_acc.get("password"):
+                email = db_acc["email"]
+                password = db_acc["password"]
+                print(f"[ACCOUNT] Found latest account in DB: {email}. Attempting login...")
+                login_res = login(email, password)
+                if login_res.get("status") == "SUCCESS" and "info" in login_res:
+                    member_token = login_res["info"].get("memberToken")
+                    if member_token:
+                        acc_data = {
+                            "email": email,
+                            "password": password,
+                            "member_token": member_token,
+                            "timestamp": time.time()
+                        }
+                        with ACCOUNT_LOCK:
+                            ACTIVE_ACCOUNTS[api_key_id] = acc_data
+                        if task_id:
+                            try:
+                                if db.DB_TYPE == 'postgresql':
+                                    db._execute_query('UPDATE tasks SET account_email = %s WHERE task_id = %s', (email, task_id))
+                                else:
+                                    db._execute_query('UPDATE tasks SET account_email = ? WHERE task_id = ?', (email, task_id))
+                            except Exception:
+                                pass
+                        return member_token, acc_data
+                else:
+                    print(f"[ACCOUNT] Login failed for DB account ({email}). Registering a fresh new account...")
+        except Exception as e:
+            print(f"[ACCOUNT] Error retrieving DB account: {e}")
+
+    # 3. Create a fresh account via temp-mail
+    for attempt in range(5):
+        print(f"[ACCOUNT] Registering new account for api_key_id={api_key_id} (attempt {attempt+1}/5)...")
         member_token, email = create_myedit_account_wrapper(api_key_id)
         if member_token and email:
-            consumed_email = link_new_account_to_task(api_key_id, email, task_id)
-            return member_token, {"email": consumed_email}
+            password = "CyberLink123!"
+            acc_data = {
+                "email": email,
+                "password": password,
+                "member_token": member_token,
+                "timestamp": time.time()
+            }
+            with ACCOUNT_LOCK:
+                ACTIVE_ACCOUNTS[api_key_id] = acc_data
+            if task_id:
+                try:
+                    if db.DB_TYPE == 'postgresql':
+                        db._execute_query('UPDATE tasks SET account_email = %s WHERE task_id = %s', (email, task_id))
+                    else:
+                        db._execute_query('UPDATE tasks SET account_email = ? WHERE task_id = ?', (email, task_id))
+                except Exception:
+                    pass
+            return member_token, acc_data
+        time.sleep(2)
+
     return None, None
+
+def deduct_api_key_quota(api_key_id, task_id=None):
+    """Deducts 1 account/quota from the API key's available accounts upon successful task completion.
+    Prioritizes accounts other than the currently active working account so the active account remains intact in DB.
+    Even if the active account's DB row is consumed, its in-memory session (ACTIVE_ACCOUNTS) stays fully operational.
+    """
+    try:
+        active_acc = ACTIVE_ACCOUNTS.get(api_key_id)
+        active_email = active_acc.get("email") if active_acc else None
+
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        consumed_email = None
+
+        if db.DB_TYPE == 'postgresql':
+            # 1. Önce aktif çalışan hesap DIŞINDAKİ boş bir hesabı düş
+            if active_email:
+                cursor.execute(
+                    'SELECT email FROM accounts WHERE api_key_id = %s AND used = 0 AND email != %s LIMIT 1',
+                    (api_key_id, active_email)
+                )
+                row = cursor.fetchone()
+                if row:
+                    consumed_email = row['email'] if isinstance(row, dict) else row[0]
+            
+            # 2. Eğer başka hesap yoksa (sadece aktif hesap kalmışsa) onu düş
+            if not consumed_email:
+                cursor.execute(
+                    'SELECT email FROM accounts WHERE api_key_id = %s AND used = 0 LIMIT 1',
+                    (api_key_id,)
+                )
+                row = cursor.fetchone()
+                if row:
+                    consumed_email = row['email'] if isinstance(row, dict) else row[0]
+
+            if consumed_email:
+                cursor.execute(
+                    'UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s',
+                    (api_key_id, consumed_email)
+                )
+                if task_id:
+                    cursor.execute(
+                        'UPDATE tasks SET account_email = %s WHERE task_id = %s',
+                        (consumed_email, task_id)
+                    )
+                conn.commit()
+                print(f"[QUOTA] Successfully deducted 1 quota ({consumed_email}) for task {task_id}.")
+        else:
+            # SQLite versiyonu
+            if active_email:
+                cursor.execute(
+                    'SELECT email FROM accounts WHERE api_key_id = ? AND used = 0 AND email != ? LIMIT 1',
+                    (api_key_id, active_email)
+                )
+                row = cursor.fetchone()
+                if row:
+                    consumed_email = row['email'] if isinstance(row, dict) else row[0]
+
+            if not consumed_email:
+                cursor.execute(
+                    'SELECT email FROM accounts WHERE api_key_id = ? AND used = 0 LIMIT 1',
+                    (api_key_id,)
+                )
+                row = cursor.fetchone()
+                if row:
+                    consumed_email = row['email'] if isinstance(row, dict) else row[0]
+
+            if consumed_email:
+                cursor.execute(
+                    'UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?',
+                    (api_key_id, consumed_email)
+                )
+                if task_id:
+                    cursor.execute(
+                        'UPDATE tasks SET account_email = ? WHERE task_id = ?',
+                        (consumed_email, task_id)
+                    )
+                conn.commit()
+                print(f"[QUOTA] Successfully deducted 1 quota ({consumed_email}) for task {task_id}.")
+        conn.close()
+        return consumed_email
+    except Exception as e:
+        print(f"[QUOTA] Error deducting quota: {e}")
+        return None
+
+def login_with_retry_and_link(api_key_id, task_id=None):
+    """Compatibility wrapper for obtaining active account."""
+    return get_or_create_active_account(api_key_id, task_id)
 
 def save_b64_to_temp_file(b64_data, suffix=".jpg"):
     """Saves base64 data to a local temporary file."""
@@ -2969,12 +3099,6 @@ def process_image_task(task_id, params, api_key_id):
     try:
         db.update_task_status(task_id, 'running')
 
-        member_token, account = login_with_retry_and_link(api_key_id, task_id)
-        if not member_token:
-            db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, "Service temporarily unavailable.")
-            return
-
         prompt = params.get('prompt', '')
         model = params.get('model', 'flux_2_pro')
         aspect_ratio = params.get('size', '1:1')
@@ -2990,48 +3114,87 @@ def process_image_task(task_id, params, api_key_id):
                 temp_files.append(temp_path)
                 reference_images.append(temp_path)
 
-        # Claim bonus before starting
         model_data = IMAGE_MODELS_CONFIG.get(model)
         if not model_data:
             db.update_task_status(task_id, 'failed')
             db.add_task_log(task_id, f"Unsupported model: {model}")
-            db.release_account(api_key_id, account['email'])
             return
 
         is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
         feature_id = "TtiStyleRef" if is_style_ref else "TextToImage"
-        claim_task_bonus(member_token, feature_id)
-        check_task_bonus(member_token, feature_id)
 
-        # Update database token
-        token_data = json.dumps({
-            "member_token": member_token,
-            "reference_images": params.get('reference_images', []),
-            "reference_videos": params.get('reference_videos', []),
-            "start_frame": params.get('start_frame'),
-            "end_frame": params.get('end_frame')
-        })
-        db.update_task_token(task_id, token_data)
-        db.add_task_log(task_id, f"Task id: {task_id}")
+        max_account_retries = 3
+        last_error = None
+        result = None
+        current_token = None
 
-        # Run generate_ai_image_service
-        result = generate_ai_image_service(
-            member_token=member_token,
-            user_prompt=prompt,
-            image_paths=reference_images if reference_images else None,
-            model_key=model,
-            aspect_ratio=aspect_ratio,
-            resolution=resolution,
-            batch_size=str(batch_size),
-            filename_prefix=f"task_{task_id}",
-            task_id=task_id
-        )
+        for attempt in range(max_account_retries):
+            force_new = (attempt > 0)
+            member_token, account = get_or_create_active_account(api_key_id, task_id=task_id, force_new=force_new)
+            if not member_token:
+                db.update_task_status(task_id, 'failed')
+                db.add_task_log(task_id, "Service temporarily unavailable (could not obtain account).")
+                return
+
+            current_token = member_token
+            try:
+                claim_task_bonus(member_token, feature_id)
+                check_task_bonus(member_token, feature_id)
+
+                token_data = json.dumps({
+                    "member_token": member_token,
+                    "reference_images": params.get('reference_images', []),
+                    "reference_videos": params.get('reference_videos', []),
+                    "start_frame": params.get('start_frame'),
+                    "end_frame": params.get('end_frame')
+                })
+                db.update_task_token(task_id, token_data)
+                db.add_task_log(task_id, f"Task id: {task_id} (using account: {account['email']})")
+
+                result = generate_ai_image_service(
+                    member_token=member_token,
+                    user_prompt=prompt,
+                    image_paths=reference_images if reference_images else None,
+                    model_key=model,
+                    aspect_ratio=aspect_ratio,
+                    resolution=resolution,
+                    batch_size=str(batch_size),
+                    filename_prefix=f"task_{task_id}",
+                    task_id=task_id
+                )
+                break
+
+            except CreditExhaustedError as e:
+                print(f"[RETRY] Credit exhausted for account {account['email']} on image task {task_id}: {e}. Rotating to new account...")
+                mark_account_exhausted(api_key_id, account['email'])
+                last_error = e
+                continue
+
+            except AuthExpiredError as e:
+                print(f"[RETRY] Auth token expired for account {account['email']}. Re-logging in...")
+                login_res = login(account['email'], account['password'])
+                if login_res.get("status") == "SUCCESS" and "info" in login_res:
+                    refreshed_token = login_res["info"].get("memberToken")
+                    if refreshed_token:
+                        with ACCOUNT_LOCK:
+                            if api_key_id in ACTIVE_ACCOUNTS:
+                                ACTIVE_ACCOUNTS[api_key_id]["member_token"] = refreshed_token
+                        last_error = e
+                        continue
+                mark_account_exhausted(api_key_id, account['email'])
+                last_error = e
+                continue
+
+        if not result:
+            db.update_task_status(task_id, 'failed')
+            db.add_task_log(task_id, f"Failed after account retries: {last_error}")
+            return
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
             dec_metadata = result.get("decryption_metadata")
             token_data_dict = {
-                "member_token": member_token,
+                "member_token": current_token,
                 "reference_images": params.get('reference_images', []),
                 "reference_videos": params.get('reference_videos', []),
                 "start_frame": params.get('start_frame'),
@@ -3048,23 +3211,19 @@ def process_image_task(task_id, params, api_key_id):
 
             if completed_files:
                 db.update_task_status(task_id, 'completed', completed_files[0])
+                deduct_api_key_quota(api_key_id, task_id)
             else:
                 db.update_task_status(task_id, 'failed')
                 db.add_task_log(task_id, "No generated files returned.")
-                db.release_account(api_key_id, account['email'])
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
-            db.release_account(api_key_id, account['email'])
         else:
             db.update_task_status(task_id, 'failed')
             db.add_task_log(task_id, f"Submission error: {result.get('error', 'unknown error')}")
-            db.release_account(api_key_id, account['email'])
 
     except Exception as e:
         db.update_task_status(task_id, 'error')
         db.add_task_log(task_id, str(e))
-        if 'account' in locals() and account:
-            db.release_account(api_key_id, account['email'])
     finally:
         for temp_file in temp_files:
             if os.path.exists(temp_file):
@@ -3077,12 +3236,6 @@ def process_video_task(task_id, params, api_key_id):
     temp_files = []
     try:
         db.update_task_status(task_id, 'running')
-
-        member_token, account = login_with_retry_and_link(api_key_id, task_id)
-        if not member_token:
-            db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, "Service temporarily unavailable.")
-            return
 
         prompt = params.get('prompt', '')
         model = params.get('model', 'wan_2_7')
@@ -3128,53 +3281,91 @@ def process_video_task(task_id, params, api_key_id):
                 temp_files.append(temp_vid)
                 ref_videos.append(temp_vid)
 
-        # Claim bonus before starting
         model_data = VIDEO_MODELS_CONFIG.get(model)
         if not model_data:
             db.update_task_status(task_id, 'failed')
             db.add_task_log(task_id, f"Unsupported model: {model}")
-            db.release_account(api_key_id, account['email'])
             return
 
-        claim_task_bonus(member_token, feature_id=input_mode)
-        check_task_bonus(member_token, feature_id=input_mode)
+        max_account_retries = 3
+        last_error = None
+        result = None
+        current_token = None
 
-        # Update database token
-        token_data = json.dumps({
-            "member_token": member_token,
-            "reference_images": params.get('reference_images', []),
-            "reference_videos": params.get('reference_videos', []),
-            "start_frame": params.get('start_frame'),
-            "end_frame": params.get('end_frame')
-        })
-        db.update_task_token(task_id, token_data)
-        db.add_task_log(task_id, f"Task id: {task_id}")
+        for attempt in range(max_account_retries):
+            force_new = (attempt > 0)
+            member_token, account = get_or_create_active_account(api_key_id, task_id=task_id, force_new=force_new)
+            if not member_token:
+                db.update_task_status(task_id, 'failed')
+                db.add_task_log(task_id, "Service temporarily unavailable (could not obtain account).")
+                return
 
-        # Run generate_ai_video_service
-        result = generate_ai_video_service(
-            member_token=member_token,
-            user_prompt=prompt,
-            model_key=model,
-            aspect_ratio=aspect_ratio,
-            resolution=resolution,
-            processing_duration=duration,
-            sound=sound,
-            effect_mode=input_mode,
-            source_image_path=source_image_path,
-            last_image_path=last_image_path,
-            ref_images=ref_images if ref_images else None,
-            ref_videos=ref_videos if ref_videos else None,
-            frame_mode=frame_mode,
-            filename_prefix=f"task_{task_id}",
-            task_id=task_id
-        )
+            current_token = member_token
+            try:
+                claim_task_bonus(member_token, feature_id=input_mode)
+                check_task_bonus(member_token, feature_id=input_mode)
+
+                token_data = json.dumps({
+                    "member_token": member_token,
+                    "reference_images": params.get('reference_images', []),
+                    "reference_videos": params.get('reference_videos', []),
+                    "start_frame": params.get('start_frame'),
+                    "end_frame": params.get('end_frame')
+                })
+                db.update_task_token(task_id, token_data)
+                db.add_task_log(task_id, f"Task id: {task_id} (using account: {account['email']})")
+
+                result = generate_ai_video_service(
+                    member_token=member_token,
+                    user_prompt=prompt,
+                    model_key=model,
+                    aspect_ratio=aspect_ratio,
+                    resolution=resolution,
+                    processing_duration=duration,
+                    sound=sound,
+                    effect_mode=input_mode,
+                    source_image_path=source_image_path,
+                    last_image_path=last_image_path,
+                    ref_images=ref_images if ref_images else None,
+                    ref_videos=ref_videos if ref_videos else None,
+                    frame_mode=frame_mode,
+                    filename_prefix=f"task_{task_id}",
+                    task_id=task_id
+                )
+                break
+
+            except CreditExhaustedError as e:
+                print(f"[RETRY] Credit exhausted for account {account['email']} on video task {task_id}: {e}. Rotating to new account...")
+                mark_account_exhausted(api_key_id, account['email'])
+                last_error = e
+                continue
+
+            except AuthExpiredError as e:
+                print(f"[RETRY] Auth token expired for account {account['email']}. Re-logging in...")
+                login_res = login(account['email'], account['password'])
+                if login_res.get("status") == "SUCCESS" and "info" in login_res:
+                    refreshed_token = login_res["info"].get("memberToken")
+                    if refreshed_token:
+                        with ACCOUNT_LOCK:
+                            if api_key_id in ACTIVE_ACCOUNTS:
+                                ACTIVE_ACCOUNTS[api_key_id]["member_token"] = refreshed_token
+                        last_error = e
+                        continue
+                mark_account_exhausted(api_key_id, account['email'])
+                last_error = e
+                continue
+
+        if not result:
+            db.update_task_status(task_id, 'failed')
+            db.add_task_log(task_id, f"Failed after account retries: {last_error}")
+            return
 
         if result.get("status") == "Done":
             completed_files = result.get("files", [])
             video_file = next((f for f in completed_files if ".mp4" in f.lower() and "thumbnail" not in f.lower()), None)
             dec_metadata = result.get("decryption_metadata")
             token_data_dict = {
-                "member_token": member_token,
+                "member_token": current_token,
                 "reference_images": params.get('reference_images', []),
                 "reference_videos": params.get('reference_videos', []),
                 "start_frame": params.get('start_frame'),
@@ -3191,21 +3382,19 @@ def process_video_task(task_id, params, api_key_id):
 
             if video_file:
                 db.update_task_status(task_id, 'completed', video_file)
+                deduct_api_key_quota(api_key_id, task_id)
             else:
                 db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
+                deduct_api_key_quota(api_key_id, task_id)
         elif result.get("status") == "Timeout":
             db.update_task_status(task_id, 'timeout')
-            db.release_account(api_key_id, account['email'])
         else:
             db.update_task_status(task_id, 'failed')
             db.add_task_log(task_id, f"Submission error: {result.get('error', 'unknown error')}")
-            db.release_account(api_key_id, account['email'])
 
     except Exception as e:
         db.update_task_status(task_id, 'error')
         db.add_task_log(task_id, str(e))
-        if 'account' in locals() and account:
-            db.release_account(api_key_id, account['email'])
     finally:
         for temp_file in temp_files:
             if os.path.exists(temp_file):

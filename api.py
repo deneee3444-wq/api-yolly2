@@ -10,7 +10,7 @@ import requests
 import database as db
 import service
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='.')
 CORS(app)
 
 # Maximum concurrent tasks
@@ -208,7 +208,8 @@ def generate_video():
     # 2. Validate Frame inputs
     # Check start_frame support
     has_start = bool(data.get('start_frame'))
-    requires_start = model_meta.get('requires_start_frame', False)
+    supported_modes = model_meta.get('supported_modes', ['TextToVideo', 'ImageToVideo'])
+    requires_start = model_meta.get('requires_start_frame', False) or ('TextToVideo' not in supported_modes)
     supports_start = model_meta.get('supports_start_frame', True)
     if requires_start and not has_start:
         return jsonify({"error": f"{model} model requires a start frame (image)"}), 400

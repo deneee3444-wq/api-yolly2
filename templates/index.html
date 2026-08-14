@@ -1699,7 +1699,7 @@
                             <label for="i2iRefImages">reference image *</label>
                             <div class="file-input-wrapper">
                                 <input type="file" id="i2iRefImages" accept="image/*" multiple onchange="onI2iRefChange(this)">
-                                <label for="i2iRefImages" class="file-input-label" id="i2iRefImagesLabel">RESİM SEÇ (MAKS. 5)</label>
+                                <label for="i2iRefImages" class="file-input-label" id="i2iRefImagesLabel">RESİM SEÇ</label>
                             </div>
                             
                         </div>
@@ -1823,7 +1823,7 @@
                                 <label for="i2vRefImages" id="i2vRefImagesFormLabel">REFERENCE IMAGES *</label>
                                 <div class="file-input-wrapper">
                                     <input type="file" id="i2vRefImages" accept="image/*" multiple onchange="onI2vRefChange(this)">
-                                    <label for="i2vRefImages" class="file-input-label" id="i2vRefImagesLabel">RESİM SEÇ (MAKS. 3)</label>
+                                    <label for="i2vRefImages" class="file-input-label" id="i2vRefImagesLabel">RESİM SEÇ</label>
                                 </div>
                                 
                             </div>
@@ -2152,9 +2152,10 @@
                     onImageModelChange();
                 }
                 if (i2iSelect) {
+                    const refImageModels = imageModels.filter(m => m.supports_reference_images && m.max_reference_images > 0);
                     const prevVal = i2iSelect.value;
-                    i2iSelect.innerHTML = imageModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-                    if (imageModels.some(m => m.id === prevVal)) {
+                    i2iSelect.innerHTML = refImageModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                    if (refImageModels.some(m => m.id === prevVal)) {
                         i2iSelect.value = prevVal;
                     }
                     onI2iModelChange();
@@ -2166,9 +2167,10 @@
                 const i2vSelect = document.getElementById('i2vModel');
 
                 if (t2vSelect) {
+                    const t2vModels = videoModels.filter(m => !m.supported_modes || m.supported_modes.includes('TextToVideo'));
                     const prevVal = t2vSelect.value;
-                    t2vSelect.innerHTML = videoModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-                    if (videoModels.some(m => m.id === prevVal)) {
+                    t2vSelect.innerHTML = t2vModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+                    if (t2vModels.some(m => m.id === prevVal)) {
                         t2vSelect.value = prevVal;
                     }
                     onT2vModelChange();
@@ -2450,43 +2452,60 @@
                 helpEl.innerHTML = `<span style="font-size:0.75rem; flex-shrink:0;">ℹ️</span> ${model.description}`;
             }
 
-
-            const isVeo = model.id === 'VEO_3';
-            const isKling = model.id === 'SEEDANCE_2_0';
-
             // Size selector
             const sizeSelect = document.getElementById('i2vSize');
             if (sizeSelect && model.supported_sizes) {
+                const prevVal = sizeSelect.value;
                 sizeSelect.innerHTML = model.supported_sizes.map(s => `<option value="${s}">${s}</option>`).join('');
-                sizeSelect.disabled = model.supported_sizes.length === 1 && model.supported_sizes[0] === 'AUTO';
-                sizeSelect.value = model.default_size || model.supported_sizes[0];
+                sizeSelect.disabled = model.supported_sizes.length === 1 && (model.supported_sizes[0] === 'AUTO' || model.supported_sizes[0] === 'Auto');
+                if (model.supported_sizes.includes(prevVal)) {
+                    sizeSelect.value = prevVal;
+                } else {
+                    sizeSelect.value = model.default_size || model.supported_sizes[0];
+                }
             }
 
-            // Sub-tab nav: VEO_3 ve SEEDANCE_2_0'de göster (model supports character references)
-            const supportsRef = model.supports_reference_images;
-            document.getElementById('i2vSubTabNav').style.display = supportsRef ? 'flex' : 'none';
+            // Reference media support
+            const supportsRef = Boolean(model.supports_reference_images && (model.max_reference_images > 0 || (model.reference_media_limit && model.reference_media_limit.max_images > 0)));
+            const maxRef = model.max_reference_images || model.reference_media_limit?.max_images || 1;
+            
+            const subTabNav = document.getElementById('i2vSubTabNav');
+            if (subTabNav) subTabNav.style.display = supportsRef ? 'flex' : 'none';
 
-            // End Frame: VEO_3 ve SEEDANCE_2_0'de göster
-            const supportsEndFrame = model.supports_end_frame;
-            document.getElementById('i2vEndFrameGroup').style.display = supportsEndFrame ? 'block' : 'none';
+            // End Frame support
+            const supportsEndFrame = Boolean(model.supports_end_frame);
+            const endFrameGroup = document.getElementById('i2vEndFrameGroup');
+            if (endFrameGroup) endFrameGroup.style.display = supportsEndFrame ? 'block' : 'none';
 
-            // End Frame label
-            const endFrameLabel = document.getElementById('i2vEndFrameLabel');
-            if (endFrameLabel) endFrameLabel.textContent = supportsEndFrame ? 'End Frame' : 'End Frame *';
+            // Labels update
+            const refImagesFormLabel = document.getElementById('i2vRefImagesFormLabel');
+            if (refImagesFormLabel) {
+                refImagesFormLabel.textContent = `REFERENCE IMAGES * (Maks. ${maxRef})`;
+            }
+            const refImagesLabel = document.getElementById('i2vRefImagesLabel');
+            const refInput = document.getElementById('i2vRefImages');
+            if (refImagesLabel && (!refInput || !refInput.files || refInput.files.length === 0)) {
+                refImagesLabel.textContent = `RESİM SEÇ (MAKS. ${maxRef})`;
+            }
 
-            // Reference Images label
-            const refImagesLabel = document.getElementById('i2vRefImagesFormLabel');
-            if (refImagesLabel) refImagesLabel.textContent = supportsRef ? 'REFERENCE IMAGES *' : 'REFERENCE IMAGES';
+            // Sub-tab reset (sadece model değişince veya model ref desteklemiyorsa)
+            if (!skipTabReset || !supportsRef) {
+                const subtabRef = document.getElementById('subtab-refimages');
+                const subtabStartEnd = document.getElementById('subtab-startend');
+                if (subtabRef) subtabRef.style.display = 'none';
+                if (subtabStartEnd) subtabStartEnd.style.display = 'block';
 
-            // Reference Images paneli: reset (sadece model değişince, tab geçişlerinde değil)
-            if (!skipTabReset) {
-                document.getElementById('subtab-refimages').style.display = 'none';
-                document.getElementById('subtab-startend').style.display = 'block';
-
-                // Sub-tab butonlarını sıfırla
                 document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
                 const firstSubBtn = document.querySelector('.sub-tab-btn');
                 if (firstSubBtn) firstSubBtn.classList.add('active');
+            }
+
+            // Update prompt limit & counter
+            const maxPrompt = model.max_prompt_length || 2000;
+            const promptInput = document.getElementById('i2vPrompt');
+            if (promptInput) {
+                promptInput.setAttribute('maxlength', maxPrompt);
+                updateCounter('i2vPrompt', 'i2vPromptCounter', maxPrompt);
             }
 
             // Resolution select + Duration select
@@ -2494,15 +2513,21 @@
             const durSelect = document.getElementById('i2vDurationSelect');
             const durInput  = document.getElementById('i2vDuration');
 
+            const refTabActive = document.getElementById('subtab-refimages')?.style.display !== 'none';
+            const mode = refTabActive ? 'ReferenceToVideo' : 'ImageToVideo';
+
             // Dynamic resolutions
             if (resSelect) {
-                const refTabActive = document.getElementById('subtab-refimages')?.style.display !== 'none';
-                const mode = refTabActive ? 'ReferenceToVideo' : 'ImageToVideo';
                 const resolutions = model.supported_resolutions_by_mode?.[mode] || model.supported_resolutions;
-                if (resolutions) {
+                if (resolutions && resolutions.length > 0) {
+                    const prevVal = resSelect.value;
                     resSelect.innerHTML = resolutions.map(r => `<option value="${r}">${r}</option>`).join('');
                     resSelect.disabled = resolutions.length <= 1;
-                    resSelect.value = model.default_resolution || resolutions[0];
+                    if (resolutions.includes(prevVal)) {
+                        resSelect.value = prevVal;
+                    } else {
+                        resSelect.value = model.default_resolution || resolutions[0];
+                    }
                 } else if (model.resolution) {
                     resSelect.innerHTML = `<option value="${model.resolution}">${model.resolution}</option>`;
                     resSelect.disabled = true;
@@ -2512,13 +2537,16 @@
 
             // Dynamic durations
             if (durSelect && durInput) {
-                const refTabActive = document.getElementById('subtab-refimages')?.style.display !== 'none';
-                const mode = refTabActive ? 'ReferenceToVideo' : 'ImageToVideo';
                 const durations = model.supported_durations_by_mode?.[mode] || model.supported_durations;
-                if (durations) {
+                if (durations && durations.length > 0) {
+                    const prevVal = durSelect.value;
                     durSelect.innerHTML = durations.map(d => `<option value="${d}">${d} saniye</option>`).join('');
                     durSelect.disabled = durations.length <= 1;
-                    durSelect.value = model.default_duration || durations[0];
+                    if (durations.includes(parseInt(prevVal))) {
+                        durSelect.value = prevVal;
+                    } else {
+                        durSelect.value = model.default_duration || durations[0];
+                    }
                     durInput.value = durSelect.value;
                 } else if (model.duration) {
                     durSelect.innerHTML = `<option value="${model.duration}">${model.duration} saniye</option>`;
@@ -2527,7 +2555,6 @@
                 }
             }
 
-            // Trigger resolution change handler to handle constraints
             onI2vResolutionChange();
         }
 
@@ -2542,6 +2569,9 @@
 
             if (!durSelect || !durInput) return;
 
+            const refTabActive = document.getElementById('subtab-refimages')?.style.display !== 'none';
+            const mode = refTabActive ? 'ReferenceToVideo' : 'ImageToVideo';
+
             // Handle constraints
             if (model.constraints) {
                 const constraint = model.constraints.find(c => c.if && c.if.resolution === res);
@@ -2554,10 +2584,16 @@
                 }
             }
 
-            if (model.supported_durations) {
-                durSelect.innerHTML = model.supported_durations.map(d => `<option value="${d}">${d} saniye</option>`).join('');
-                durSelect.disabled = model.supported_durations.length <= 1;
-                durSelect.value = model.default_duration || model.supported_durations[0];
+            const durations = model.supported_durations_by_mode?.[mode] || model.supported_durations;
+            if (durations && durations.length > 0) {
+                const prevVal = durSelect.value;
+                durSelect.innerHTML = durations.map(d => `<option value="${d}">${d} saniye</option>`).join('');
+                durSelect.disabled = durations.length <= 1;
+                if (durations.includes(parseInt(prevVal))) {
+                    durSelect.value = prevVal;
+                } else {
+                    durSelect.value = model.default_duration || durations[0];
+                }
                 durInput.value = durSelect.value;
             }
         }
@@ -2582,10 +2618,15 @@
 
             if (durSelect) {
                 const durations = model.supported_durations_by_mode?.['TextToVideo'] || model.supported_durations;
-                if (durations) {
+                if (durations && durations.length > 0) {
+                    const prevVal = durSelect.value;
                     durSelect.innerHTML = durations.map(d => `<option value="${d}">${d} saniye</option>`).join('');
                     durSelect.disabled = durations.length <= 1;
-                    durSelect.value = model.default_duration || durations[0];
+                    if (durations.includes(parseInt(prevVal))) {
+                        durSelect.value = prevVal;
+                    } else {
+                        durSelect.value = model.default_duration || durations[0];
+                    }
                 } else if (model.duration) {
                     durSelect.innerHTML = `<option value="${model.duration}">${model.duration} saniye</option>`;
                     durSelect.disabled = true;
@@ -2595,10 +2636,15 @@
 
             if (resSelect) {
                 const resolutions = model.supported_resolutions_by_mode?.['TextToVideo'] || model.supported_resolutions;
-                if (resolutions) {
+                if (resolutions && resolutions.length > 0) {
+                    const prevVal = resSelect.value;
                     resSelect.innerHTML = resolutions.map(r => `<option value="${r}">${r}</option>`).join('');
                     resSelect.disabled = resolutions.length <= 1;
-                    resSelect.value = model.default_resolution || resolutions[0];
+                    if (resolutions.includes(prevVal)) {
+                        resSelect.value = prevVal;
+                    } else {
+                        resSelect.value = model.default_resolution || resolutions[0];
+                    }
                 } else if (model.resolution) {
                     resSelect.innerHTML = `<option value="${model.resolution}">${model.resolution}</option>`;
                     resSelect.disabled = true;
@@ -2615,19 +2661,29 @@
                     sizeSelect.value = model.default_size || model.supported_sizes[0];
                 }
             }
+
+            const maxPrompt = model.max_prompt_length || 2000;
+            const promptInput = document.getElementById('t2vPrompt');
+            if (promptInput) {
+                promptInput.setAttribute('maxlength', maxPrompt);
+                updateCounter('t2vPrompt', 't2vPromptCounter', maxPrompt);
+            }
         }
 
-
-
         function onI2iRefChange(input) {
-            if (input.files && input.files.length > 5) {
-                alert('En fazla 5 görsel seçebilirsiniz!');
+            const modelId = document.getElementById('i2iModel').value;
+            const model = modelsData?.image?.find(m => m.id === modelId);
+            const maxRef = model?.max_reference_images || 1;
+            const defaultLabel = `RESİM SEÇ (MAKS. ${maxRef})`;
+
+            if (input.files && input.files.length > maxRef) {
+                alert(`En fazla ${maxRef} görsel seçebilirsiniz!`);
                 input.value = '';
-                document.getElementById('i2iRefImagesLabel').textContent = 'RESİM SEÇ (MAKS. 5)';
+                document.getElementById('i2iRefImagesLabel').textContent = defaultLabel;
                 document.getElementById('i2iRefImagesLabel').classList.remove('file-selected');
                 return;
             }
-            updateFileLabel(input, 'i2iRefImagesLabel');
+            updateFileLabel(input, 'i2iRefImagesLabel', defaultLabel);
         }
 
         function onI2iModelChange() {
@@ -2667,17 +2723,23 @@
                 }
             }
 
+            const maxRef = model.max_reference_images || 1;
+            const refLabel = document.getElementById('i2iRefImagesLabel');
+            const refInput = document.getElementById('i2iRefImages');
+            if (refLabel && (!refInput || !refInput.files || refInput.files.length === 0)) {
+                refLabel.textContent = `RESİM SEÇ (MAKS. ${maxRef})`;
+            }
+
+            const maxPrompt = model.max_prompt_length || 5000;
             const promptInput = document.getElementById('i2iPrompt');
-            if (promptInput && model.max_prompt_length) {
-                promptInput.setAttribute('maxlength', model.max_prompt_length);
-                updateCounter('i2iPrompt', 'i2iPromptCounter', model.max_prompt_length);
+            if (promptInput) {
+                promptInput.setAttribute('maxlength', maxPrompt);
+                updateCounter('i2iPrompt', 'i2iPromptCounter', maxPrompt);
             }
         }
 
-
-
         async function generateImageToImage() {
-            const prompt = document.getElementById('i2iPrompt').value;
+            const prompt = document.getElementById('i2iPrompt').value.trim();
             if (!prompt) { alert('Lütfen prompt girin!'); return; }
 
             const refInput = document.getElementById('i2iRefImages');
@@ -2686,25 +2748,30 @@
                 return;
             }
 
+            const modelId = document.getElementById('i2iModel').value;
+            const modelMeta = modelsData?.image?.find(m => m.id === modelId);
+            const maxRef = modelMeta?.max_reference_images || 1;
+
+            if (refInput.files.length > maxRef) {
+                alert(`En fazla ${maxRef} referans görsel seçebilirsiniz!`);
+                return;
+            }
+
             const body = {
                 prompt,
-                model: document.getElementById('i2iModel').value,
+                model: modelId,
                 size: document.getElementById('i2iSize').value
             };
 
-            const modelMeta = modelsData?.image?.find(m => m.id === body.model);
             if (modelMeta && modelMeta.supported_resolutions && modelMeta.supported_resolutions.length > 0) {
                 body.resolution = document.getElementById('i2iResolution').value;
             }
 
-
-            if (refInput.files && refInput.files.length > 0) {
-                const images = [];
-                for (let i = 0; i < refInput.files.length; i++) {
-                    images.push(await fileToBase64(refInput.files[i]));
-                }
-                body.reference_images = images;
+            const images = [];
+            for (let i = 0; i < refInput.files.length; i++) {
+                images.push(await fileToBase64(refInput.files[i]));
             }
+            body.reference_images = images;
 
             try {
                 const { response, data } = await apiCall('/api/generate/image', 'POST', body);
@@ -2752,14 +2819,13 @@
                 }
             }
 
+            const maxPrompt = model.max_prompt_length || 5000;
             const promptInput = document.getElementById('imagePrompt');
-            if (promptInput && model.max_prompt_length) {
-                promptInput.setAttribute('maxlength', model.max_prompt_length);
-                updateCounter('imagePrompt', 'imagePromptCounter', model.max_prompt_length);
+            if (promptInput) {
+                promptInput.setAttribute('maxlength', maxPrompt);
+                updateCounter('imagePrompt', 'imagePromptCounter', maxPrompt);
             }
         }
-
-
 
         function updateCounter(textareaId, counterId, max) {
             const len = document.getElementById(textareaId).value.length;
@@ -2798,7 +2864,9 @@
             document.querySelectorAll('.sub-tab-panel').forEach(p => p.style.display = 'none');
             document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(id).style.display = 'block';
-            event.currentTarget.classList.add('active');
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
 
             // Sub-tab değişince çözünürlükleri güncelle (tab sıfırlamayı atla)
             onI2vModelChange(true);
@@ -2806,7 +2874,7 @@
 
         // Generate Text to Video
         async function generateTextToVideo() {
-            const prompt = document.getElementById('t2vPrompt').value;
+            const prompt = document.getElementById('t2vPrompt').value.trim();
             if (!prompt) { alert('Lütfen prompt girin!'); return; }
 
             const body = {
@@ -2828,7 +2896,7 @@
 
         // Generate Image to Video
         async function generateImageToVideo() {
-            const prompt = document.getElementById('i2vPrompt').value;
+            const prompt = document.getElementById('i2vPrompt').value.trim();
             if (!prompt) { alert('Lütfen prompt girin!'); return; }
 
             const body = {
@@ -2843,7 +2911,6 @@
                 body.size = document.getElementById('i2vSize').value;
             }
 
-            // Her model için resolution ve duration her zaman gönderilir
             body.duration = parseInt(document.getElementById('i2vDuration').value) || 5;
             body.resolution = document.getElementById('i2vResolution').value;
 
@@ -2872,6 +2939,11 @@
                 if (!refInput.files || refInput.files.length === 0) {
                     alert('Lütfen en az 1 referans görsel seçin!'); return;
                 }
+                const maxRef = modelMeta.max_reference_images || modelMeta.reference_media_limit?.max_images || 1;
+                if (refInput.files.length > maxRef) {
+                    alert(`En fazla ${maxRef} referans görsel seçebilirsiniz!`);
+                    return;
+                }
                 const refs = [];
                 for (let i = 0; i < refInput.files.length; i++) refs.push(await fileToBase64(refInput.files[i]));
                 body.reference_images = refs;
@@ -2886,16 +2958,21 @@
             }
         }
 
-        // Reference images max-3 check
+        // Reference images dynamic check
         function onI2vRefChange(input) {
-            if (input.files && input.files.length > 3) {
-                alert('En fazla 3 referans görsel seçebilirsiniz!');
+            const modelId = document.getElementById('i2vModel').value;
+            const model = modelsData?.video?.find(m => m.id === modelId);
+            const maxRef = model?.max_reference_images || model?.reference_media_limit?.max_images || 1;
+            const defaultLabel = `RESİM SEÇ (MAKS. ${maxRef})`;
+
+            if (input.files && input.files.length > maxRef) {
+                alert(`En fazla ${maxRef} referans görsel seçebilirsiniz!`);
                 input.value = '';
-                document.getElementById('i2vRefImagesLabel').textContent = 'RESİM SEÇ (MAKS. 3)';
+                document.getElementById('i2vRefImagesLabel').textContent = defaultLabel;
                 document.getElementById('i2vRefImagesLabel').classList.remove('file-selected');
                 return;
             }
-            updateFileLabel(input, 'i2vRefImagesLabel');
+            updateFileLabel(input, 'i2vRefImagesLabel', defaultLabel);
         }
 
         // Helper function: File to Base64 (with compression)
@@ -3458,8 +3535,9 @@
         }
 
         // Update file input label
-        function updateFileLabel(input, labelId) {
+        function updateFileLabel(input, labelId, defaultText = 'RESİM SEÇ') {
             const label = document.getElementById(labelId);
+            if (!label) return;
             if (input.files && input.files.length > 0) {
                 const fileCount = input.files.length;
                 const fileName = input.files[0].name;
@@ -3470,7 +3548,7 @@
                 }
                 label.classList.add('file-selected');
             } else {
-                label.textContent = labelId === 'imageFileLabel' ? 'RESİM SEÇ (MAKS. 5)' : 'RESİM SEÇ';
+                label.textContent = defaultText;
                 label.classList.remove('file-selected');
             }
         }

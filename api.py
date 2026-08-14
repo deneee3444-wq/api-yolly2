@@ -10,7 +10,7 @@ import requests
 import database as db
 import service
 
-app = Flask(__name__, template_folder='.')
+app = Flask(__name__)
 CORS(app)
 
 # Maximum concurrent tasks

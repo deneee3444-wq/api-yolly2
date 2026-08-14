@@ -1297,6 +1297,7 @@ AVAILABLE_MODELS = {
             "name": "Kling O1 Standard",
             "description": "Kling O1 Standard by Kling - Supports Start/End Frame",
             "supports_start_frame": True,
+            "requires_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
             "max_reference_images": 0,
@@ -1313,6 +1314,7 @@ AVAILABLE_MODELS = {
             "name": "Kling O1 Pro",
             "description": "Kling O1 Pro by Kling - Supports Start/End Frame",
             "supports_start_frame": True,
+            "requires_start_frame": True,
             "supports_end_frame": True,
             "supports_reference_images": False,
             "max_reference_images": 0,
@@ -1526,6 +1528,15 @@ def get_available_models(mode=None):
     models = copy.deepcopy(AVAILABLE_MODELS)
     for model in models.get('video', []):
         config = VIDEO_MODELS_CONFIG.get(model['id'], {})
+        if 'supported_modes' in config:
+            model['supported_modes'] = config['supported_modes']
+        if 'reference_media_limit' in config:
+            model['reference_media_limit'] = config['reference_media_limit']
+        if 'supported_frame_modes' in config:
+            model['supported_frame_modes'] = config['supported_frame_modes']
+        if config.get('supported_modes') == ['ImageToVideo']:
+            model['requires_start_frame'] = True
+
         by_mode_res = config.get('supported_resolutions_by_mode')
         by_mode_dur = config.get('supported_durations_by_mode')
         if by_mode_res:

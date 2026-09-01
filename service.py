@@ -30,13 +30,8 @@ import database as db
 _shutdown_event = threading.Event()
 atexit.register(lambda: _shutdown_event.set())
 
-# ==============================================================================
-# PROXY KONFİGÜRASYONU
-# ==============================================================================
-UPLOAD_PROXY = {
-    "http": "http://nrrbciri-1:5cauzsujeluf@198.23.243.226:80",
-    "https": "http://nrrbciri-1:5cauzsujeluf@198.23.243.226:80",
-}
+
+
 
 # ==============================================================================
 # MYEDIT API ENDPOINT'LERI VE SABITLER
@@ -2287,13 +2282,7 @@ def generate_ai_image_service(
         form_data_init["filename"] = filename_val
         form_data_init["filesize"] = str(len(loaded_images_bytes[0]))
 
-    resp_init = requests.post(
-        MYEDIT_TTI_URL,
-        data=form_data_init,
-        headers=headers,
-        timeout=30,
-        proxies=UPLOAD_PROXY if loaded_images_bytes else None
-    )
+    resp_init = requests.post(MYEDIT_TTI_URL, data=form_data_init, headers=headers, timeout=30)
     if resp_init.status_code == 403 or "Fail to verify credit" in resp_init.text or ("Forbidden" in resp_init.text and "credit" in resp_init.text.lower()):
         raise CreditExhaustedError(f"Credit verification failed: {resp_init.text}")
     if resp_init.status_code == 401:
@@ -2333,26 +2322,14 @@ def generate_ai_image_service(
             enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
             get_link_url = f"{MYEDIT_TTI_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}"
 
-            resp_link = requests.post(
-                get_link_url,
-                data={"filename": fname, "filesize": fsize},
-                headers=headers,
-                timeout=30,
-                proxies=UPLOAD_PROXY
-            )
+            resp_link = requests.post(get_link_url, data={"filename": fname, "filesize": fsize}, headers=headers, timeout=30)
             resp_link.raise_for_status()
             storage_url = resp_link.json()["storage"]
             
             clean_url = storage_url.split("?")[0]
             uploaded_reference_urls.append(clean_url)
 
-            resp_upload = requests.put(
-                storage_url,
-                data=img_bytes,
-                headers=put_headers,
-                timeout=30,
-                proxies=UPLOAD_PROXY
-            )
+            resp_upload = requests.put(storage_url, data=img_bytes, headers=put_headers, timeout=30)
             resp_upload.raise_for_status()
             uploaded_sources_list.append(idx + 1)
 
@@ -2689,13 +2666,7 @@ def generate_ai_video_service(
             sources_list.append({"filename": filename, "filesize": file_size})
         files_init["sources"] = (None, json.dumps(sources_list, separators=(",", ":")))
 
-    resp_init = requests.post(
-        MYEDIT_VGEN_URL,
-        files=files_init,
-        headers=headers_init,
-        timeout=30,
-        proxies=UPLOAD_PROXY if prepared_media else None
-    )
+    resp_init = requests.post(MYEDIT_VGEN_URL, files=files_init, headers=headers_init, timeout=30)
     if resp_init.status_code == 403 or "Fail to verify credit" in resp_init.text or ("Forbidden" in resp_init.text and "credit" in resp_init.text.lower()):
         raise CreditExhaustedError(f"Credit verification failed: {resp_init.text}")
     if resp_init.status_code == 401:
@@ -2721,12 +2692,7 @@ def generate_ai_video_service(
                 with open(item["path"], 'rb') as f:
                     file_data = f.read()
                 content_type = 'video/mp4' if item["type"] == "video" else 'image/jpeg'
-                resp_upload = requests.put(
-                    upload_url,
-                    data=file_data,
-                    headers={'Content-Type': content_type},
-                    proxies=UPLOAD_PROXY
-                )
+                resp_upload = requests.put(upload_url, data=file_data, headers={'Content-Type': content_type})
 
         if task_id and uploaded_reference_urls:
             db.update_task_reference_urls(task_id, uploaded_reference_urls)

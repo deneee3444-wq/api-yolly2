@@ -2216,12 +2216,12 @@
 
             $('welcomeDescription').textContent = descriptions[state.mode];
             $('prompt').placeholder = placeholders[state.mode];
-            $('welcomeIcon').innerHTML = `<use href="#i-${{
+            $('welcomeIcon').innerHTML = `<use href="#i-${({
                 image: 'spark',
                 video: 'video',
                 tts: 'mic',
                 music: 'music'
-            }[state.mode]}"></use>`;
+            })[state.mode]}"></use>`;
 
             renderWorkflowTabs();
             updateGenerateState();

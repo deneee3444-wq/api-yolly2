@@ -1315,7 +1315,7 @@ AVAILABLE_MODELS = {
             "supports_end_frame": False,
             "supports_reference_images": False,
             "max_reference_images": 5,
-            "supported_sizes": ["16:9", "9:16", "1:1"],
+            "supported_sizes": ["16:9", "9:16"],
             "supported_durations": [8],
             "supported_resolutions": ["720p"],
             "default_size": "16:9",

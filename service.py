@@ -1264,7 +1264,7 @@ AVAILABLE_MODELS = {
             "default_size": "1:1",
             "default_resolution": "1K",
             "max_prompt_length": 2500,
-            "credit": 2
+            "credit": 1
         },
         {
             "id": "NANO_BANANA_2",
@@ -1277,7 +1277,7 @@ AVAILABLE_MODELS = {
             "default_size": "1:1",
             "default_resolution": "1K",
             "max_prompt_length": 2500,
-            "credit": 2
+            "credit": 1
         },
         {
             "id": "NANO_BANANA_PRO",
@@ -1290,7 +1290,7 @@ AVAILABLE_MODELS = {
             "default_size": "1:1",
             "default_resolution": "1K",
             "max_prompt_length": 2500,
-            "credit": 2
+            "credit": 1
         },
         {
             "id": "GPT_IMAGE_2",
@@ -1303,7 +1303,7 @@ AVAILABLE_MODELS = {
             "default_size": "1:1",
             "default_resolution": "1K",
             "max_prompt_length": 8000,
-            "credit": 2
+            "credit": 1
         }
     ],
     "video": [
@@ -1312,9 +1312,9 @@ AVAILABLE_MODELS = {
             "name": "SORA 2",
             "description": "SORA 2 - AI Video Generation (8s, 720p)",
             "supports_start_frame": True,
-            "supports_end_frame": True,
-            "supports_reference_images": True,
-            "max_reference_images": 20,
+            "supports_end_frame": False,
+            "supports_reference_images": False,
+            "max_reference_images": 5,
             "supported_sizes": ["16:9", "9:16", "1:1"],
             "supported_durations": [8],
             "supported_resolutions": ["720p"],

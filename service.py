@@ -398,9 +398,9 @@ from bs4 import BeautifulSoup
 # HESAP OLUSTURMA VE AKTIFLESTIRME (temp-mail.asia)
 # ==============================================================================
 WHITELIST_DOMAINS = [
-    "umail.asia",
-    "cmail.asia",
-    "tempmailt.com",
+    #"umail.asia",
+    #"cmail.asia",
+    #"tempmailt.com",
     "t-mail.asia",
     "okyre.com",
     "asia.banglatip.com",

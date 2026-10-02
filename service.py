@@ -207,6 +207,38 @@ IMAGE_MODELS_CONFIG = {
         "default_style": "Style_7000_Custom_FluxAPI",
         "process_time": 40,
     },
+    "qwen_image_3_pro": {
+        "name": "Qwen Image 3 Pro",
+        "model": "model_Qwen_Image_3_pro",
+        "vendor": "Alibaba",
+        "actionId_prefix": "genimage_1_img_alibaba_qwenimage3.0pro",
+        "promptLength": 4500,
+        "ref_img_limit": 3,
+        "supported_resolutions": ["1K", "2K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 3, "2K": 5},
+            "enable": {"1K": 3, "2K": 5},
+        },
+        "default_style": "Style_001_Custom_QwenAPI",
+        "process_time": 100,
+    },
+    "qwen_image_3": {
+        "name": "Qwen Image 3",
+        "model": "model_Qwen_Image_3",
+        "vendor": "Alibaba",
+        "actionId_prefix": "genimage_1_img_alibaba_qwenimage3.0",
+        "promptLength": 4500,
+        "ref_img_limit": 3,
+        "supported_resolutions": ["1K", "2K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 2, "2K": 4},
+            "enable": {"1K": 2, "2K": 4},
+        },
+        "default_style": "Style_000_Custom_QwenAPI",
+        "process_time": 100,
+    },
 
     # ==========================================================================
     # MORE MODELS (ALT LISTE)
@@ -359,6 +391,25 @@ IMAGE_MODELS_CONFIG = {
         "default_style": "Style_Default",
         "effect_type": "TtiStyleRef",
         "process_time": 15,
+    },
+    "qwen_image_edit": {
+        "name": "Qwen Image Edit",
+        "model": "model_Qwen_Image_Edit",
+        "vendor": "CyberLink",
+        "actionId_prefix": "genimage_1_img_cyberlink_qwen2511",
+        "action_id_none": "genimage_1_img_cyberlink_qwen2511_none",
+        "action_id_brush": "genimage_1_img_cyberlink_qwen2511_enable",
+        "promptLength": 1000,
+        "ref_img_limit": 1,
+        "supported_resolutions": ["1K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 2},
+            "enable": {"1K": 2},
+        },
+        "default_style": "Style_000_Custom_QwenEdit",
+        "effect_type": "EditByText",
+        "process_time": 100,
     },
 }
 
@@ -1048,19 +1099,91 @@ VIDEO_MODELS_CONFIG = {
             "max_media": 7,
         },
     },
-    "vidu_q2": {
-        "name": "Vidu Q2",
-        "model": "viduq2",
+    "vidu_q2_pro": {
+        "name": "Vidu Q2 Pro",
+        "model": {
+            "TextToVideo": "viduq2",
+            "ImageToVideo": "viduq2-pro",
+        },
         "vendor": "Vidu",
         "promptLength": 2000,
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["540p", "720p", "1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+        "supported_durations": list(range(1, 11)),
+        "duration_config": {'type': 'continuous', 'min': 1, 'max': 10, 'step': 1, 'default': 5},
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["1080p"],
+            "TextToVideo": ["540p", "720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_vidu_q2_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_vidu_custom_q2pro_{sound}_{frame_mode}",
+        "credit_map": {
+            ("ImageToVideo", "none", "1080p"): 3,
+            ("ImageToVideo", "vendor", "1080p"): 3,
+            ("TextToVideo", "none", "540p"): 1,
+            ("TextToVideo", "none", "720p"): 2,
+            ("TextToVideo", "none", "1080p"): 3,
+            ("TextToVideo", "vendor", "540p"): 1,
+            ("TextToVideo", "vendor", "720p"): 2,
+            ("TextToVideo", "vendor", "1080p"): 3,
+        },
+    },
+    "vidu_q2_turbo": {
+        "name": "Vidu Q2 Turbo",
+        "model": {
+            "TextToVideo": "viduq2",
+            "ImageToVideo": "viduq2-turbo",
+        },
+        "vendor": "Vidu",
+        "promptLength": 2000,
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["540p", "720p", "1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+        "supported_durations": list(range(1, 11)),
+        "duration_config": {'type': 'continuous', 'min': 1, 'max': 10, 'step': 1, 'default': 5},
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["540p", "720p"],
+            "TextToVideo": ["540p", "720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_vidu_q2_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_vidu_custom_q2turbo_{sound}_{frame_mode}",
+        "credit_map": {
+            ("ImageToVideo", "none", "540p"): 3,
+            ("ImageToVideo", "none", "720p"): 3,
+            ("ImageToVideo", "vendor", "540p"): 3,
+            ("ImageToVideo", "vendor", "720p"): 3,
+            ("TextToVideo", "none", "540p"): 1,
+            ("TextToVideo", "none", "720p"): 2,
+            ("TextToVideo", "none", "1080p"): 3,
+            ("TextToVideo", "vendor", "540p"): 1,
+            ("TextToVideo", "vendor", "720p"): 2,
+            ("TextToVideo", "vendor", "1080p"): 3,
+        },
+    },
+    "vidu_q2": {
+        "name": "Vidu Q2",
+        "model": {
+            "TextToVideo": "viduq2",
+            "ImageToVideo": "viduq2-turbo",
+        },
+        "vendor": "Vidu",
+        "promptLength": 2000,
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["540p", "720p", "1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(1, 11)),
         "duration_config": {'type': 'continuous', 'min': 1, 'max': 10, 'step': 1, 'default': 5},
         "action_id": "genvideo_1_sec_vidu_q2_{sound}_{resolution}",
         "action_id_i2v": "genvideo_1_sec_vidu_custom_q2turbo_{sound}_{frame_mode}",
+        "action_id_i2v_overrides": {
+            "1080p": "genvideo_1_sec_vidu_custom_q2pro_{sound}_{frame_mode}",
+            "720p": "genvideo_1_sec_vidu_custom_q2turbo_{sound}_{frame_mode}",
+            "540p": "genvideo_1_sec_vidu_custom_q2turbo_{sound}_{frame_mode}",
+        },
         "credit_map": {
             ("ImageToVideo", "none", "540p"): 3,
             ("ImageToVideo", "none", "720p"): 3,
@@ -1393,6 +1516,36 @@ AVAILABLE_MODELS = {   'image': [   {   'default_resolution': '1K',
                      'max_prompt_length': 800,
                      'max_reference_images': 1,
                      'name': 'Stable Diffusion XL',
+                     'supported_resolutions': ['1K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Qwen Image 3 Pro by Alibaba - Supports up to 3 Reference Images',
+                     'id': 'qwen_image_3_pro',
+                     'max_prompt_length': 4500,
+                     'max_reference_images': 3,
+                     'name': 'Qwen Image 3 Pro',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Qwen Image 3 by Alibaba - Supports up to 3 Reference Images',
+                     'id': 'qwen_image_3',
+                     'max_prompt_length': 4500,
+                     'max_reference_images': 3,
+                     'name': 'Qwen Image 3',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Qwen Image Edit by CyberLink - Supports up to 1 Reference Images',
+                     'id': 'qwen_image_edit',
+                     'max_prompt_length': 1000,
+                     'max_reference_images': 1,
+                     'name': 'Qwen Image Edit',
                      'supported_resolutions': ['1K'],
                      'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
                      'supports_reference_images': True}],
@@ -1935,6 +2088,38 @@ AVAILABLE_MODELS = {   'image': [   {   'default_resolution': '1K',
                      'supports_reference_images': True,
                      'supports_start_frame': True},
                  {   'default_duration': 5,
+                     'default_resolution': '1080p',
+                     'default_size': '16:9',
+                     'description': 'Vidu Q2 Pro by Vidu - Supports Start/End Frame',
+                     'id': 'vidu_q2_pro',
+                     'max_prompt_length': 2000,
+                     'max_reference_images': 0,
+                     'name': 'Vidu Q2 Pro',
+                     'supported_durations': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Vidu Q2 Turbo by Vidu - Supports Start/End Frame',
+                     'id': 'vidu_q2_turbo',
+                     'max_prompt_length': 2000,
+                     'max_reference_images': 0,
+                     'name': 'Vidu Q2 Turbo',
+                     'supported_durations': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['540p', '720p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
                      'default_resolution': '540p',
                      'default_size': '16:9',
                      'description': 'Vidu Q2 by Vidu - Supports Start/End Frame',
@@ -1946,7 +2131,7 @@ AVAILABLE_MODELS = {   'image': [   {   'default_resolution': '1K',
                      'supported_frame_modes': ['single', 'startend'],
                      'supported_modes': ['TextToVideo', 'ImageToVideo'],
                      'supported_resolutions': ['540p', '720p', '1080p'],
-                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
                      'supports_end_frame': True,
                      'supports_reference_images': False,
                      'supports_start_frame': True},
@@ -2735,7 +2920,7 @@ def check_task_bonus(member_token: str, feature_id: str = "TextToImage"):
         return None
 
 def collect_all_bonuses(member_token: str):
-    """Kullanicinin tum aktif task bonuslarini (kredilerini) ve gunluk bonusunu toplar (toplam 311 kredi)."""
+    """Kullanicinin tum aktif task bonuslarini (kredilerini) ve gunluk bonusunu toplar (toplam 334 kredi)."""
     print("\n[Bonuses] Tum gunluk ve gorev bonuslari toplaniyor...")
     
     # 1. Gunluk Bonus (+3 Kredi)
@@ -2745,7 +2930,7 @@ def collect_all_bonuses(member_token: str):
     except Exception as e:
         print(f"  [!] Gunluk bonus toplama hatasi: {e}")
         
-    # 2. Aktif Gorev Bonuslari (Toplam 308 Kredi + 3 Gunluk = 311 Kredi)
+    # 2. Aktif Gorev Bonuslari (Toplam 331 Kredi + 3 Gunluk = 334 Kredi)
     active_tasks = [
         "TextToImage",          # 14 Kredi
         "AICollage",            # 3 Kredi
@@ -2762,6 +2947,9 @@ def collect_all_bonuses(member_token: str):
         "AITryOn",              # 6 Kredi (Genel Kiyafet Deneme)
         "TrendingAITemplates",  # 6 Kredi (Trend AI Sablonlari)
         "AIHairstyleV2",        # 6 Kredi (AI Sac Modeli)
+        "AIPhotoSlideshow",     # 10 Kredi (AI Fotograf Slayt Gosterisi)
+        "AIHeadshotV2",         # 8 Kredi (AI Vesikalik Fotograf)
+        "AIMusicGeneratorV2",   # 5 Kredi (AI Muzik Uretici)
     ]
     
     for task_id in active_tasks:
@@ -3082,11 +3270,20 @@ def resolve_image_action_and_credit(
     """
     model_data = IMAGE_MODELS_CONFIG.get(model_key, IMAGE_MODELS_CONFIG["gpt_image_2_5_sunburst"])
     is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
+    is_edit_by_text = model_data.get("effect_type") == "EditByText"
     if is_style_ref:
         feature_id = "TtiStyleRef"
         action_id = f"gen_{batch_size}_img"
         unit_credit = 1
         total_credit = 1 * batch_size
+    elif is_edit_by_text:
+        feature_id = "EditByText"
+        mode_key = "enable" if has_reference else "none"
+        prefix = model_data.get("actionId_prefix", "genimage_1_img_cyberlink_qwen2511")
+        action_id = f"{prefix}_{mode_key}"
+        credits_dict = model_data.get("credits", {}).get(mode_key, {})
+        unit_credit = credits_dict.get(resolution, 2)
+        total_credit = unit_credit * batch_size
     else:
         feature_id = "TextToImage"
         mode_key = "enable" if has_reference else "none"
@@ -3190,11 +3387,20 @@ def resolve_image_action_and_credit(
     """
     model_data = IMAGE_MODELS_CONFIG.get(model_key, IMAGE_MODELS_CONFIG["gpt_image_2_5_sunburst"])
     is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
+    is_edit_by_text = model_data.get("effect_type") == "EditByText"
     if is_style_ref:
         feature_id = "TtiStyleRef"
         action_id = f"gen_{batch_size}_img"
         unit_credit = 1
         total_credit = 1 * batch_size
+    elif is_edit_by_text:
+        feature_id = "EditByText"
+        mode_key = "enable" if has_reference else "none"
+        prefix = model_data.get("actionId_prefix", "genimage_1_img_cyberlink_qwen2511")
+        action_id = f"{prefix}_{mode_key}"
+        credits_dict = model_data.get("credits", {}).get(mode_key, {})
+        unit_credit = credits_dict.get(resolution, 2)
+        total_credit = unit_credit * batch_size
     else:
         feature_id = "TextToImage"
         mode_key = "enable" if has_reference else "none"
@@ -3240,6 +3446,7 @@ def generate_ai_image_service(
         has_reference = True
 
     is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
+    is_edit_by_text = model_data.get("effect_type") == "EditByText"
     try:
         b_size = int(batch_size)
     except ValueError:
@@ -3401,6 +3608,21 @@ def generate_ai_image_service(
             "alias": alias_str,
             "effect": "TtiStyleRef",
         }
+    elif is_edit_by_text:
+        form_data_apply = {
+            "style_id": style_id,
+            "style_prompt": "",
+            "aspect_ratio": aspect_ratio,
+            "output_format": output_format,
+            "user_prompt": user_prompt,
+            "batch_size": str(batch_size),
+            "consumption": consumption_param,
+            "cloud_sync": "true",
+            "alias": alias_str,
+            "effect": "EditByText",
+        }
+        if has_reference:
+            form_data_apply["sources"] = sources_str
     else:
         form_data_apply = {
             "style_id": style_id,
@@ -3440,7 +3662,7 @@ def generate_ai_image_service(
     polling = apply_json.get("polling", {})
     delay = polling.get("delay", 5)
 
-    max_attempts = 120
+    max_attempts = 360
     decrypted_files = []
     for i in range(max_attempts):
         time.sleep(delay)
@@ -3512,6 +3734,8 @@ def generate_ai_video_service(
         model_name_str = model_data["model"].get(effect_mode, list(model_data["model"].values())[0])
     else:
         model_name_str = model_data["model"]
+    if model_key == "vidu_q2" and effect_mode == "ImageToVideo":
+        model_name_str = "viduq2-pro" if resolution == "1080p" else "viduq2-turbo"
     vendor_str = model_data["vendor"]
 
     if effect_mode == "ReferenceToVideo":
@@ -4210,7 +4434,8 @@ def process_image_task(task_id, params, api_key_id):
             return
 
         is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
-        feature_id = "TtiStyleRef" if is_style_ref else "TextToImage"
+        is_edit_by_text = model_data.get("effect_type") == "EditByText"
+        feature_id = "TtiStyleRef" if is_style_ref else ("EditByText" if is_edit_by_text else "TextToImage")
 
         max_account_retries = 3
         last_error = None

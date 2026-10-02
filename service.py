@@ -209,37 +209,33 @@ IMAGE_MODELS_CONFIG = {
     },
     "qwen_image_3_pro": {
         "name": "Qwen Image 3.0 Pro",
-        "model": "model_Qwen_Image_3_pro",
         "vendor": "Alibaba",
         "actionId_prefix": "genimage_1_img_alibaba_qwenimage3.0pro",
         "promptLength": 4500,
         "ref_img_limit": 3,
-        "supported_modes": ["TextToImage", "ImageToImage"],
         "supported_resolutions": ["1K", "2K"],
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
         "credits": {
             "none": {"1K": 3, "2K": 5},
             "enable": {"1K": 3, "2K": 5},
         },
-        "default_style": "Style_001_Custom_QwenAPI",
-        "process_time": 100,
+        "default_style": "Style_12001_Custom_Qwen",
+        "process_time": 60,
     },
     "qwen_image_3": {
         "name": "Qwen Image 3.0",
-        "model": "model_Qwen_Image_3",
         "vendor": "Alibaba",
         "actionId_prefix": "genimage_1_img_alibaba_qwenimage3.0",
         "promptLength": 4500,
         "ref_img_limit": 3,
-        "supported_modes": ["TextToImage", "ImageToImage"],
         "supported_resolutions": ["1K", "2K"],
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
         "credits": {
             "none": {"1K": 2, "2K": 3},
             "enable": {"1K": 2, "2K": 3},
         },
-        "default_style": "Style_000_Custom_QwenAPI",
-        "process_time": 100,
+        "default_style": "Style_12000_Custom_Qwen",
+        "process_time": 40,
     },
 
     # ==========================================================================
@@ -393,31 +389,6 @@ IMAGE_MODELS_CONFIG = {
         "default_style": "Style_Default",
         "effect_type": "TtiStyleRef",
         "process_time": 15,
-    },
-    "qwen_image_edit": {
-        "name": "Qwen Image Edit",
-        "model": "model_Qwen_Image_Edit",
-        "vendor": "CyberLink",
-        "actionId_prefix": "genimage_1_img_cyberlink_qwen2511",
-        "action_id_none": "genimage_1_img_cyberlink_qwen2511_none",
-        "action_id_brush": "genimage_1_img_cyberlink_qwen2511_enable",
-        "promptLength": 1000,
-        "ref_img_limit": 1,
-        "supported_modes": ["ImageToImage"],
-        "requires_reference_image": True,
-        "supports_text_to_image": False,
-        "mode": "ImageToImage",
-        "supported_resolutions": ["1K"],
-        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
-        "credits": {
-            "none": {"1K": 2},
-            "enable": {"1K": 2},
-        },
-        "default_style": "Style_000_Custom_QwenEdit",
-        "effect_type": "EditByText",
-        "supportsBrush": False,
-        "maxLongEdge": 1024,
-        "process_time": 100,
     },
 }
 
@@ -1148,13 +1119,13 @@ VIDEO_MODELS_CONFIG = {
         "promptLength": 2000,
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
-        "supported_resolutions": ["540p", "720p", "1080p"],
+        "supported_resolutions": ["540p", "720p"],
         "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(1, 11)),
         "duration_config": {'type': 'continuous', 'min': 1, 'max': 10, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
             "ImageToVideo": ["540p", "720p"],
-            "TextToVideo": ["540p", "720p", "1080p"],
+            "TextToVideo": ["540p", "720p"],
         },
         "action_id": "genvideo_1_sec_vidu_q2_{sound}_{resolution}",
         "action_id_i2v": "genvideo_1_sec_vidu_custom_q2turbo_{sound}_{frame_mode}",
@@ -1165,10 +1136,8 @@ VIDEO_MODELS_CONFIG = {
             ("ImageToVideo", "vendor", "720p"): 3,
             ("TextToVideo", "none", "540p"): 1,
             ("TextToVideo", "none", "720p"): 2,
-            ("TextToVideo", "none", "1080p"): 3,
             ("TextToVideo", "vendor", "540p"): 1,
             ("TextToVideo", "vendor", "720p"): 2,
-            ("TextToVideo", "vendor", "1080p"): 3,
         },
     },
     "vidu_q2": {
@@ -1420,6 +1389,26 @@ AVAILABLE_MODELS = {   'image': [   {   'default_resolution': '1K',
                      'supports_reference_images': True},
                  {   'default_resolution': '1K',
                      'default_size': '1:1',
+                     'description': 'Qwen Image 3.0 Pro by Alibaba - Supports up to 3 Reference Images',
+                     'id': 'qwen_image_3_pro',
+                     'max_prompt_length': 4500,
+                     'max_reference_images': 3,
+                     'name': 'Qwen Image 3.0 Pro',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Qwen Image 3.0 by Alibaba - Supports up to 3 Reference Images',
+                     'id': 'qwen_image_3',
+                     'max_prompt_length': 4500,
+                     'max_reference_images': 3,
+                     'name': 'Qwen Image 3.0',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
                      'description': 'Gemini 3.1 Flash Lite (Nano Banana 2 '
                                     'Lite) by Google - Supports up to 14 '
                                     'Reference Images',
@@ -1526,45 +1515,7 @@ AVAILABLE_MODELS = {   'image': [   {   'default_resolution': '1K',
                      'name': 'Stable Diffusion XL',
                      'supported_resolutions': ['1K'],
                      'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
-                     'supports_reference_images': True},
-                 {   'default_resolution': '1K',
-                     'default_size': '1:1',
-                     'description': 'Qwen Image 3.0 Pro by Alibaba - Supports up to 3 Reference Images',
-                     'id': 'qwen_image_3_pro',
-                     'max_prompt_length': 4500,
-                     'max_reference_images': 3,
-                     'name': 'Qwen Image 3.0 Pro',
-                     'supported_modes': ['TextToImage', 'ImageToImage'],
-                     'supported_resolutions': ['1K', '2K'],
-                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
-                     'supports_reference_images': True,
-                     'supports_text_to_image': True},
-                 {   'default_resolution': '1K',
-                     'default_size': '1:1',
-                     'description': 'Qwen Image 3.0 by Alibaba - Supports up to 3 Reference Images',
-                     'id': 'qwen_image_3',
-                     'max_prompt_length': 4500,
-                     'max_reference_images': 3,
-                     'name': 'Qwen Image 3.0',
-                     'supported_modes': ['TextToImage', 'ImageToImage'],
-                     'supported_resolutions': ['1K', '2K'],
-                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
-                     'supports_reference_images': True,
-                     'supports_text_to_image': True},
-                 {   'default_resolution': '1K',
-                     'default_size': '1:1',
-                     'description': 'Qwen Image Edit by CyberLink - Supports up to 1 Reference Image (Image-to-Image Edit)',
-                     'id': 'qwen_image_edit',
-                     'max_prompt_length': 1000,
-                     'max_reference_images': 1,
-                     'name': 'Qwen Image Edit',
-                     'supported_modes': ['ImageToImage'],
-                     'supported_resolutions': ['1K'],
-                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
-                     'supports_reference_images': True,
-                     'requires_reference_image': True,
-                     'supports_text_to_image': False,
-                     'mode': 'ImageToImage'}],
+                     'supports_reference_images': True}],
     'music': [],
     'tts': [],
     'video': [   {   'default_duration': 5,
@@ -2236,19 +2187,6 @@ AVAILABLE_MODELS = {   'image': [   {   'default_resolution': '1K',
 def get_available_models(mode=None):
     import copy
     models = copy.deepcopy(AVAILABLE_MODELS)
-    for model in models.get('image', []):
-        config = IMAGE_MODELS_CONFIG.get(model['id'], {})
-        if 'supported_modes' in config:
-            model['supported_modes'] = config['supported_modes']
-        if config.get('supported_modes') == ['ImageToImage'] or config.get('effect_type') == 'EditByText':
-            model['requires_reference_image'] = True
-            model['supports_text_to_image'] = False
-            model['supported_modes'] = ['ImageToImage']
-            model['mode'] = 'ImageToImage'
-        if 'requires_reference_image' in config:
-            model['requires_reference_image'] = config['requires_reference_image']
-        if 'supports_text_to_image' in config:
-            model['supports_text_to_image'] = config['supports_text_to_image']
     for model in models.get('video', []):
         config = VIDEO_MODELS_CONFIG.get(model['id'], {})
         if 'supported_modes' in config:
@@ -2269,10 +2207,6 @@ def get_available_models(mode=None):
         if by_mode_dur:
             model['supported_durations_by_mode'] = by_mode_dur
     if mode:
-        if mode == 'ImageToImage':
-            return [m for m in models.get('image', []) if 'ImageToImage' in m.get('supported_modes', ['ImageToImage'] if m.get('supports_reference_images') else [])]
-        elif mode == 'TextToImage':
-            return [m for m in models.get('image', []) if m.get('supports_text_to_image', True)]
         return models.get(mode, [])
     return models
 
@@ -2963,7 +2897,7 @@ def collect_all_bonuses(member_token: str):
     except Exception as e:
         print(f"  [!] Gunluk bonus toplama hatasi: {e}")
         
-    # 2. Aktif Gorev Bonuslari (Toplam 331 Kredi + 3 Gunluk = 334 Kredi)
+    # 2. Aktif Gorev Bonuslari (Toplam 308 Kredi + 3 Gunluk = 311 Kredi)
     active_tasks = [
         "TextToImage",          # 14 Kredi
         "AICollage",            # 3 Kredi
@@ -2980,9 +2914,9 @@ def collect_all_bonuses(member_token: str):
         "AITryOn",              # 6 Kredi (Genel Kiyafet Deneme)
         "TrendingAITemplates",  # 6 Kredi (Trend AI Sablonlari)
         "AIHairstyleV2",        # 6 Kredi (AI Sac Modeli)
-        "AIPhotoSlideshow",     # 10 Kredi (AI Fotograf Slayt Gosterisi)
-        "AIHeadshotV2",         # 8 Kredi (AI Vesikalik Fotograf)
-        "AIMusicGeneratorV2",   # 5 Kredi (AI Muzik Uretici)
+        "AIPhotoSlideshow",     # 6 Kredi (AI Foto Slayt Gosterisi)
+        "AIHeadshotV2",         # 6 Kredi (AI Portre / Vesikalik)
+        "AIMusicGeneratorV2",   # 11 Kredi (AI Muzik Uretici)
     ]
     
     for task_id in active_tasks:
@@ -3292,7 +3226,34 @@ def validate_model_duration(model_key: str, duration: int) -> bool:
         return duration in cfg.get("options", [])
 
 
-# (resolve_image_action_and_credit defined below)
+def resolve_image_action_and_credit(
+    model_key: str,
+    resolution: str = "1K",
+    has_reference: bool = False,
+    batch_size: int = 1
+):
+    """
+    Verilen resim modeli, cozunurluk, referans durumu ve batch size'a gore (feature_id, action_id, unit_credit, total_credit) dondurur.
+    """
+    model_data = IMAGE_MODELS_CONFIG.get(model_key, IMAGE_MODELS_CONFIG["gpt_image_2_5_sunburst"])
+    is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
+    if is_style_ref:
+        feature_id = "TtiStyleRef"
+        action_id = f"gen_{batch_size}_img"
+        unit_credit = 1
+        total_credit = 1 * batch_size
+    else:
+        feature_id = "TextToImage"
+        mode_key = "enable" if has_reference else "none"
+        credits_dict = model_data.get("credits", {}).get(mode_key, {})
+        unit_credit = credits_dict.get(resolution, 2)
+        total_credit = unit_credit * batch_size
+        res_suffix = resolution
+        if "alibaba_qwen" in model_data.get("actionId_prefix", ""):
+            res_suffix = resolution.lower()
+        action_id = f"{model_data.get('actionId_prefix', 'genimage')}_{mode_key}_{res_suffix}"
+
+    return feature_id, action_id, unit_credit, total_credit
 
 
 
@@ -3387,20 +3348,11 @@ def resolve_image_action_and_credit(
     """
     model_data = IMAGE_MODELS_CONFIG.get(model_key, IMAGE_MODELS_CONFIG["gpt_image_2_5_sunburst"])
     is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
-    is_edit_by_text = model_data.get("effect_type") == "EditByText"
     if is_style_ref:
         feature_id = "TtiStyleRef"
         action_id = f"gen_{batch_size}_img"
         unit_credit = 1
         total_credit = 1 * batch_size
-    elif is_edit_by_text:
-        feature_id = "EditByText"
-        mode_key = "enable" if has_reference else "none"
-        prefix = model_data.get("actionId_prefix", "genimage_1_img_cyberlink_qwen2511")
-        action_id = f"{prefix}_{mode_key}"
-        credits_dict = model_data.get("credits", {}).get(mode_key, {})
-        unit_credit = credits_dict.get(resolution, 2)
-        total_credit = unit_credit * batch_size
     else:
         feature_id = "TextToImage"
         mode_key = "enable" if has_reference else "none"
@@ -3449,9 +3401,6 @@ def generate_ai_image_service(
         has_reference = True
 
     is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
-    is_edit_by_text = model_data.get("effect_type") == "EditByText"
-    if is_edit_by_text and not has_reference:
-        raise ValueError(f"Secilen model ({model_data['name']}) bir resim duzenleme (Image-to-Image / EditByText) modelidir ve en az bir referans/kaynak resim gerektirir!")
     try:
         b_size = int(batch_size)
     except ValueError:
@@ -3613,20 +3562,6 @@ def generate_ai_image_service(
             "alias": alias_str,
             "effect": "TtiStyleRef",
         }
-    elif is_edit_by_text:
-        form_data_apply = {
-            "style_id": style_id,
-            "style_prompt": "",
-            "aspect_ratio": aspect_ratio,
-            "output_format": output_format,
-            "user_prompt": user_prompt,
-            "batch_size": str(batch_size),
-            "consumption": consumption_param,
-            "cloud_sync": "true",
-            "alias": alias_str,
-            "effect": "EditByText",
-            "sources": sources_str,
-        }
     else:
         form_data_apply = {
             "style_id": style_id,
@@ -3738,8 +3673,6 @@ def generate_ai_video_service(
         model_name_str = model_data["model"].get(effect_mode, list(model_data["model"].values())[0])
     else:
         model_name_str = model_data["model"]
-    if model_key == "vidu_q2" and effect_mode == "ImageToVideo":
-        model_name_str = "viduq2-pro" if resolution == "1080p" else "viduq2-turbo"
     vendor_str = model_data["vendor"]
 
     if effect_mode == "ReferenceToVideo":
@@ -4422,16 +4355,9 @@ def process_image_task(task_id, params, api_key_id):
         resolution = params.get('resolution', '1K')
         batch_size = int(params.get('batch_size', 1))
 
-        # Handle reference images (Image-to-Image / EditByText)
+        # Handle reference images (Image-to-Image)
         reference_images = []
         images = params.get('reference_images', [])
-        if not images and params.get('image'):
-            images = [params.get('image')]
-        elif not images and params.get('init_image'):
-            images = [params.get('init_image')]
-        elif not images and params.get('source_image'):
-            images = [params.get('source_image')]
-
         if images:
             for img_b64 in images:
                 temp_path = save_b64_to_temp_file(img_b64)
@@ -4445,13 +4371,7 @@ def process_image_task(task_id, params, api_key_id):
             return
 
         is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
-        is_edit_by_text = model_data.get("effect_type") == "EditByText"
-        feature_id = "TtiStyleRef" if is_style_ref else ("EditByText" if is_edit_by_text else "TextToImage")
-
-        if is_edit_by_text and not reference_images:
-            db.update_task_status(task_id, 'failed')
-            db.add_task_log(task_id, "400 - EditByText (Image-to-Image) requires an input reference image.")
-            return
+        feature_id = "TtiStyleRef" if is_style_ref else "TextToImage"
 
         max_account_retries = 3
         last_error = None

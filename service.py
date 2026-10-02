@@ -219,8 +219,8 @@ IMAGE_MODELS_CONFIG = {
             "none": {"1K": 3, "2K": 5},
             "enable": {"1K": 3, "2K": 5},
         },
-        "default_style": "Style_12001_Custom_Qwen",
-        "process_time": 60,
+        "default_style": "Style_001_Custom_QwenAPI",
+        "process_time": 100,
     },
     "qwen_image_3": {
         "name": "Qwen Image 3.0",
@@ -234,8 +234,8 @@ IMAGE_MODELS_CONFIG = {
             "none": {"1K": 2, "2K": 3},
             "enable": {"1K": 2, "2K": 3},
         },
-        "default_style": "Style_12000_Custom_Qwen",
-        "process_time": 40,
+        "default_style": "Style_000_Custom_QwenAPI",
+        "process_time": 100,
     },
 
     # ==========================================================================
@@ -402,8 +402,8 @@ WHITELIST_DOMAINS = [
     #"cmail.asia",
     #"tempmailt.com",
     #"t-mail.asia",
-    #"okyre.com",
-    #"asia.banglatip.com",
+    "okyre.com",
+    "asia.banglatip.com",
     "pmail.asia",
     "1mail.edu.pl",
     "asia.1maill.com",
@@ -2223,8 +2223,8 @@ WHITELIST_DOMAINS = [
     #"cmail.asia",
     #"tempmailt.com",
     #"t-mail.asia",
-    #"okyre.com",
-    #"asia.banglatip.com",
+    "okyre.com",
+    "asia.banglatip.com",
     "pmail.asia",
     "1mail.edu.pl",
     "asia.1maill.com",
@@ -3305,68 +3305,6 @@ def resolve_video_action_and_credit(
     return action_id_str, credit_cost
 
 
-def get_model_duration_config(model_key: str) -> dict:
-    """
-    Modelin sure yapilandirmasini dondurur.
-    Ornek: {'type': 'continuous', 'min': 4, 'max': 30, 'step': 1, 'default': 5}
-    veya: {'type': 'discrete', 'options': [4, 6, 8], 'default': 4}
-    """
-    model_data = VIDEO_MODELS_CONFIG.get(model_key, {})
-    cfg = model_data.get("duration_config")
-    if cfg:
-        return cfg
-    durations = model_data.get("supported_durations", [5])
-    return {
-        "type": "discrete",
-        "options": durations,
-        "default": durations[0] if durations else 5
-    }
-
-
-def validate_model_duration(model_key: str, duration: int) -> bool:
-    """
-    Verilen surenin model tarafindan desteklenip desteklenmedigini dogrular.
-    """
-    cfg = get_model_duration_config(model_key)
-    if cfg.get("type") == "continuous":
-        step = cfg.get("step", 1)
-        min_v = cfg.get("min", 1)
-        max_v = cfg.get("max", 30)
-        return min_v <= duration <= max_v and ((duration - min_v) % step == 0)
-    else:
-        return duration in cfg.get("options", [])
-
-
-def resolve_image_action_and_credit(
-    model_key: str,
-    resolution: str = "1K",
-    has_reference: bool = False,
-    batch_size: int = 1
-):
-    """
-    Verilen resim modeli, cozunurluk, referans durumu ve batch size'a gore (feature_id, action_id, unit_credit, total_credit) dondurur.
-    """
-    model_data = IMAGE_MODELS_CONFIG.get(model_key, IMAGE_MODELS_CONFIG["gpt_image_2_5_sunburst"])
-    is_style_ref = model_data.get("effect_type") == "TtiStyleRef"
-    if is_style_ref:
-        feature_id = "TtiStyleRef"
-        action_id = f"gen_{batch_size}_img"
-        unit_credit = 1
-        total_credit = 1 * batch_size
-    else:
-        feature_id = "TextToImage"
-        mode_key = "enable" if has_reference else "none"
-        credits_dict = model_data.get("credits", {}).get(mode_key, {})
-        unit_credit = credits_dict.get(resolution, 2)
-        total_credit = unit_credit * batch_size
-        res_suffix = resolution
-        if "alibaba_qwen" in model_data.get("actionId_prefix", ""):
-            res_suffix = resolution.lower()
-        action_id = f"{model_data.get('actionId_prefix', 'genimage')}_{mode_key}_{res_suffix}"
-
-    return feature_id, action_id, unit_credit, total_credit
-
-
 
 def generate_ai_image_service(
     member_token: str,
@@ -3423,7 +3361,7 @@ def generate_ai_image_service(
                 loaded_images_bytes.append(f.read())
 
     version_val = "4" if ("flux" in model_key or model_key == "z_image") else "5"
-    if (version_val == "5" or is_style_ref) and not loaded_images_bytes:
+    if is_style_ref and not loaded_images_bytes:
         from PIL import Image
         import io
         img = Image.new('RGB', (512, 512), color=(120, 160, 220))
@@ -3577,9 +3515,9 @@ def generate_ai_image_service(
             "effect": "TextToImage",
         }
 
-        if "flux" not in model_key:
+        if model_key != "flux_dev":
             form_data_apply["resolution"] = resolution
-        if has_reference or "flux" not in model_key:
+        if has_reference:
             form_data_apply["sources"] = sources_str
         if "flux" in model_key:
             form_data_apply["need_translate"] = "true"
@@ -3594,6 +3532,8 @@ def generate_ai_image_service(
         raise CreditExhaustedError(f"Credit verification failed: {resp_apply.text}")
     if resp_apply.status_code == 401:
         raise AuthExpiredError(f"Auth token expired: {resp_apply.text}")
+    if resp_apply.status_code != 200:
+        print(f"  [!] PATCH basarisiz (HTTP {resp_apply.status_code}): {resp_apply.text}")
     resp_apply.raise_for_status()
 
     apply_json = resp_apply.json()

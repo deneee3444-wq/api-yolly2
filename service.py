@@ -403,7 +403,7 @@ WHITELIST_DOMAINS = [
     #"tempmailt.com",
     #"t-mail.asia",
     #"okyre.com",
-    "asia.banglatip.com",
+    #"asia.banglatip.com",
     "pmail.asia",
     "1mail.edu.pl",
     "asia.1maill.com",

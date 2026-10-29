@@ -172,6 +172,11 @@ IMAGE_MODELS_CONFIG = {
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
         "credits": {
             "none": {"1K": 3, "2K": 5, "4K": 7},
+            "enable": {"1K": 3, "2K": 5, "4K": 7},
+        },
+        "default_style": "Style_3002_Custom_Gemini",
+        "process_time": 60,
+    },
     "gemini_nanobanana_2_1": {
         "name": "Gemini Nano Banana 2.1",
         "vendor": "Google",
@@ -185,11 +190,6 @@ IMAGE_MODELS_CONFIG = {
             "enable": {"1K": 3, "2K": 4, "4K": 8},
         },
         "default_style": "Style_3004_Custom_Gemini",
-        "process_time": 60,
-    },
-            "enable": {"1K": 3, "2K": 5, "4K": 7},
-        },
-        "default_style": "Style_3002_Custom_Gemini",
         "process_time": 60,
     },
     "seedream_5_pro": {

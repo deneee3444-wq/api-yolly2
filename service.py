@@ -106,7 +106,7 @@ IMAGE_MODELS_CONFIG = {
         "name": "GPT Image 2.5 Sunburst",
         "vendor": "OpenAI",
         "actionId_prefix": "genimage_1_img_openai_gptimage2.5sunburst",
-        "promptLength": 8000,
+        "promptLength": 32000,
         "ref_img_limit": 16,
         "supported_resolutions": ["1K", "2K"],
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -121,7 +121,7 @@ IMAGE_MODELS_CONFIG = {
         "name": "GPT-Image-2.5 Flare",
         "vendor": "OpenAI",
         "actionId_prefix": "genimage_1_img_openai_gptimage2.5flare",
-        "promptLength": 8000,
+        "promptLength": 32000,
         "ref_img_limit": 16,
         "supported_resolutions": ["1K", "2K"],
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
@@ -172,6 +172,21 @@ IMAGE_MODELS_CONFIG = {
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
         "credits": {
             "none": {"1K": 3, "2K": 5, "4K": 7},
+    "gemini_nanobanana_2_1": {
+        "name": "Gemini Nano Banana 2.1",
+        "vendor": "Google",
+        "actionId_prefix": "genimage_1_img_google_gemininanobanana2.1",
+        "promptLength": 2500,
+        "ref_img_limit": 14,
+        "supported_resolutions": ["1K", "2K", "4K"],
+        "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
+        "credits": {
+            "none": {"1K": 3, "2K": 4, "4K": 8},
+            "enable": {"1K": 3, "2K": 4, "4K": 8},
+        },
+        "default_style": "Style_3004_Custom_Gemini",
+        "process_time": 60,
+    },
             "enable": {"1K": 3, "2K": 5, "4K": 7},
         },
         "default_style": "Style_3002_Custom_Gemini",
@@ -351,11 +366,11 @@ IMAGE_MODELS_CONFIG = {
         "actionId_prefix": "genimage_1_img_kling_o1",
         "promptLength": 2500,
         "ref_img_limit": 10,
-        "supported_resolutions": ["1K", "2K"],
+        "supported_resolutions": ["1K", "2K", "4K"],
         "supported_aspect_ratios": ["1:1", "16:9", "9:16", "4:3", "3:4"],
         "credits": {
-            "none": {"1K": 3, "2K": 3},
-            "enable": {"1K": 3, "2K": 3},
+            "none": {"1K": 3, "2K": 3, "4K": 5},
+            "enable": {"1K": 3, "2K": 3, "4K": 5},
         },
         "default_style": "Style_5000_Custom_Kling",
         "process_time": 40,
@@ -398,10 +413,10 @@ from bs4 import BeautifulSoup
 # HESAP OLUSTURMA VE AKTIFLESTIRME (temp-mail.asia)
 # ==============================================================================
 WHITELIST_DOMAINS = [
-    #"umail.asia",
-    #"cmail.asia",
-    #"tempmailt.com",
-    #"t-mail.asia",
+    # "umail.asia",
+    # "cmail.asia",
+    # "tempmailt.com",
+    # "t-mail.asia",
     #"okyre.com",
     #"asia.banglatip.com",
     #"pmail.asia",
@@ -437,7 +452,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["480p", "720p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(4, 16)),
         "duration_config": {'type': 'continuous', 'min': 4, 'max': 15, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -469,7 +484,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["480p", "720p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(4, 16)),
         "duration_config": {'type': 'continuous', 'min': 4, 'max': 15, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -501,7 +516,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["480p", "720p", "1080p", "4K"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(4, 16)),
         "duration_config": {'type': 'continuous', 'min': 4, 'max': 15, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -537,7 +552,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["480p", "720p", "1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(4, 31)),
         "duration_config": {'type': 'continuous', 'min': 4, 'max': 30, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -675,11 +690,11 @@ VIDEO_MODELS_CONFIG = {
         "name": "Wan 3.0",
         "model": "wan3.0-video",
         "vendor": "Alibaba",
-        "promptLength": 20000,
+        "promptLength": 19000,
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["480p", "720p", "1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(2, 31)),
         "duration_config": {'type': 'continuous', 'min': 2, 'max': 30, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -846,7 +861,52 @@ VIDEO_MODELS_CONFIG = {
     # ==========================================================================
     # KLING (Kuaishou)
     # ==========================================================================
-    "kling_3_0": {
+        "kling_4_0": {
+        "name": "Kling 4.0",
+        "model": "kling-4.0",
+        "vendor": "Kling",
+        "mode": "pro",
+        "promptLength": 11000,
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p", "1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+        "supported_durations": list(range(3, 31)),
+        "duration_config": {'type': 'continuous', 'min': 3, 'max': 30, 'step': 1, 'default': 5},
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["720p", "1080p"],
+            "TextToVideo": ["720p", "1080p"],
+        },
+        "action_id": "genvideo_1_sec_kling_4.0std_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_kling_custom_4.0std_{sound}_{frame_mode}_{resolution}",
+        "credit_map": {
+            ("TextToVideo", "none", "720p"): 9,
+            ("TextToVideo", "enable", "720p"): 11,
+            ("TextToVideo", "vendor", "720p"): 11,
+            ("TextToVideo", "none", "1080p"): 14,
+            ("TextToVideo", "enable", "1080p"): 16,
+            ("TextToVideo", "vendor", "1080p"): 16,
+            ("ImageToVideo", "none", "single", "720p"): 9,
+            ("ImageToVideo", "enable", "single", "720p"): 9,
+            ("ImageToVideo", "vendor", "single", "720p"): 9,
+            ("ImageToVideo", "none", "startend", "720p"): 9,
+            ("ImageToVideo", "enable", "startend", "720p"): 9,
+            ("ImageToVideo", "vendor", "startend", "720p"): 9,
+            ("ImageToVideo", "none", "single", "1080p"): 14,
+            ("ImageToVideo", "enable", "single", "1080p"): 14,
+            ("ImageToVideo", "vendor", "single", "1080p"): 14,
+            ("ImageToVideo", "none", "startend", "1080p"): 14,
+            ("ImageToVideo", "enable", "startend", "1080p"): 14,
+            ("ImageToVideo", "vendor", "startend", "1080p"): 14,
+            ("none", "720p"): 9,
+            ("vendor", "720p"): 11,
+            ("enable", "720p"): 11,
+            ("none", "1080p"): 14,
+            ("vendor", "1080p"): 16,
+            ("enable", "1080p"): 16,
+        },
+    },
+"kling_3_0": {
         "name": "Kling 3.0",
         "model": "kling-v3",
         "vendor": "Kling",
@@ -854,7 +914,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p", "1080p", "4k"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(3, 16)),
         "duration_config": {'type': 'continuous', 'min': 3, 'max': 15, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -889,7 +949,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p", "1080p", "4k"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(3, 16)),
         "duration_config": {'type': 'continuous', 'min': 3, 'max': 15, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -930,7 +990,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": [5, 10],
         "duration_config": {'type': 'discrete', 'options': [5, 10], 'default': 5},
         "action_id": "genvideo_1_sec_kling_2.6pro_{sound}_1080p",
@@ -950,7 +1010,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": [5, 10],
         "duration_config": {'type': 'discrete', 'options': [5, 10], 'default': 5},
         "action_id": "genvideo_1_sec_kling_2.5pro_{sound}_1080p",
@@ -970,7 +1030,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single"],
         "supported_resolutions": ["720p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": [5, 10],
         "duration_config": {'type': 'discrete', 'options': [5, 10], 'default': 5},
         "action_id": "genvideo_1_sec_kling_2.5std_{sound}_720p",
@@ -990,7 +1050,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": [5, 10],
         "duration_config": {'type': 'discrete', 'options': [5, 10], 'default': 5},
         "action_id_i2v": "genvideo_1_sec_kling_custom_o1pro_{sound}_{frame_mode}",
@@ -1007,7 +1067,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["720p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": [5, 10],
         "duration_config": {'type': 'discrete', 'options': [5, 10], 'default': 5},
         "action_id_i2v": "genvideo_1_sec_kling_custom_o1std_{sound}_{frame_mode}",
@@ -1020,7 +1080,26 @@ VIDEO_MODELS_CONFIG = {
     # ==========================================================================
     # VIDU (ShengShu)
     # ==========================================================================
-    "vidu_q3_pro": {
+        "vidu_q4": {
+        "name": "Vidu Q4",
+        "model": "viduq4",
+        "vendor": "Vidu",
+        "promptLength": 5000,
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single"],
+        "supported_resolutions": ["1080p"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+        "supported_durations": list(range(3, 17)),
+        "duration_config": {'type': 'continuous', 'min': 3, 'max': 16, 'step': 1, 'default': 5},
+        "action_id": "genvideo_1_sec_vidu_custom_q4_{sound}_single_1080p",
+        "action_id_i2v": "genvideo_1_sec_vidu_custom_q4_{sound}_single_1080p",
+        "credit_map": {
+            ("none", "1080p"): 6,
+            ("vendor", "1080p"): 6,
+            ("enable", "1080p"): 6,
+        },
+    },
+"vidu_q3_pro": {
         "name": "Vidu Q3 Pro",
         "model": "viduq3-pro",
         "vendor": "Vidu",
@@ -1028,7 +1107,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["540p", "720p", "1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(1, 17)),
         "duration_config": {'type': 'continuous', 'min': 1, 'max': 16, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -1054,7 +1133,7 @@ VIDEO_MODELS_CONFIG = {
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["540p", "720p", "1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(1, 17)),
         "duration_config": {'type': 'continuous', 'min': 1, 'max': 16, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -1184,11 +1263,11 @@ VIDEO_MODELS_CONFIG = {
         "name": "PixVerse V6",
         "model": "v6",
         "vendor": "Pixverse",
-        "promptLength": 2048,
+        "promptLength": 4900,
         "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
         "supported_frame_modes": ["single", "startend"],
         "supported_resolutions": ["540p", "720p", "1080p"],
-        "supported_aspect_ratios": ["16:9", "9:16", "1:1"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
         "supported_durations": list(range(1, 16)),
         "duration_config": {'type': 'continuous', 'min': 1, 'max': 15, 'step': 1, 'default': 5},
         "supported_resolutions_by_mode": {
@@ -1299,6 +1378,88 @@ VIDEO_MODELS_CONFIG = {
             ("vendor", "720p"): 3,
         },
     },
+    # ==========================================================================
+    # HAILUO (MiniMax)
+    # ==========================================================================
+    "minimax_h3": {
+        "name": "MiniMax H3",
+        "model": {
+            "std": "MiniMax-H3",
+            "max": "MiniMax-H3-Max",
+        },
+        "vendor": "Hailuo",
+        "promptLength": 6900,
+        "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["480p", "768p", "2k"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+        "supported_durations": list(range(5, 16)),
+        "duration_config": {'type': 'continuous', 'min': 5, 'max': 15, 'step': 1, 'default': 5},
+        "supported_resolutions_by_mode": {
+            "ImageToVideo": ["480p", "768p", "2k"],
+            "TextToVideo": ["480p", "768p", "2k"],
+            "ReferenceToVideo": ["480p", "768p", "2k"],
+        },
+        "action_id": "genvideo_1_sec_minimax_minimaxh3_{sound}_{resolution}",
+        "action_id_overrides": {
+            "480p": "genvideo_1_sec_minimax_minimaxh3max_{sound}_480p",
+        },
+        "action_id_i2v": "genvideo_1_sec_minimax_custom_minimaxh3_{sound}_{frame_mode}_{resolution}",
+        "action_id_i2v_overrides": {
+            "480p": "genvideo_1_sec_minimax_custom_minimaxh3max_{sound}_{frame_mode}_480p",
+        },
+        "credit_map": {
+            ("none", "480p"): 3,
+            ("vendor", "480p"): 3,
+            ("enable", "480p"): 3,
+            ("none", "768p"): 5,
+            ("vendor", "768p"): 5,
+            ("enable", "768p"): 5,
+            ("none", "2k"): 8,
+            ("vendor", "2k"): 8,
+            ("enable", "2k"): 8,
+        },
+        "reference_media_limit": {
+            "supported_types": ["image", "video"],
+            "max_images": 9,
+            "max_videos": 3,
+            "max_total": 12,
+            "max_video_duration": 15,
+        },
+    },
+
+    # ==========================================================================
+    # BLACKFOREST (Flux)
+    # ==========================================================================
+    "flux_3": {
+        "name": "Flux 3",
+        "model": "flux-3-video",
+        "vendor": "Flux",
+        "promptLength": 7000,
+        "supported_modes": ["TextToVideo", "ImageToVideo"],
+        "supported_frame_modes": ["single", "startend"],
+        "supported_resolutions": ["720p", "1080p", "2k", "4k"],
+        "supported_aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+        "supported_durations": list(range(5, 21)),
+        "duration_config": {'type': 'continuous', 'min': 5, 'max': 20, 'step': 1, 'default': 5},
+        "action_id": "genvideo_1_sec_blackforest_flux3_{sound}_{resolution}",
+        "action_id_i2v": "genvideo_1_sec_blackforest_custom_flux3_{sound}_{frame_mode}_{resolution}",
+        "credit_map": {
+            ("none", "720p"): 9,
+            ("vendor", "720p"): 9,
+            ("enable", "720p"): 9,
+            ("none", "1080p"): 15,
+            ("vendor", "1080p"): 15,
+            ("enable", "1080p"): 15,
+            ("none", "2k"): 20,
+            ("vendor", "2k"): 20,
+            ("enable", "2k"): 20,
+            ("none", "4k"): 35,
+            ("vendor", "4k"): 35,
+            ("enable", "4k"): 35,
+        },
+    },
+
 }
 
 
@@ -1365,6 +1526,17 @@ AVAILABLE_MODELS = {   'image': [   {   'default_resolution': '1K',
                      'supported_resolutions': ['1K', '2K', '4K'],
                      'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
                      'supports_reference_images': True},
+                  {   'default_resolution': '1K',
+                      'default_size': '1:1',
+                      'description': 'Gemini Nano Banana 2.1 by Google - '
+                                     'Supports up to 14 Reference Images',
+                      'id': 'gemini_nanobanana_2_1',
+                      'max_prompt_length': 2500,
+                      'max_reference_images': 14,
+                      'name': 'Nano Banana 2.1 (Google)',
+                      'supported_resolutions': ['1K', '2K', '4K'],
+                      'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                      'supports_reference_images': True},
                  {   'default_resolution': '1K',
                      'default_size': '1:1',
                      'description': 'SeeDream 5.0 Pro by ByteDance - Supports '
@@ -2181,7 +2353,71 @@ AVAILABLE_MODELS = {   'image': [   {   'default_resolution': '1K',
                      'supported_sizes': ['16:9', '9:16'],
                      'supports_end_frame': False,
                      'supports_reference_images': False,
-                     'supports_start_frame': True}]}
+                     'supports_start_frame': True},
+                  {   'default_duration': 5,
+                      'default_resolution': '720p',
+                      'default_size': '16:9',
+                      'description': 'Kling 4.0 by Kling - Supports Start/End Frame',
+                      'id': 'kling_4_0',
+                      'max_prompt_length': 11000,
+                      'max_reference_images': 0,
+                      'name': 'Kling 4.0',
+                      'supported_durations': list(range(3, 31)),
+                      'supported_frame_modes': ['single', 'startend'],
+                      'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                      'supported_resolutions': ['720p', '1080p'],
+                      'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                      'supports_end_frame': True,
+                      'supports_reference_images': False,
+                      'supports_start_frame': True},
+                  {   'default_duration': 5,
+                      'default_resolution': '1080p',
+                      'default_size': '16:9',
+                      'description': 'Vidu Q4 by Vidu - Supports Start Frame',
+                      'id': 'vidu_q4',
+                      'max_prompt_length': 5000,
+                      'max_reference_images': 0,
+                      'name': 'Vidu Q4',
+                      'supported_durations': list(range(3, 17)),
+                      'supported_frame_modes': ['single'],
+                      'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                      'supported_resolutions': ['1080p'],
+                      'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                      'supports_end_frame': False,
+                      'supports_reference_images': False,
+                      'supports_start_frame': True},
+                  {   'default_duration': 5,
+                      'default_resolution': '768p',
+                      'default_size': '16:9',
+                      'description': 'MiniMax H3 by Hailuo - Supports Start/End Frame & up to 12 Reference Media',
+                      'id': 'minimax_h3',
+                      'max_prompt_length': 6900,
+                      'max_reference_images': 9,
+                      'name': 'MiniMax H3',
+                      'supported_durations': list(range(5, 16)),
+                      'supported_frame_modes': ['single', 'startend'],
+                      'supported_modes': ['TextToVideo', 'ImageToVideo', 'ReferenceToVideo'],
+                      'supported_resolutions': ['480p', '768p', '2k'],
+                      'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                      'supports_end_frame': True,
+                      'supports_reference_images': True,
+                      'supports_start_frame': True},
+                  {   'default_duration': 5,
+                      'default_resolution': '720p',
+                      'default_size': '16:9',
+                      'description': 'Flux 3 by Flux - Supports Start/End Frame',
+                      'id': 'flux_3',
+                      'max_prompt_length': 7000,
+                      'max_reference_images': 0,
+                      'name': 'Flux 3',
+                      'supported_durations': list(range(5, 21)),
+                      'supported_frame_modes': ['single', 'startend'],
+                      'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                      'supported_resolutions': ['720p', '1080p', '2k', '4k'],
+                      'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                      'supports_end_frame': True,
+                      'supports_reference_images': False,
+                      'supports_start_frame': True},]}
 
 
 def get_available_models(mode=None):
@@ -2219,10 +2455,10 @@ from bs4 import BeautifulSoup
 # İSTEDİĞİN DOMAİNLERİ BURAYA GİREBİLİRSİN
 # CyberLink ile stabil çalıştığı test edilen domainler listenin başındadır.
 WHITELIST_DOMAINS = [
-    #"umail.asia",
-    #"cmail.asia",
-    #"tempmailt.com",
-    #"t-mail.asia",
+    # "umail.asia",
+    # "cmail.asia",
+    # "tempmailt.com",
+    # "t-mail.asia",
     #"okyre.com",
     #"asia.banglatip.com",
     #"pmail.asia",
@@ -3158,7 +3394,9 @@ def resolve_video_action_and_credit(
     Verilen model, efekt modu, cozunurluk, ses ve frame moduna gore dogru action_id_str ve credit_cost dondurur.
     """
     model_data = VIDEO_MODELS_CONFIG.get(model_key, VIDEO_MODELS_CONFIG["seedance_2_0_fast"])
-    action_id_sound = {"vendor": "enable", "none": "none", "auto": "enable"}.get(sound, sound)
+    action_id_sound = {"vendor": "enable", "none": "none", "auto": "enable", "on": "enable", "off": "none"}.get(str(sound).lower(), sound)
+    if model_key == "kling_4_0" or model_data.get("always_sound_enable"):
+        action_id_sound = "enable"
 
     if effect_mode == "ImageToVideo":
         overrides = model_data.get("action_id_i2v_overrides", {})
@@ -3248,61 +3486,12 @@ def resolve_image_action_and_credit(
         credits_dict = model_data.get("credits", {}).get(mode_key, {})
         unit_credit = credits_dict.get(resolution, 2)
         total_credit = unit_credit * batch_size
-        res_suffix = resolution
-        if "alibaba_qwen" in model_data.get("actionId_prefix", ""):
-            res_suffix = resolution.lower()
-        action_id = f"{model_data.get('actionId_prefix', 'genimage')}_{mode_key}_{res_suffix}"
+        prefix = model_data.get("actionId_prefix", "genimage")
+        res_suffix = resolution.lower() if ("alibaba_qwen" in prefix or "nanobanana2.1" in prefix or "kling_o1" in prefix) else resolution
+        action_id = f"{prefix}_{mode_key}_{res_suffix}"
 
     return feature_id, action_id, unit_credit, total_credit
 
-
-
-
-def resolve_video_action_and_credit(
-    model_key: str,
-    effect_mode: str = "TextToVideo",
-    resolution: str = "720p",
-    sound: str = "none",
-    frame_mode: str = "single"
-):
-    """
-    Verilen model, efekt modu, cozunurluk, ses ve frame moduna gore dogru action_id_str ve credit_cost dondurur.
-    """
-    model_data = VIDEO_MODELS_CONFIG.get(model_key, VIDEO_MODELS_CONFIG["seedance_2_0_fast"])
-    action_id_sound = {"vendor": "enable", "none": "none", "auto": "enable"}.get(sound, sound)
-
-    if effect_mode == "ImageToVideo":
-        overrides = model_data.get("action_id_i2v_overrides", {})
-        if resolution in overrides:
-            action_id_str = overrides[resolution].format(sound=action_id_sound, resolution=resolution, frame_mode=frame_mode)
-        elif "action_id_i2v" in model_data:
-            action_id_str = model_data["action_id_i2v"].format(sound=action_id_sound, resolution=resolution, frame_mode=frame_mode)
-        else:
-            overrides_t2v = model_data.get("action_id_overrides", {})
-            if resolution in overrides_t2v:
-                action_id_str = overrides_t2v[resolution].format(sound=action_id_sound, resolution=resolution)
-            else:
-                action_id_str = model_data["action_id"].format(sound=action_id_sound, resolution=resolution)
-    else:
-        overrides = model_data.get("action_id_overrides", {})
-        if resolution in overrides:
-            action_id_str = overrides[resolution].format(sound=action_id_sound, resolution=resolution)
-        else:
-            action_id_str = model_data["action_id"].format(sound=action_id_sound, resolution=resolution)
-
-    credit_map = model_data.get("credit_map")
-    if credit_map:
-        credit_cost = credit_map.get((effect_mode, sound, frame_mode, resolution))
-        if credit_cost is None:
-            credit_cost = credit_map.get((effect_mode, sound, resolution))
-        if credit_cost is None:
-            credit_cost = credit_map.get((sound, resolution))
-        if credit_cost is None:
-            credit_cost = model_data.get("credit", 3)
-    else:
-        credit_cost = model_data.get("credit", 3)
-
-    return action_id_str, credit_cost
 
 
 
@@ -3662,7 +3851,9 @@ def generate_ai_video_service(
             h_val = 720
             if resolution == "480p": h_val = 480
             elif resolution == "540p": h_val = 540
+            elif resolution == "768p": h_val = 768
             elif resolution == "1080p": h_val = 1080
+            elif resolution == "2k": h_val = 1440
             elif resolution == "4k": h_val = 2160
             
             if ar_w == 16 and ar_h == 9:
@@ -3841,16 +4032,24 @@ def generate_ai_video_service(
             img_w, img_h = get_image_dimensions(prepared_media[0]["path"])
             image_file_size = os.path.getsize(prepared_media[0]["path"])
 
-            if vendor_str in ["Alibaba", "Pixverse", "BytePlus"]:
+            if vendor_str in ["Alibaba", "Pixverse", "BytePlus", "Flux", "Hailuo"]:
                 form_data_apply["width"] = str(img_w)
                 form_data_apply["height"] = str(img_h)
-                if vendor_str == "Alibaba":
+                if vendor_str in ["Alibaba", "Hailuo"]:
                     form_data_apply["aspect_ratio"] = aspect_ratio
                     form_data_apply["resolution"] = resolution.upper()
                     if model_mode:
                         form_data_apply["mode"] = model_mode
+                elif vendor_str == "BytePlus" and "2.5" in str(model_name_str):
+                    form_data_apply["aspect_ratio"] = "adaptive"
+                    form_data_apply["resolution"] = resolution
+                    if model_mode:
+                        form_data_apply["mode"] = model_mode
                 else:
-                    form_data_apply["mode"] = model_mode
+                    form_data_apply["aspect_ratio"] = aspect_ratio
+                    form_data_apply["resolution"] = resolution
+                    if model_mode:
+                        form_data_apply["mode"] = model_mode
                 
                 if end_frame_id is not None:
                     form_data_apply["sources"] = json.dumps([first_frame_id, end_frame_id])
@@ -3902,12 +4101,18 @@ def generate_ai_video_service(
             form_data_apply["video_list"] = json.dumps(video_list_obj, separators=(",", ":"))
             form_data_apply["audio_spec"] = json.dumps({"mode": "native"}, separators=(",", ":"))
             form_data_apply["aspect_ratio"] = aspect_ratio
-            form_data_apply["resolution"] = resolution
+            if vendor_str in ["Alibaba", "Hailuo"]:
+                form_data_apply["resolution"] = resolution.upper()
+            else:
+                form_data_apply["resolution"] = resolution
             if model_mode:
                 form_data_apply["mode"] = model_mode
     else:
         form_data_apply["aspect_ratio"] = aspect_ratio
-        form_data_apply["resolution"] = resolution
+        if vendor_str in ["Alibaba", "Hailuo"]:
+            form_data_apply["resolution"] = resolution.upper()
+        else:
+            form_data_apply["resolution"] = resolution
         if model_mode:
             form_data_apply["mode"] = model_mode
 

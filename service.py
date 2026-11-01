@@ -2452,10 +2452,13 @@ POLL_COMPONENTS = [
 ]
 
 
-def generate_random_username(length: int = 10) -> str:
-    """Belirtilen uzunlukta harf ve rakamlardan oluşan rastgele bir kullanıcı adı üretir."""
+def generate_random_name(length: int = 10) -> str:
+    """Rastgele kullanıcı adı üretir (örn: u_7a8b9c)."""
     chars = string.ascii_lowercase + string.digits
-    return "".join(random.choices(chars, k=length))
+    rand_suffix = "".join(random.choices(chars, k=length))
+    return f"u_{rand_suffix}"
+
+generate_random_username = generate_random_name
 
 
 # ==============================================================================

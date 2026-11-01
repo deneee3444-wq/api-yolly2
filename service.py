@@ -20,7 +20,7 @@ import urllib.parse
 import urllib.request
 from urllib.parse import quote
 import requests
-from typing import Union
+from typing import Union, Optional, List, Dict, Any
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM

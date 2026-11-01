@@ -2474,8 +2474,8 @@ generate_random_username = generate_random_name
 TEMP_MAIL_PROXY_MODE = 1
 
 TEMP_MAIL_PROXY_CONFIG = {
-    "http": "http://nrrbciri-1:5cauzsujeluf@p.webshare.io:80",
-    "https": "http://nrrbciri-1:5cauzsujeluf@p.webshare.io:80",
+    "http": "http://nrrbciri-rotate:5cauzsujeluf@p.webshare.io:80",
+    "https": "http://nrrbciri-rotate:5cauzsujeluf@p.webshare.io:80",
 }
 
 

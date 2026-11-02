@@ -5,7 +5,7 @@ Uses temp-mail.asia temp mail for on-the-fly account registration and verificati
 Saves created accounts directly to the database.
 """
 import os
-import jsonf
+import json
 import time
 import random
 import secrets

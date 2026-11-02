@@ -5,7 +5,7 @@ Uses temp-mail.asia temp mail for on-the-fly account registration and verificati
 Saves created accounts directly to the database.
 """
 import os
-import json
+import jsonf
 import time
 import random
 import secrets
@@ -2463,7 +2463,7 @@ WHITELIST_DOMAINS = [
     # "asia.banglatip.com",
     # "pmail.asia",
     # "1mail.edu.pl",
-    "asia.1maill.com",
+    #"asia.1maill.com",
     "bd.1maill.com",
     "in.1maill.com",
     "bd.5secmail.com",

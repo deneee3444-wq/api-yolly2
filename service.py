@@ -407,28 +407,24 @@ IMAGE_MODELS_CONFIG = {
     },
 }
 
+from bs4 import BeautifulSoup
 
-# Image Model ID Mapping (Frontend / API ID -> Backend Model ID)
-IMAGE_MODEL_MAPPING = {
-    "NANO_BANANA": "gemini_2_5_flash",
-    "NANO_BANANA_2": "gemini_3_1_flash",
-    "NANO_BANANA_PRO": "gemini_3_pro",
-    "GPT_IMAGE_2": "gpt_image_2",
-    # Fallback / case-insensitive aliases
-    "gemini_2_5_flash": "gemini_2_5_flash",
-    "gemini_3_1_flash": "gemini_3_1_flash",
-    "gemini_3_pro": "gemini_3_pro",
-    "gpt_image_2": "gpt_image_2",
-    "nano_banana": "gemini_2_5_flash",
-    "nano_banana_2": "gemini_3_1_flash",
-    "nano_banana_pro": "gemini_3_pro",
-}
+# ==============================================================================
+# HESAP OLUSTURMA VE AKTIFLESTIRME (Poofy Email)
+# ==============================================================================
+WHITELIST_DOMAINS = [
+    "fansubupdate.com",
+]
 
-# Direct mapping in IMAGE_MODELS_CONFIG for safety
-IMAGE_MODELS_CONFIG["NANO_BANANA"] = IMAGE_MODELS_CONFIG["gemini_2_5_flash"]
-IMAGE_MODELS_CONFIG["NANO_BANANA_2"] = IMAGE_MODELS_CONFIG["gemini_3_1_flash"]
-IMAGE_MODELS_CONFIG["NANO_BANANA_PRO"] = IMAGE_MODELS_CONFIG["gemini_3_pro"]
-IMAGE_MODELS_CONFIG["GPT_IMAGE_2"] = IMAGE_MODELS_CONFIG["gpt_image_2"]
+POLL_COMPONENTS = [
+    "frontend.components.action",
+    "frontend.components.token-login",
+    "frontend.components.check-mail",
+    "frontend.components.inbox-message",
+]
+
+
+
 
 VIDEO_MODELS_CONFIG = {
     # ==========================================================================
@@ -1453,182 +1449,968 @@ VIDEO_MODELS_CONFIG = {
 }
 
 
-# Video Model ID Mapping (Frontend / API ID -> Backend Model ID)
-VIDEO_MODEL_MAPPING = {}
+# ==============================================================================
+# IMAGE MODELS CONFIGURATION (GERCEK RESIM MODELLERI - FRONTEND VE API KAYNAKLI)
+# ==============================================================================
 
 
 MODELS = {} # Compatibility mapping
 
-AVAILABLE_MODELS = {
-    "image": [
-        {
-            "id": "NANO_BANANA",
-            "name": "Nano Banana",
-            "description": "Nano Banana by Google - Supports up to 3 Reference Images",
-            "credit": 5,
-            "supports_reference_images": True,
-            "max_reference_images": 3,
-            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
-            "supported_resolutions": ["1K"],
-            "default_size": "1:1",
-            "default_resolution": "1K",
-            "max_prompt_length": 2500
-        },
-        {
-            "id": "NANO_BANANA_2",
-            "name": "Nano Banana 2",
-            "description": "Nano Banana 2 by Google - Supports up to 5 Reference Images",
-            "credit": 5,
-            "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
-            "supported_resolutions": ["1K", "2K", "4K"],
-            "default_size": "1:1",
-            "default_resolution": "1K",
-            "max_prompt_length": 2500
-        },
-        {
-            "id": "NANO_BANANA_PRO",
-            "name": "Nano Banana Pro",
-            "description": "Nano Banana Pro by Google - Supports up to 5 Reference Images",
-            "credit": 5,
-            "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
-            "supported_resolutions": ["1K", "2K", "4K"],
-            "default_size": "1:1",
-            "default_resolution": "1K",
-            "max_prompt_length": 2500
-        },
-        {
-            "id": "GPT_IMAGE_2",
-            "name": "GPT-Image-2",
-            "description": "GPT-Image-2 by OpenAI - Supports up to 5 Reference Images",
-            "credit": 5,
-            "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_sizes": ["1:1", "16:9", "9:16", "4:3", "3:4"],
-            "supported_resolutions": ["1K", "2K"],
-            "default_size": "1:1",
-            "default_resolution": "1K",
-            "max_prompt_length": 8000
-        }
-    ],
-    "video": [
-        {
-            "id": "seedance_2_5",
-            "name": "Seedance 2.5",
-            "description": "Seedance 2.5 by BytePlus - MAX: 1080p:11sn, 720p:23sn, 480p:30sn",
-            "credit": 10,
-            "supports_start_frame": True,
-            "supports_end_frame": True,
-            "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
-            "supported_frame_modes": ["single", "startend"],
-            "supported_sizes": ["16:9", "9:16", "1:1"],
-            "supported_durations_by_resolution": {
-                "1080p": list(range(4, 12)),
-                "720p": list(range(4, 24)),
-                "480p": list(range(4, 31)),
-            },
-            "supported_durations": list(range(4, 31)),
-            "supported_resolutions": ["480p", "720p", "1080p"],
-            "supported_resolutions_by_mode": {
-                "ImageToVideo": ["480p", "720p", "1080p"],
-                "TextToVideo": ["480p", "720p", "1080p"],
-                "ReferenceToVideo": ["480p", "720p", "1080p"],
-            },
-            "constraints": [
-                {"if": {"resolution": "1080p"}, "then": {"duration": list(range(4, 12))}},
-                {"if": {"resolution": "720p"}, "then": {"duration": list(range(4, 24))}},
-                {"if": {"resolution": "480p"}, "then": {"duration": list(range(4, 31))}},
-            ],
-            "default_size": "16:9",
-            "default_resolution": "720p",
-            "default_duration": 5,
-            "duration_config": {'type': 'continuous', 'min': 4, 'max': 30, 'step': 1, 'default': 5},
-            "duration_config_by_resolution": {
-                "1080p": {'type': 'continuous', 'min': 4, 'max': 11, 'step': 1, 'default': 5},
-                "720p": {'type': 'continuous', 'min': 4, 'max': 23, 'step': 1, 'default': 5},
-                "480p": {'type': 'continuous', 'min': 4, 'max': 30, 'step': 1, 'default': 5},
-            },
-            "max_prompt_length": 20000
-        },
-        {
-            "id": "wan_3_0",
-            "name": "Wan 3.0",
-            "description": "Wan 3.0 by Alibaba - Supports TextToVideo, ImageToVideo, ReferenceToVideo",
-            "credit": 10,
-            "supports_start_frame": True,
-            "supports_end_frame": True,
-            "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
-            "supported_frame_modes": ["single", "startend"],
-            "supported_sizes": ["16:9", "9:16", "1:1"],
-            "supported_durations": list(range(2, 31)),
-            "supported_resolutions": ["480p", "720p", "1080p"],
-            "supported_resolutions_by_mode": {
-                "ImageToVideo": ["1080p"],
-                "TextToVideo": ["480p", "720p", "1080p"],
-                "ReferenceToVideo": ["480p", "720p", "1080p"],
-            },
-            "default_size": "16:9",
-            "default_resolution": "720p",
-            "default_duration": 5,
-            "max_prompt_length": 20000
-        },
-        {
-            "id": "gemini_omni_flash",
-            "name": "Gemini Omni 1.1 Flash",
-            "description": "Gemini Omni 1.1 Flash by Google - Supports TextToVideo, ImageToVideo, ReferenceToVideo",
-            "credit": 10,
-            "supports_start_frame": True,
-            "supports_end_frame": True,
-            "supports_reference_images": True,
-            "max_reference_images": 5,
-            "supported_modes": ["TextToVideo", "ImageToVideo", "ReferenceToVideo"],
-            "supported_frame_modes": ["single", "startend"],
-            "supported_sizes": ["16:9", "9:16"],
-            "supported_durations": list(range(3, 11)),
-            "supported_resolutions": ["360p", "720p", "1080p", "4k"],
-            "default_size": "16:9",
-            "default_resolution": "720p",
-            "default_duration": 5,
-            "max_prompt_length": 3500
-        },
-        {
-            "id": "veo_3_1_fast",
-            "name": "Veo 3.1 Fast",
-            "description": "Veo 3.1 Fast by Google - Supports TextToVideo, ImageToVideo",
-            "credit": 10,
-            "supports_start_frame": True,
-            "supports_end_frame": True,
-            "supports_reference_images": False,
-            "max_reference_images": 0,
-            "supported_modes": ["TextToVideo", "ImageToVideo"],
-            "supported_frame_modes": ["single", "startend"],
-            "supported_sizes": ["16:9", "9:16"],
-            "supported_durations": [4, 6, 8],
-            "supported_resolutions": ["720p", "1080p", "4k"],
-            "default_size": "16:9",
-            "default_resolution": "720p",
-            "default_duration": 4,
-            "max_prompt_length": 4000
-        }
-    ],
-    "tts": [],
-    "music": []
-}
+AVAILABLE_MODELS = {   'image': [   {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'GPT Image 2.5 Sunburst by OpenAI - '
+                                    'Supports up to 16 Reference Images',
+                     'id': 'gpt_image_2_5_sunburst',
+                     'max_prompt_length': 8000,
+                     'max_reference_images': 16,
+                     'name': 'GPT Image 2.5 Sunburst',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'GPT-Image-2.5 Flare by OpenAI - Supports '
+                                    'up to 16 Reference Images',
+                     'id': 'gpt_image_2_5_flare',
+                     'max_prompt_length': 8000,
+                     'max_reference_images': 16,
+                     'name': 'GPT-Image-2.5 Flare',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'GPT-Image-2 by OpenAI - Supports up to 16 '
+                                    'Reference Images',
+                     'id': 'gpt_image_2',
+                     'max_prompt_length': 8000,
+                     'max_reference_images': 16,
+                     'name': 'GPT-Image-2',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Gemini 3 Pro (Nano Banana Pro) by Google '
+                                    '- Supports up to 14 Reference Images',
+                     'id': 'gemini_3_pro',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 14,
+                     'name': 'Gemini 3 Pro (Nano Banana Pro)',
+                     'supported_resolutions': ['1K', '2K', '4K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Gemini 3.1 Flash (Nano Banana 2) by '
+                                    'Google - Supports up to 14 Reference '
+                                    'Images',
+                     'id': 'gemini_3_1_flash',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 14,
+                     'name': 'Gemini 3.1 Flash (Nano Banana 2)',
+                     'supported_resolutions': ['1K', '2K', '4K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                  {   'default_resolution': '1K',
+                      'default_size': '1:1',
+                      'description': 'Gemini Nano Banana 2.1 by Google - '
+                                     'Supports up to 14 Reference Images',
+                      'id': 'gemini_nanobanana_2_1',
+                      'max_prompt_length': 2500,
+                      'max_reference_images': 14,
+                      'name': 'Nano Banana 2.1',
+                      'supported_resolutions': ['1K', '2K', '4K'],
+                      'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                      'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'SeeDream 5.0 Pro by ByteDance - Supports '
+                                    'up to 10 Reference Images',
+                     'id': 'seedream_5_pro',
+                     'max_prompt_length': 600,
+                     'max_reference_images': 10,
+                     'name': 'SeeDream 5.0 Pro',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Flux 2 Pro by BlackForest - Supports up '
+                                    'to 4 Reference Images',
+                     'id': 'flux_2_pro',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 4,
+                     'name': 'Flux 2 Pro',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Qwen Image 3.0 Pro by Alibaba - Supports up to 3 Reference Images',
+                     'id': 'qwen_image_3_pro',
+                     'max_prompt_length': 4500,
+                     'max_reference_images': 3,
+                     'name': 'Qwen Image 3.0 Pro',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Qwen Image 3.0 by Alibaba - Supports up to 3 Reference Images',
+                     'id': 'qwen_image_3',
+                     'max_prompt_length': 4500,
+                     'max_reference_images': 3,
+                     'name': 'Qwen Image 3.0',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Gemini 3.1 Flash Lite (Nano Banana 2 '
+                                    'Lite) by Google - Supports up to 14 '
+                                    'Reference Images',
+                     'id': 'gemini_3_1_flash_lite',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 14,
+                     'name': 'Gemini 3.1 Flash Lite (Nano Banana 2 Lite)',
+                     'supported_resolutions': ['1K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Gemini 2.5 Flash (Nano Banana) by Google '
+                                    '- Supports up to 3 Reference Images',
+                     'id': 'gemini_2_5_flash',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 3,
+                     'name': 'Gemini 2.5 Flash (Nano Banana)',
+                     'supported_resolutions': ['1K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '2K',
+                     'default_size': '1:1',
+                     'description': 'SeeDream 5.0 Lite by ByteDance - Supports '
+                                    'up to 14 Reference Images',
+                     'id': 'seedream_5_lite',
+                     'max_prompt_length': 600,
+                     'max_reference_images': 14,
+                     'name': 'SeeDream 5.0 Lite',
+                     'supported_resolutions': ['2K', '3K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'GPT-Image-1.5 by OpenAI - Supports up to '
+                                    '16 Reference Images',
+                     'id': 'gpt_image_1_5',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 16,
+                     'name': 'GPT-Image-1.5',
+                     'supported_resolutions': ['1K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'GPT-Image-1 by OpenAI - Supports up to 16 '
+                                    'Reference Images',
+                     'id': 'gpt_image_1',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 16,
+                     'name': 'GPT-Image-1',
+                     'supported_resolutions': ['1K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Z-Image by CyberLink',
+                     'id': 'z_image',
+                     'max_prompt_length': 800,
+                     'max_reference_images': 0,
+                     'name': 'Z-Image',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': False},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Kling O3 by Kling - Supports up to 10 '
+                                    'Reference Images',
+                     'id': 'kling_o3',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 10,
+                     'name': 'Kling O3',
+                     'supported_resolutions': ['1K', '2K', '4K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Kling O1 by Kling - Supports up to 10 '
+                                    'Reference Images',
+                     'id': 'kling_o1',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 10,
+                     'name': 'Kling O1',
+                     'supported_resolutions': ['1K', '2K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Flux Dev 1 by CyberLink',
+                     'id': 'flux_dev',
+                     'max_prompt_length': 800,
+                     'max_reference_images': 0,
+                     'name': 'Flux Dev 1',
+                     'supported_resolutions': ['1K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': False},
+                 {   'default_resolution': '1K',
+                     'default_size': '1:1',
+                     'description': 'Stable Diffusion XL by CyberLink - '
+                                    'Supports up to 1 Reference Images',
+                     'id': 'stable_diffusion',
+                     'max_prompt_length': 800,
+                     'max_reference_images': 1,
+                     'name': 'Stable Diffusion XL',
+                     'supported_resolutions': ['1K'],
+                     'supported_sizes': ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                     'supports_reference_images': True}],
+    'music': [],
+    'tts': [],
+    'video': [   {   'default_duration': 5,
+                     'default_resolution': '480p',
+                     'default_size': '16:9',
+                     'description': 'Seedance 2.0 Fast by BytePlus - Supports Start/End Frame & up to 9 Images & 3 Videos Reference',
+                     'id': 'seedance_2_0_fast',
+                     'max_prompt_length': 20000,
+                     'max_reference_images': 9,
+                     'name': 'Seedance 2.0 Fast',
+                     'supported_durations': [   4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['480p', '720p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '480p',
+                     'default_size': '16:9',
+                     'description': 'Seedance 2.0 Mini by BytePlus - Supports Start/End Frame & up to 9 Images & 3 Videos Reference',
+                     'id': 'seedance_2_0_mini',
+                     'max_prompt_length': 20000,
+                     'max_reference_images': 9,
+                     'name': 'Seedance 2.0 Mini',
+                     'supported_durations': [   4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['480p', '720p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '480p',
+                     'default_size': '16:9',
+                     'description': 'Seedance 2.0 Pro by BytePlus - Supports Start/End Frame & up to 9 Images & 3 Videos Reference',
+                     'id': 'seedance_2_0_pro',
+                     'max_prompt_length': 20000,
+                     'max_reference_images': 9,
+                     'name': 'Seedance 2.0 Pro',
+                     'supported_durations': [   4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['480p', '720p', '1080p', '4K'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '480p',
+                     'default_size': '16:9',
+                     'description': 'Seedance 2.5 by BytePlus - Supports Start/End Frame & up to 20 Images & 10 Videos Reference',
+                     'id': 'seedance_2_5',
+                     'max_prompt_length': 20000,
+                     'max_reference_images': 20,
+                     'name': 'Seedance 2.5',
+                     'supported_durations': [   4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15,
+                                                16,
+                                                17,
+                                                18,
+                                                19,
+                                                20,
+                                                21,
+                                                22,
+                                                23,
+                                                24,
+                                                25,
+                                                26,
+                                                27,
+                                                28,
+                                                29,
+                                                30],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['480p', '720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Happy Horse 1.1 by Alibaba - Supports Start Frame & up to 9 Reference Images',
+                     'id': 'happy_horse_1_1',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 9,
+                     'name': 'Happy Horse 1.1',
+                     'supported_durations': [   3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15],
+                     'supported_frame_modes': ['single'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': False,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Happy Horse 1.0 by Alibaba - Supports Start Frame & up to 9 Reference Images',
+                     'id': 'happy_horse_1_0',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 9,
+                     'name': 'Happy Horse 1.0',
+                     'supported_durations': [   3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15],
+                     'supported_frame_modes': ['single'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': False,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Wan 2.7 by Alibaba - Supports Start/End Frame & up to 5 Images & 5 Videos Reference',
+                     'id': 'wan_2_7',
+                     'max_prompt_length': 5000,
+                     'max_reference_images': 5,
+                     'name': 'Wan 2.7',
+                     'supported_durations': [   2,
+                                                3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '480p',
+                     'default_size': '16:9',
+                     'description': 'Wan 3.0 by Alibaba - Supports Start/End Frame & up to 10 Images & 5 Videos Reference',
+                     'id': 'wan_3_0',
+                     'max_prompt_length': 20000,
+                     'max_reference_images': 10,
+                     'name': 'Wan 3.0',
+                     'supported_durations': [   2,
+                                                3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15,
+                                                16,
+                                                17,
+                                                18,
+                                                19,
+                                                20,
+                                                21,
+                                                22,
+                                                23,
+                                                24,
+                                                25,
+                                                26,
+                                                27,
+                                                28,
+                                                29,
+                                                30],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['480p', '720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 4,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Veo 3.1 by Google - Supports Start/End Frame',
+                     'id': 'veo_3_1',
+                     'max_prompt_length': 4000,
+                     'max_reference_images': 0,
+                     'name': 'Veo 3.1',
+                     'supported_durations': [4, 6, 8],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['720p', '1080p', '4k'],
+                     'supported_sizes': ['16:9', '9:16'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 4,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Veo 3.1 Fast by Google - Supports Start/End Frame',
+                     'id': 'veo_3_1_fast',
+                     'max_prompt_length': 4000,
+                     'max_reference_images': 0,
+                     'name': 'Veo 3.1 Fast',
+                     'supported_durations': [4, 6, 8],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['720p', '1080p', '4k'],
+                     'supported_sizes': ['16:9', '9:16'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 4,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Veo 3.1 Lite by Google - Supports Start/End Frame',
+                     'id': 'veo_3_1_lite',
+                     'max_prompt_length': 4000,
+                     'max_reference_images': 0,
+                     'name': 'Veo 3.1 Lite',
+                     'supported_durations': [4, 6, 8],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '360p',
+                     'default_size': '16:9',
+                     'description': 'Gemini Omni 1.1 Flash by Google - Supports Start/End Frame & up to 5 Reference Images',
+                     'id': 'gemini_omni_flash',
+                     'max_prompt_length': 3500,
+                     'max_reference_images': 5,
+                     'name': 'Gemini Omni 1.1 Flash',
+                     'supported_durations': [3, 4, 5, 6, 7, 8, 9, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['360p', '720p', '1080p', '4k'],
+                     'supported_sizes': ['16:9', '9:16'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Kling 3.0 by Kling - Supports Start/End Frame',
+                     'id': 'kling_3_0',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 0,
+                     'name': 'Kling 3.0',
+                     'supported_durations': [   3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['720p', '1080p', '4k'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Kling O3 by Kling - Supports Start/End Frame & up to 7 Reference Images',
+                     'id': 'kling_o3',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 7,
+                     'name': 'Kling O3',
+                     'supported_durations': [   3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['720p', '1080p', '4k'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '1080p',
+                     'default_size': '16:9',
+                     'description': 'Kling 2.6 by Kling - Supports Start/End Frame',
+                     'id': 'kling_2_6',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 0,
+                     'name': 'Kling 2.6',
+                     'supported_durations': [5, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '1080p',
+                     'default_size': '16:9',
+                     'description': 'Kling 2.5 Pro by Kling - Supports Start/End Frame',
+                     'id': 'kling_2_5_pro',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 0,
+                     'name': 'Kling 2.5 Pro',
+                     'supported_durations': [5, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Kling 2.5 Standard by Kling - Supports Start Frame',
+                     'id': 'kling_2_5_std',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 0,
+                     'name': 'Kling 2.5 Standard',
+                     'supported_durations': [5, 10],
+                     'supported_frame_modes': ['single'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['720p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': False,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '1080p',
+                     'default_size': '16:9',
+                     'description': 'Kling O1 Pro by Kling - Supports Start/End Frame',
+                     'id': 'kling_o1_pro',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 0,
+                     'name': 'Kling O1 Pro',
+                     'supported_durations': [5, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['ImageToVideo'],
+                     'supported_resolutions': ['1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Kling O1 Standard by Kling - Supports Start/End Frame',
+                     'id': 'kling_o1_std',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 0,
+                     'name': 'Kling O1 Standard',
+                     'supported_durations': [5, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['ImageToVideo'],
+                     'supported_resolutions': ['720p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '540p',
+                     'default_size': '16:9',
+                     'description': 'Vidu Q3 Pro by Vidu - Supports Start/End Frame',
+                     'id': 'vidu_q3_pro',
+                     'max_prompt_length': 2000,
+                     'max_reference_images': 0,
+                     'name': 'Vidu Q3 Pro',
+                     'supported_durations': [   1,
+                                                2,
+                                                3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15,
+                                                16],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['540p', '720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '540p',
+                     'default_size': '16:9',
+                     'description': 'Vidu Q3 Turbo by Vidu - Supports Start/End Frame & up to 7 Reference Images',
+                     'id': 'vidu_q3_turbo',
+                     'max_prompt_length': 2000,
+                     'max_reference_images': 7,
+                     'name': 'Vidu Q3 Turbo',
+                     'supported_durations': [   1,
+                                                2,
+                                                3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15,
+                                                16],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['540p', '720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '1080p',
+                     'default_size': '16:9',
+                     'description': 'Vidu Q2 Pro by Vidu - Supports Start/End Frame',
+                     'id': 'vidu_q2_pro',
+                     'max_prompt_length': 2000,
+                     'max_reference_images': 0,
+                     'name': 'Vidu Q2 Pro',
+                     'supported_durations': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Vidu Q2 Turbo by Vidu - Supports Start/End Frame',
+                     'id': 'vidu_q2_turbo',
+                     'max_prompt_length': 2000,
+                     'max_reference_images': 0,
+                     'name': 'Vidu Q2 Turbo',
+                     'supported_durations': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['540p', '720p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '540p',
+                     'default_size': '16:9',
+                     'description': 'Vidu Q2 by Vidu - Supports Start/End Frame',
+                     'id': 'vidu_q2',
+                     'max_prompt_length': 2000,
+                     'max_reference_images': 0,
+                     'name': 'Vidu Q2',
+                     'supported_durations': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['540p', '720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '540p',
+                     'default_size': '16:9',
+                     'description': 'PixVerse V6 by Pixverse - Supports Start/End Frame & up to 7 Reference Images',
+                     'id': 'pixverse_v6',
+                     'max_prompt_length': 2048,
+                     'max_reference_images': 7,
+                     'name': 'PixVerse V6',
+                     'supported_durations': [   1,
+                                                2,
+                                                3,
+                                                4,
+                                                5,
+                                                6,
+                                                7,
+                                                8,
+                                                9,
+                                                10,
+                                                11,
+                                                12,
+                                                13,
+                                                14,
+                                                15],
+                     'supported_frame_modes': ['single', 'startend'],
+                     'supported_modes': [   'TextToVideo',
+                                            'ImageToVideo',
+                                            'ReferenceToVideo'],
+                     'supported_resolutions': ['540p', '720p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16', '1:1'],
+                     'supports_end_frame': True,
+                     'supports_reference_images': True,
+                     'supports_start_frame': True},
+                 {   'default_duration': 4,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Sora 2 Pro by OpenAI - Supports Start Frame',
+                     'id': 'sora_2_pro',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 0,
+                     'name': 'Sora 2 Pro',
+                     'supported_durations': [4, 8, 12],
+                     'supported_frame_modes': ['single'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['720p', '1024p', '1080p'],
+                     'supported_sizes': ['16:9', '9:16'],
+                     'supports_end_frame': False,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 4,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Sora 2 Standard by OpenAI - Supports Start Frame',
+                     'id': 'sora_2_std',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 0,
+                     'name': 'Sora 2 Standard',
+                     'supported_durations': [4, 8, 12],
+                     'supported_frame_modes': ['single'],
+                     'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                     'supported_resolutions': ['720p'],
+                     'supported_sizes': ['16:9', '9:16'],
+                     'supports_end_frame': False,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                 {   'default_duration': 5,
+                     'default_resolution': '720p',
+                     'default_size': '16:9',
+                     'description': 'Runway Gen4 by Runway - Supports Start Frame',
+                     'id': 'runway_gen4_turbo',
+                     'max_prompt_length': 2500,
+                     'max_reference_images': 0,
+                     'name': 'Runway Gen4',
+                     'supported_durations': [5, 10],
+                     'supported_frame_modes': ['single'],
+                     'supported_modes': ['ImageToVideo'],
+                     'supported_resolutions': ['720p'],
+                     'supported_sizes': ['16:9', '9:16'],
+                     'supports_end_frame': False,
+                     'supports_reference_images': False,
+                     'supports_start_frame': True},
+                  {   'default_duration': 5,
+                      'default_resolution': '720p',
+                      'default_size': '16:9',
+                      'description': 'Kling 4.0 by Kling - Supports Start/End Frame',
+                      'id': 'kling_4_0',
+                      'max_prompt_length': 11000,
+                      'max_reference_images': 0,
+                      'name': 'Kling 4.0',
+                      'supported_durations': list(range(3, 31)),
+                      'supported_frame_modes': ['single', 'startend'],
+                      'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                      'supported_resolutions': ['720p', '1080p'],
+                      'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                      'supports_end_frame': True,
+                      'supports_reference_images': False,
+                      'supports_start_frame': True},
+                  {   'default_duration': 5,
+                      'default_resolution': '1080p',
+                      'default_size': '16:9',
+                      'description': 'Vidu Q4 by Vidu - Supports Start Frame',
+                      'id': 'vidu_q4',
+                      'max_prompt_length': 5000,
+                      'max_reference_images': 0,
+                      'name': 'Vidu Q4',
+                      'supported_durations': list(range(3, 17)),
+                      'supported_frame_modes': ['single'],
+                      'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                      'supported_resolutions': ['1080p'],
+                      'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                      'supports_end_frame': False,
+                      'supports_reference_images': False,
+                      'supports_start_frame': True},
+                  {   'default_duration': 5,
+                      'default_resolution': '768p',
+                      'default_size': '16:9',
+                      'description': 'MiniMax H3 by Hailuo - Supports Start/End Frame & up to 12 Reference Media',
+                      'id': 'minimax_h3',
+                      'max_prompt_length': 6900,
+                      'max_reference_images': 9,
+                      'name': 'MiniMax H3',
+                      'supported_durations': list(range(5, 16)),
+                      'supported_frame_modes': ['single', 'startend'],
+                      'supported_modes': ['TextToVideo', 'ImageToVideo', 'ReferenceToVideo'],
+                      'supported_resolutions': ['480p', '768p', '2k'],
+                      'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                      'supports_end_frame': True,
+                      'supports_reference_images': True,
+                      'supports_start_frame': True},
+                  {   'default_duration': 5,
+                      'default_resolution': '720p',
+                      'default_size': '16:9',
+                      'description': 'Flux 3 by Flux - Supports Start/End Frame',
+                      'id': 'flux_3',
+                      'max_prompt_length': 7000,
+                      'max_reference_images': 0,
+                      'name': 'Flux 3',
+                      'supported_durations': list(range(5, 21)),
+                      'supported_frame_modes': ['single', 'startend'],
+                      'supported_modes': ['TextToVideo', 'ImageToVideo'],
+                      'supported_resolutions': ['720p', '1080p', '2k', '4k'],
+                      'supported_sizes': ['16:9', '9:16', '1:1', '4:3', '3:4'],
+                      'supports_end_frame': True,
+                      'supports_reference_images': False,
+                      'supports_start_frame': True},]}
 
 
 def get_available_models(mode=None):
     import copy
     models = copy.deepcopy(AVAILABLE_MODELS)
     for model in models.get('video', []):
-        actual_model_id = VIDEO_MODEL_MAPPING.get(model['id'], model['id'])
-        config = VIDEO_MODELS_CONFIG.get(actual_model_id, {})
+        config = VIDEO_MODELS_CONFIG.get(model['id'], {})
         if 'supported_modes' in config:
             model['supported_modes'] = config['supported_modes']
         if 'promptLength' in config:
@@ -1646,35 +2428,9 @@ def get_available_models(mode=None):
             model['supported_resolutions_by_mode'] = by_mode_res
         if by_mode_dur:
             model['supported_durations_by_mode'] = by_mode_dur
-
-        # Pass through duration_config and per-resolution duration constraints
-        if 'duration_config' in config and 'duration_config' not in model:
-            model['duration_config'] = config['duration_config']
-        if 'duration_config_by_resolution' in config and 'duration_config_by_resolution' not in model:
-            model['duration_config_by_resolution'] = config['duration_config_by_resolution']
-        if 'supported_durations_by_resolution' not in model:
-            # Build from duration_config_by_resolution if available
-            dcbr = config.get('duration_config_by_resolution')
-            if dcbr:
-                model['supported_durations_by_resolution'] = {
-                    res: list(range(dc['min'], dc['max'] + 1, dc.get('step', 1)))
-                    for res, dc in dcbr.items() if dc.get('type') == 'continuous'
-                }
     if mode:
         return models.get(mode, [])
     return models
-
-def make_proxy_url(raw_url):
-    """
-    Doğrudan ham medya URL'sini döner (proxy sarmalamasını devre dışı bırakır).
-    """
-    if not raw_url or not isinstance(raw_url, str):
-        return raw_url
-    if raw_url.startswith("/api/proxy?url="):
-        import urllib.parse
-        return urllib.parse.unquote(raw_url.split("/api/proxy?url=", 1)[1])
-    return raw_url
-
 
 from bs4 import BeautifulSoup
 
@@ -2159,7 +2915,6 @@ def signup(email: str, password: str, lang: str = "enu", country: str = "US"):
     }
     payload, aes_key = create_member_auth_payload(user_data)
     res = requests.post(SIGNUP_URL, json=payload, headers=MEMBER_HEADERS, timeout=30)
-    print(f"[DEBUG SIGNUP] HTTP {res.status_code} | Yanit: {repr(res.text[:500])}")
     res.raise_for_status()
     body = res.json()
     if body.get("status") == "SUCCESS" and "info" in body:
@@ -2323,7 +3078,7 @@ def collect_all_bonuses(member_token: str):
     except Exception as e:
         print(f"  [!] Gunluk bonus toplama hatasi: {e}")
         
-    # 2. Aktif Gorev Bonuslari (Toplam 331 Kredi + 3 Gunluk = 334 Kredi)
+    # 2. Aktif Gorev Bonuslari (Toplam 308 Kredi + 3 Gunluk = 311 Kredi)
     active_tasks = [
         "TextToImage",          # 14 Kredi
         "AICollage",            # 3 Kredi
@@ -2434,10 +3189,6 @@ def get_subscription_token(member_token: str) -> str:
         "timestamp": ts_ms,
     }
     resp = requests.post(SUB_AUTH_URL, json=body, headers=headers, timeout=30)
-    if resp.status_code == 401:
-        raise AuthExpiredError(f"Auth token expired on subscriptions/auth: {resp.text}")
-    if resp.status_code == 403:
-        raise CreditExhaustedError(f"Subscription auth forbidden/exhausted: {resp.text}")
     resp.raise_for_status()
     return resp.json()["subscription_token"]
 
@@ -2707,7 +3458,7 @@ def generate_ai_image_service(
     member_token: str,
     user_prompt: str = "a majestic fantasy landscape, digital art, highly detailed 8k",
     image_paths: list = None,
-    model_key: str = "NANO_BANANA",
+    model_key: str = "flux_2_pro",
     style_id: str = None,
     aspect_ratio: str = "1:1",
     resolution: str = "1K",
@@ -2716,7 +3467,6 @@ def generate_ai_image_service(
     filename_prefix: str = "",
     task_id: str = None,
 ):
-    model_key = IMAGE_MODEL_MAPPING.get(model_key, model_key)
     if model_key not in IMAGE_MODELS_CONFIG:
         raise ValueError(f"Unsupported model: {model_key}")
 
@@ -2853,7 +3603,7 @@ def generate_ai_image_service(
             uploaded_sources_list.append(idx + 1)
 
         if task_id and uploaded_reference_urls:
-            db.update_task_reference_urls(task_id, [make_proxy_url(u) for u in uploaded_reference_urls])
+            db.update_task_reference_urls(task_id, uploaded_reference_urls)
 
     sources_str = json.dumps(uploaded_sources_list)
 
@@ -2913,7 +3663,7 @@ def generate_ai_image_service(
             "effect": "TextToImage",
         }
 
-        if "flux" not in model_key:
+        if model_key != "flux_dev":
             form_data_apply["resolution"] = resolution
         if has_reference:
             form_data_apply["sources"] = sources_str
@@ -2930,6 +3680,8 @@ def generate_ai_image_service(
         raise CreditExhaustedError(f"Credit verification failed: {resp_apply.text}")
     if resp_apply.status_code == 401:
         raise AuthExpiredError(f"Auth token expired: {resp_apply.text}")
+    if resp_apply.status_code != 200:
+        print(f"  [!] PATCH basarisiz (HTTP {resp_apply.status_code}): {resp_apply.text}")
     resp_apply.raise_for_status()
 
     apply_json = resp_apply.json()
@@ -2986,13 +3738,14 @@ def generate_ai_image_service(
     return {"status": "Timeout", "reference_urls": uploaded_reference_urls}
 
 
+
 def generate_ai_video_service(
     member_token: str,
     user_prompt: str = "a cute astronaut cat floating in space station, cinematic lighting",
-    model_key: str = "sora_2_std",
+    model_key: str = "seedance_2_0_fast",
     aspect_ratio: str = "16:9",
-    resolution: str = "720p",
-    processing_duration: int = 8,
+    resolution: str = "480p",
+    processing_duration: int = 5,
     sound: str = "none",
     effect_mode: str = "TextToVideo",
     source_image_path: str = None,
@@ -3003,8 +3756,7 @@ def generate_ai_video_service(
     filename_prefix: str = "",
     task_id: str = None,
 ):
-    actual_model_key = VIDEO_MODEL_MAPPING.get(model_key, model_key)
-    model_data = VIDEO_MODELS_CONFIG.get(actual_model_key, VIDEO_MODELS_CONFIG.get("sora_2_std"))
+    model_data = VIDEO_MODELS_CONFIG.get(model_key, VIDEO_MODELS_CONFIG["seedance_2_0_fast"])
     if isinstance(model_data["model"], dict):
         model_name_str = model_data["model"].get(effect_mode, list(model_data["model"].values())[0])
     else:
@@ -3110,7 +3862,7 @@ def generate_ai_video_service(
                     pass
 
     action_id_str, credit_cost = resolve_video_action_and_credit(
-        model_key=actual_model_key,
+        model_key=model_key,
         effect_mode=effect_mode,
         resolution=resolution,
         sound=sound,
@@ -3194,7 +3946,7 @@ def generate_ai_video_service(
                 resp_upload = requests.put(upload_url, data=file_data, headers={'Content-Type': content_type})
 
         if task_id and uploaded_reference_urls:
-            db.update_task_reference_urls(task_id, [make_proxy_url(u) for u in uploaded_reference_urls])
+            db.update_task_reference_urls(task_id, uploaded_reference_urls)
 
     req_ts_ms = int(time.time() * 1000)
     enc_token_hex = encrypt_myedit_aes_gcm_hex(aes_key, raw_session_token, req_ts_ms, s_id_int)
@@ -3253,7 +4005,10 @@ def generate_ai_video_service(
                     if model_mode:
                         form_data_apply["mode"] = model_mode
                 else:
-                    form_data_apply["mode"] = model_mode
+                    form_data_apply["aspect_ratio"] = aspect_ratio
+                    form_data_apply["resolution"] = resolution
+                    if model_mode:
+                        form_data_apply["mode"] = model_mode
                 
                 if end_frame_id is not None:
                     form_data_apply["sources"] = json.dumps([first_frame_id, end_frame_id])
@@ -3305,12 +4060,18 @@ def generate_ai_video_service(
             form_data_apply["video_list"] = json.dumps(video_list_obj, separators=(",", ":"))
             form_data_apply["audio_spec"] = json.dumps({"mode": "native"}, separators=(",", ":"))
             form_data_apply["aspect_ratio"] = aspect_ratio
-            form_data_apply["resolution"] = resolution
+            if vendor_str in ["Alibaba", "Hailuo"]:
+                form_data_apply["resolution"] = resolution.upper()
+            else:
+                form_data_apply["resolution"] = resolution
             if model_mode:
                 form_data_apply["mode"] = model_mode
     else:
         form_data_apply["aspect_ratio"] = aspect_ratio
-        form_data_apply["resolution"] = resolution
+        if vendor_str in ["Alibaba", "Hailuo"]:
+            form_data_apply["resolution"] = resolution.upper()
+        else:
+            form_data_apply["resolution"] = resolution
         if model_mode:
             form_data_apply["mode"] = model_mode
 
@@ -3426,19 +4187,9 @@ def generate_ai_video_service(
 # ==============================================================================
 
 
+
 ACTIVE_ACCOUNTS = {} # {api_key_id: {"email": email, "password": password, "member_token": token, "timestamp": time.time()}}
 ACCOUNT_LOCK = threading.Lock()
-
-# Her API anahtari icin hesap acma surecini kilitleyen mekanizma
-ACCOUNT_CREATION_LOCKS = {}
-CREATION_LOCK_MUTEX = threading.Lock()
-
-def get_creation_lock(api_key_id):
-    """Her api_key_id icin ozel bir hesap acma kilidi doner."""
-    with CREATION_LOCK_MUTEX:
-        if api_key_id not in ACCOUNT_CREATION_LOCKS:
-            ACCOUNT_CREATION_LOCKS[api_key_id] = threading.Lock()
-        return ACCOUNT_CREATION_LOCKS[api_key_id]
 
 def mark_account_exhausted(api_key_id, email):
     """Marks an account as used=1 (credits exhausted) in the database and removes it from active cache."""
@@ -3507,9 +4258,7 @@ def create_myedit_account(api_key_id):
 
         return member_token, email
     except Exception as e:
-        import traceback
         print(f"[-] Account creation exception: {e}")
-        traceback.print_exc()
         return None, None
 
 def create_myedit_account_wrapper(api_key_id):
@@ -3541,12 +4290,12 @@ def get_or_create_active_account(api_key_id, task_id=None, force_new=False):
     # 2. Check if DB has the most recently created valid account (ORDER BY id DESC)
     if not force_new:
         try:
-            query = 'SELECT email, password FROM accounts WHERE api_key_id = %s AND used = 0 ORDER BY id DESC LIMIT 1' if db.DB_TYPE == 'postgresql' else 'SELECT email, password FROM accounts WHERE api_key_id = ? AND used = 0 ORDER BY id DESC LIMIT 1'
+            query = 'SELECT email, password FROM accounts WHERE api_key_id = %s ORDER BY id DESC LIMIT 1' if db.DB_TYPE == 'postgresql' else 'SELECT email, password FROM accounts WHERE api_key_id = ? ORDER BY id DESC LIMIT 1'
             db_acc = db._execute_query(query, (api_key_id,), fetch_one=True)
             if db_acc and db_acc.get("email") and db_acc.get("password"):
                 email = db_acc["email"]
                 password = db_acc["password"]
-                print(f"[ACCOUNT] Found valid account in DB: {email}. Attempting login...")
+                print(f"[ACCOUNT] Found latest account in DB: {email}. Attempting login...")
                 login_res = login(email, password)
                 if login_res.get("status") == "SUCCESS" and "info" in login_res:
                     member_token = login_res["info"].get("memberToken")
@@ -3573,152 +4322,113 @@ def get_or_create_active_account(api_key_id, task_id=None, force_new=False):
         except Exception as e:
             print(f"[ACCOUNT] Error retrieving DB account: {e}")
 
-    # 3. Create a fresh account via temp-mail (kilitli ve beklemeli)
-    creation_lock = get_creation_lock(api_key_id)
-    with creation_lock:
-        # DOUBLE-CHECK: Bekleyen diger istekler icin kontrol
-        is_waiting_request = False
-        acc = None
-        with ACCOUNT_LOCK:
-            if api_key_id in ACTIVE_ACCOUNTS:
-                candidate = ACTIVE_ACCOUNTS[api_key_id]
-                if candidate.get("member_token") and candidate.get("email"):
-                    acc = candidate
-                    is_waiting_request = True
-
-        # Sirada bekleyen istekler icin 1 dakika aralik koyma
-        if is_waiting_request and acc:
-            print(f"[ACCOUNT] Sirada bekleyen istek uyandi. 1 dakika aralik icin 60 saniye bekleniyor...")
-            time.sleep(60)
+    # 3. Create a fresh account via temp-mail
+    for attempt in range(5):
+        print(f"[ACCOUNT] Registering new account for api_key_id={api_key_id} (attempt {attempt+1}/5)...")
+        member_token, email = create_myedit_account_wrapper(api_key_id)
+        if member_token and email:
+            password = "CyberLink123!"
+            acc_data = {
+                "email": email,
+                "password": password,
+                "member_token": member_token,
+                "timestamp": time.time()
+            }
+            with ACCOUNT_LOCK:
+                ACTIVE_ACCOUNTS[api_key_id] = acc_data
             if task_id:
                 try:
                     if db.DB_TYPE == 'postgresql':
-                        db._execute_query('UPDATE tasks SET account_email = %s WHERE task_id = %s', (acc['email'], task_id))
+                        db._execute_query('UPDATE tasks SET account_email = %s WHERE task_id = %s', (email, task_id))
                     else:
-                        db._execute_query('UPDATE tasks SET account_email = ? WHERE task_id = ?', (acc['email'], task_id))
+                        db._execute_query('UPDATE tasks SET account_email = ? WHERE task_id = ?', (email, task_id))
                 except Exception:
                     pass
-            return acc["member_token"], acc
-
-        # Sadece sirada 1. olan istek temp-mail ile yeni hesap acar
-        for attempt in range(5):
-            print(f"[ACCOUNT] Registering new account for api_key_id={api_key_id} (attempt {attempt+1}/5)...")
-            member_token, email = create_myedit_account_wrapper(api_key_id)
-            if member_token and email:
-                password = "CyberLink123!"
-                acc_data = {
-                    "email": email,
-                    "password": password,
-                    "member_token": member_token,
-                    "timestamp": time.time()
-                }
-                with ACCOUNT_LOCK:
-                    ACTIVE_ACCOUNTS[api_key_id] = acc_data
-                if task_id:
-                    try:
-                        if db.DB_TYPE == 'postgresql':
-                            db._execute_query('UPDATE tasks SET account_email = %s WHERE task_id = %s', (email, task_id))
-                        else:
-                            db._execute_query('UPDATE tasks SET account_email = ? WHERE task_id = ?', (email, task_id))
-                    except Exception:
-                        pass
-                return member_token, acc_data
-            time.sleep(2)
+            return member_token, acc_data
+        time.sleep(2)
 
     return None, None
 
-def deduct_api_key_quota(api_key_id, task_id=None, amount=1):
-    """Deducts `amount` (default 1) accounts/quotas from the API key's available accounts upon successful task completion.
+def deduct_api_key_quota(api_key_id, task_id=None):
+    """Deducts 1 account/quota from the API key's available accounts upon successful task completion.
     Prioritizes accounts other than the currently active working account so the active account remains intact in DB.
     Even if the active account's DB row is consumed, its in-memory session (ACTIVE_ACCOUNTS) stays fully operational.
     """
     try:
-        if amount is None or amount <= 0:
-            amount = 1
-
         active_acc = ACTIVE_ACCOUNTS.get(api_key_id)
         active_email = active_acc.get("email") if active_acc else None
 
         conn = db.get_connection()
         cursor = conn.cursor()
-        consumed_emails = []
+        consumed_email = None
 
         if db.DB_TYPE == 'postgresql':
-            # 1. Önce aktif çalışan hesap DIŞINDAKİ boş hesapları seç
+            # 1. Önce aktif çalışan hesap DIŞINDAKİ boş bir hesabı düş
             if active_email:
                 cursor.execute(
-                    'SELECT email FROM accounts WHERE api_key_id = %s AND used = 0 AND email != %s LIMIT %s',
-                    (api_key_id, active_email, amount)
+                    'SELECT email FROM accounts WHERE api_key_id = %s AND used = 0 AND email != %s LIMIT 1',
+                    (api_key_id, active_email)
                 )
-                rows = cursor.fetchall()
-                for row in rows:
-                    email_val = row['email'] if isinstance(row, dict) else row[0]
-                    consumed_emails.append(email_val)
+                row = cursor.fetchone()
+                if row:
+                    consumed_email = row['email'] if isinstance(row, dict) else row[0]
             
-            # 2. Eğer daha fazla kota gerekiyorsa (aktif hesap dahil)
-            remaining_needed = amount - len(consumed_emails)
-            if remaining_needed > 0:
+            # 2. Eğer başka hesap yoksa (sadece aktif hesap kalmışsa) onu düş
+            if not consumed_email:
                 cursor.execute(
-                    'SELECT email FROM accounts WHERE api_key_id = %s AND used = 0 LIMIT %s',
-                    (api_key_id, remaining_needed)
+                    'SELECT email FROM accounts WHERE api_key_id = %s AND used = 0 LIMIT 1',
+                    (api_key_id,)
                 )
-                rows = cursor.fetchall()
-                for row in rows:
-                    email_val = row['email'] if isinstance(row, dict) else row[0]
-                    if email_val not in consumed_emails:
-                        consumed_emails.append(email_val)
+                row = cursor.fetchone()
+                if row:
+                    consumed_email = row['email'] if isinstance(row, dict) else row[0]
 
-            if consumed_emails:
+            if consumed_email:
                 cursor.execute(
-                    'UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = ANY(%s)',
-                    (api_key_id, consumed_emails)
+                    'UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s',
+                    (api_key_id, consumed_email)
                 )
                 if task_id:
                     cursor.execute(
                         'UPDATE tasks SET account_email = %s WHERE task_id = %s',
-                        (consumed_emails[0], task_id)
+                        (consumed_email, task_id)
                     )
                 conn.commit()
-                print(f"[QUOTA] Successfully deducted {len(consumed_emails)} quota units (requested {amount}) for task {task_id}.")
+                print(f"[QUOTA] Successfully deducted 1 quota ({consumed_email}) for task {task_id}.")
         else:
             # SQLite versiyonu
             if active_email:
                 cursor.execute(
-                    'SELECT email FROM accounts WHERE api_key_id = ? AND used = 0 AND email != ? LIMIT ?',
-                    (api_key_id, active_email, amount)
+                    'SELECT email FROM accounts WHERE api_key_id = ? AND used = 0 AND email != ? LIMIT 1',
+                    (api_key_id, active_email)
                 )
-                rows = cursor.fetchall()
-                for row in rows:
-                    email_val = row['email'] if isinstance(row, dict) else row[0]
-                    consumed_emails.append(email_val)
+                row = cursor.fetchone()
+                if row:
+                    consumed_email = row['email'] if isinstance(row, dict) else row[0]
 
-            remaining_needed = amount - len(consumed_emails)
-            if remaining_needed > 0:
+            if not consumed_email:
                 cursor.execute(
-                    'SELECT email FROM accounts WHERE api_key_id = ? AND used = 0 LIMIT ?',
-                    (api_key_id, remaining_needed)
+                    'SELECT email FROM accounts WHERE api_key_id = ? AND used = 0 LIMIT 1',
+                    (api_key_id,)
                 )
-                rows = cursor.fetchall()
-                for row in rows:
-                    email_val = row['email'] if isinstance(row, dict) else row[0]
-                    if email_val not in consumed_emails:
-                        consumed_emails.append(email_val)
+                row = cursor.fetchone()
+                if row:
+                    consumed_email = row['email'] if isinstance(row, dict) else row[0]
 
-            if consumed_emails:
-                placeholders = ','.join(['?'] * len(consumed_emails))
+            if consumed_email:
                 cursor.execute(
-                    f'UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email IN ({placeholders})',
-                    [api_key_id] + consumed_emails
+                    'UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?',
+                    (api_key_id, consumed_email)
                 )
                 if task_id:
                     cursor.execute(
                         'UPDATE tasks SET account_email = ? WHERE task_id = ?',
-                        (consumed_emails[0], task_id)
+                        (consumed_email, task_id)
                     )
                 conn.commit()
-                print(f"[QUOTA] Successfully deducted {len(consumed_emails)} quota units (requested {amount}) for task {task_id}.")
+                print(f"[QUOTA] Successfully deducted 1 quota ({consumed_email}) for task {task_id}.")
         conn.close()
-        return consumed_emails
+        return consumed_email
     except Exception as e:
         print(f"[QUOTA] Error deducting quota: {e}")
         return None
@@ -3744,19 +4454,10 @@ def process_image_task(task_id, params, api_key_id):
         db.update_task_status(task_id, 'running')
 
         prompt = params.get('prompt', '')
-        raw_model = params.get('model', 'NANO_BANANA')
-        model = IMAGE_MODEL_MAPPING.get(raw_model, raw_model)
+        model = params.get('model', 'flux_2_pro')
         aspect_ratio = params.get('size', '1:1')
         resolution = params.get('resolution', '1K')
         batch_size = int(params.get('batch_size', 1))
-
-        # Determine API quota to deduct for image model
-        model_api_credit = 1
-        for m in AVAILABLE_MODELS.get('image', []):
-            if m.get('id') == raw_model or m.get('id') == model:
-                model_api_credit = m.get('credit', 1)
-                break
-        total_quota_to_deduct = model_api_credit * batch_size
 
         # Handle reference images (Image-to-Image)
         reference_images = []
@@ -3878,8 +4579,8 @@ def process_image_task(task_id, params, api_key_id):
             db.update_task_token(task_id, json.dumps(token_data_dict))
 
             if completed_files:
-                db.update_task_status(task_id, 'completed', make_proxy_url(completed_files[0]))
-                deduct_api_key_quota(api_key_id, task_id, amount=total_quota_to_deduct)
+                db.update_task_status(task_id, 'completed', completed_files[0])
+                deduct_api_key_quota(api_key_id, task_id)
                 post_credits_info = get_member_remaining_credits(current_token)
                 post_credits = post_credits_info.get("total_remain", "?") if post_credits_info else "?"
                 print(f"[RENDER LOG] [IMAGE TASK: {task_id}] [TAMAMLANDI] -> Hesap: {account['email']} | Kalan Kredi: {post_credits}\n")
@@ -3911,21 +4612,11 @@ def process_video_task(task_id, params, api_key_id):
         db.update_task_status(task_id, 'running')
 
         prompt = params.get('prompt', '')
-        has_start_frame = bool(params.get('start_frame'))
-        default_model = 'sora_2_std' if has_start_frame else 'seedance_2_0_mini'
-        raw_model = params.get('model') or default_model
-        model = VIDEO_MODEL_MAPPING.get(raw_model, raw_model)
+        model = params.get('model', 'wan_2_7')
         aspect_ratio = params.get('size', '16:9')
         resolution = params.get('resolution', '720p')
-        duration = int(params.get('duration', 8 if model == 'sora_2_std' else 10))
+        duration = int(params.get('duration', 5))
         sound = params.get('sound', 'vendor')
-
-        # Determine API quota to deduct for video model
-        model_api_credit = 1
-        for m in AVAILABLE_MODELS.get('video', []):
-            if m.get('id') == raw_model or m.get('id') == model:
-                model_api_credit = m.get('credit', 1)
-                break
 
         input_mode = "TextToVideo"
         source_image_path = None
@@ -4001,34 +4692,6 @@ def process_video_task(task_id, params, api_key_id):
                 })
                 db.update_task_token(task_id, token_data)
 
-                # If Sora 2 is invoked without a start frame, auto-generate initial frame from prompt
-                current_source_image_path = source_image_path
-                current_input_mode = input_mode
-                if model == "sora_2_std" and current_input_mode == "TextToVideo" and not current_source_image_path:
-                    try:
-                        print(f"[SORA-2] Auto-generating initial frame for Text-to-Video task {task_id}...")
-                        t2i_res = generate_ai_image_service(
-                            member_token=member_token,
-                            user_prompt=prompt,
-                            model_key="NANO_BANANA_2",
-                            aspect_ratio=aspect_ratio,
-                            resolution="1K",
-                            batch_size="1",
-                            task_id=task_id
-                        )
-                        if t2i_res and t2i_res.get("status") == "Done" and t2i_res.get("files"):
-                            img_url = t2i_res["files"][0]
-                            img_resp = requests.get(img_url, timeout=30)
-                            if img_resp.status_code == 200:
-                                temp_auto_img = os.path.join(tempfile.gettempdir(), f"sora_auto_{task_id}.jpg")
-                                with open(temp_auto_img, "wb") as f:
-                                    f.write(img_resp.content)
-                                temp_files.append(temp_auto_img)
-                                current_source_image_path = temp_auto_img
-                                current_input_mode = "ImageToVideo"
-                    except Exception as ex:
-                        print(f"[SORA-2] Auto-frame generation error: {ex}")
-
                 result = generate_ai_video_service(
                     member_token=member_token,
                     user_prompt=prompt,
@@ -4037,8 +4700,8 @@ def process_video_task(task_id, params, api_key_id):
                     resolution=resolution,
                     processing_duration=duration,
                     sound=sound,
-                    effect_mode=current_input_mode,
-                    source_image_path=current_source_image_path,
+                    effect_mode=input_mode,
+                    source_image_path=source_image_path,
                     last_image_path=last_image_path,
                     ref_images=ref_images if ref_images else None,
                     ref_videos=ref_videos if ref_videos else None,
@@ -4107,11 +4770,11 @@ def process_video_task(task_id, params, api_key_id):
             db.update_task_token(task_id, json.dumps(token_data_dict))
 
             if video_file:
-                db.update_task_status(task_id, 'completed', make_proxy_url(video_file))
-                deduct_api_key_quota(api_key_id, task_id, amount=model_api_credit)
+                db.update_task_status(task_id, 'completed', video_file)
+                deduct_api_key_quota(api_key_id, task_id)
             else:
-                db.update_task_status(task_id, 'completed', make_proxy_url(completed_files[0]) if completed_files else "")
-                deduct_api_key_quota(api_key_id, task_id, amount=model_api_credit)
+                db.update_task_status(task_id, 'completed', completed_files[0] if completed_files else "")
+                deduct_api_key_quota(api_key_id, task_id)
             post_credits_info = get_member_remaining_credits(current_token)
             post_credits = post_credits_info.get("total_remain", "?") if post_credits_info else "?"
             print(f"[RENDER LOG] [VIDEO TASK: {task_id}] [TAMAMLANDI] -> Hesap: {account['email']} | Kalan Kredi: {post_credits}\n")
@@ -4253,13 +4916,12 @@ def proxy_request(url, range_header=None):
         cursor = conn.cursor()
         task_row = None
         try:
-            # We look for url_path in result_url or reference_image_urls (raw or url-encoded)
+            # We look for url_path in result_url or reference_image_urls
             query_val = f"%{url_path}%"
-            query_val_enc = f"%{urlparse.quote(url_path, safe='')}%"
             if db.DB_TYPE == 'postgresql':
-                cursor.execute('SELECT token FROM tasks WHERE result_url LIKE %s OR result_url LIKE %s OR reference_image_urls LIKE %s OR reference_image_urls LIKE %s', (query_val, query_val_enc, query_val, query_val_enc))
+                cursor.execute('SELECT token FROM tasks WHERE result_url LIKE %s OR reference_image_urls LIKE %s', (query_val, query_val))
             else:
-                cursor.execute('SELECT token FROM tasks WHERE result_url LIKE ? OR result_url LIKE ? OR reference_image_urls LIKE ? OR reference_image_urls LIKE ?', (query_val, query_val_enc, query_val, query_val_enc))
+                cursor.execute('SELECT token FROM tasks WHERE result_url LIKE ? OR reference_image_urls LIKE ?', (query_val, query_val))
             row = cursor.fetchone()
             if row:
                 if isinstance(row, dict):

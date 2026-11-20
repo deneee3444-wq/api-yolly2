@@ -3582,6 +3582,7 @@ def generate_ai_video_service(
         raise AuthExpiredError(f"Auth token expired: {resp_init.text}")
     resp_init.raise_for_status()
     init_json = resp_init.json()
+    print(init_json)
     
     s_id_str = str(init_json["s_id"])
     s_id_int = int(s_id_str)
@@ -3736,7 +3737,7 @@ def generate_ai_video_service(
     files_apply = {k: (None, str(v)) for k, v in form_data_apply.items()}
     resp_apply = requests.patch(apply_url, files=files_apply, headers=apply_headers, timeout=60)
     if task_id:
-        db.add_task_log(task_id, str(resp_apply.status_code))
+        db.add_task_log(task_id, str(resp_apply.status_text))
     if resp_apply.status_code == 403 or "Fail to verify credit" in resp_apply.text or ("Forbidden" in resp_apply.text and "credit" in resp_apply.text.lower()):
         raise CreditExhaustedError(f"Credit verification failed: {resp_apply.text}")
     if resp_apply.status_code == 401:

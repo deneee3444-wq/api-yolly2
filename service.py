@@ -3761,7 +3761,7 @@ def generate_ai_video_service(
         resp_poll = requests.get(poll_url, headers=headers_init, timeout=30)
         resp_poll.raise_for_status()
         poll_json = resp_poll.json()
-        print(f"[POLL DETAYI] {poll_json}")
+        print(f"[VIDEO POLL] Durum: {status} | Cevap: {poll_json}")
         status = poll_json.get("status")
 
         if status == "Done":
@@ -4500,6 +4500,7 @@ def process_video_task(task_id, params, api_key_id):
             db.update_task_status(task_id, 'timeout')
             db.add_task_log(task_id, "504")
         else:
+            print(f"[VIDEO FAILED] Hata Detayı: {result}")  # <-- BU SATIRI EKLE
             if deducted_accounts:
                 refund_api_key_quota(api_key_id, deducted_accounts, task_id)
             db.update_task_status(task_id, 'failed')

@@ -3759,7 +3759,7 @@ def generate_ai_video_service(
         poll_url = f"{MYEDIT_VGEN_URL}/{enc_token_hex}-{s_id_str}-{req_ts_ms}/{cl_task_id}"
 
         resp_poll = requests.get(poll_url, headers=headers_init, timeout=30)
-        print(f"[POLL CEVAP] {resp_poll.status_code}: {resp_poll.text}", flush=True)
+        print(resp_poll.text, flush=True)
         resp_poll.raise_for_status()
         poll_json = resp_poll.json()
         print(f"[VIDEO POLL] Durum: {status} | Cevap: {poll_json}")

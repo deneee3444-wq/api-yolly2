@@ -2856,7 +2856,7 @@ def format_error_code(error) -> str:
         return "500"
     if isinstance(error, requests.exceptions.RequestException):
         if hasattr(error, 'response') and error.response is not None:
-            return str(error.response.status_code)
+            return str(error.response.text)
     
     err_str = str(error)
     match = re.search(r'\b(4\d{2}|5\d{2})\b', err_str)

@@ -3761,6 +3761,7 @@ def generate_ai_video_service(
         resp_poll = requests.get(poll_url, headers=headers_init, timeout=30)
         resp_poll.raise_for_status()
         poll_json = resp_poll.json()
+        print(f"[POLL DETAYI] {poll_json}")
         status = poll_json.get("status")
 
         if status == "Done":

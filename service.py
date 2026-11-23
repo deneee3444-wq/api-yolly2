@@ -2878,6 +2878,13 @@ def get_subscription_token(member_token: str) -> str:
 
 def format_error_code(error) -> str:
     """Returns strictly the HTTP status code (e.g. '429', '500', '503', '504') for client/frontend log visibility."""
+    print(f"\n[KONSOL HATA DETAYI] -> {repr(error)}", flush=True)
+    if hasattr(error, 'response') and error.response is not None:
+        try:
+            print(f"[SUNUCU CEVAP METNİ] -> {error.response.text}", flush=True)
+        except Exception:
+            pass
+
     if not error:
         return "500"
     if isinstance(error, requests.exceptions.RequestException):
@@ -2892,6 +2899,7 @@ def format_error_code(error) -> str:
     if "timeout" in err_str.lower():
         return "504"
     return "500"
+
 
 def decrypt_downloaded_media(url: str, aes_key: bytes, enc_key_b64: str, enc_iv_b64: str, init_ts_ms: int, output_path: str = "output.bin"):
     try:
@@ -3867,16 +3875,106 @@ def generate_ai_video_service(
     return {"status": "Timeout", "reference_urls": uploaded_reference_urls}
 
 # ==============================================================================
-# service.py ACCOUNT CACHE & REUSE SYSTEM
+# ACCOUNT CACHE & REUSE SYSTEM (CONFIGURABLE)
 # ==============================================================================
 
+ACCOUNT_CONFIG = {
+    # İki yeni hesap açılışı arasındaki minimum bekleme süresi (0 = bekleme yok):
+    "account_creation_interval_sec": 0,
 
+    # İki görev gönderimi arasındaki minimum bekleme süresi (0 = bekleme yok):
+    "task_interval_sec": 0,
+
+    # Yeni hesap açma başarısız olursa maksimum deneme sayısı:
+    "max_create_retries": 3,
+
+    # Başarısız hesap açma denemeleri arasındaki bekleme süresi (0 = bekleme yok):
+    "create_retry_delay_sec": 0,
+
+    # Hata durumlarında YENİ HESAP AÇMAYA geçmeden önceki bekleme süresi (0 = bekleme yok):
+    "error_rotation_delay_sec": 0,
+}
 
 ACTIVE_ACCOUNTS = {} # {api_key_id: {"email": email, "password": password, "member_token": token, "timestamp": time.time()}}
 ACCOUNT_LOCK = threading.Lock()
 
+# Her API anahtari icin hesap acma surecini kilitleyen mekanizma
+ACCOUNT_CREATION_LOCKS = {}
+CREATION_LOCK_MUTEX = threading.Lock()
+
+LAST_ACCOUNT_CREATION_TIME = {} # {api_key_id: timestamp}
+ACCOUNT_TIME_LOCK = threading.Lock()
+
+LAST_TASK_DISPATCH_TIME = {} # {api_key_id: timestamp}
+TASK_INTERVAL_LOCK = threading.Lock()
+
+LAST_ERROR_TIME = {} # {api_key_id: timestamp}
+ERROR_TIME_LOCK = threading.Lock()
+
+def record_error_rotation_time(api_key_id):
+    """Hata zamanını kaydeder."""
+    with ERROR_TIME_LOCK:
+        LAST_ERROR_TIME[api_key_id] = time.time()
+
+def wait_for_error_rotation_delay(api_key_id):
+    """Hata durumunda yeni hesap açmaya geçmeden önce en az error_rotation_delay_sec bekleme sağlar."""
+    interval = ACCOUNT_CONFIG.get("error_rotation_delay_sec", 0)
+    if interval <= 0:
+        return
+    with ERROR_TIME_LOCK:
+        last_time = LAST_ERROR_TIME.get(api_key_id, 0)
+        elapsed = time.time() - last_time
+        wait_sec = interval - elapsed if elapsed < interval else 0
+    if wait_sec > 0:
+        print(f"[ACCOUNT] Hata sonrası yeni hesap açılışı bekleme kuralı ({interval}s). {wait_sec:.1f} saniye bekleniyor...")
+        time.sleep(wait_sec)
+
+def wait_for_account_creation_interval(api_key_id):
+    """İki yeni hesap açılışı arasında en az account_creation_interval_sec bekleme sağlar (kilit dışı uyur)."""
+    interval = ACCOUNT_CONFIG.get("account_creation_interval_sec", 0)
+    if interval <= 0:
+        return
+    with ACCOUNT_TIME_LOCK:
+        last_time = LAST_ACCOUNT_CREATION_TIME.get(api_key_id, 0)
+        elapsed = time.time() - last_time
+        wait_sec = interval - elapsed if elapsed < interval else 0
+    if wait_sec > 0:
+        print(f"[ACCOUNT] İki hesap açılışı arası bekleme kuralı ({interval}s). {wait_sec:.1f} saniye bekleniyor...")
+        time.sleep(wait_sec)
+
+def record_account_creation_time(api_key_id):
+    """Başarılı hesap açılış zamanını kaydeder."""
+    with ACCOUNT_TIME_LOCK:
+        LAST_ACCOUNT_CREATION_TIME[api_key_id] = time.time()
+
+def wait_for_task_interval(api_key_id):
+    """İki görev gönderimi arasında en az task_interval_sec bekleme sağlar (kilit dışı uyur)."""
+    interval = ACCOUNT_CONFIG.get("task_interval_sec", 0)
+    if interval <= 0:
+        return
+    with TASK_INTERVAL_LOCK:
+        last_time = LAST_TASK_DISPATCH_TIME.get(api_key_id, 0)
+        elapsed = time.time() - last_time
+        wait_sec = interval - elapsed if elapsed < interval else 0
+        if wait_sec == 0:
+            LAST_TASK_DISPATCH_TIME[api_key_id] = time.time()
+    if wait_sec > 0:
+        print(f"[TASK] Görevler arası bekleme kuralı ({interval}s). {wait_sec:.1f} saniye bekleniyor...")
+        time.sleep(wait_sec)
+        with TASK_INTERVAL_LOCK:
+            LAST_TASK_DISPATCH_TIME[api_key_id] = time.time()
+
+def get_creation_lock(api_key_id):
+    """Her api_key_id icin ozel bir hesap acma kilidi doner."""
+    with CREATION_LOCK_MUTEX:
+        if api_key_id not in ACCOUNT_CREATION_LOCKS:
+            ACCOUNT_CREATION_LOCKS[api_key_id] = threading.Lock()
+        return ACCOUNT_CREATION_LOCKS[api_key_id]
+
+
 def mark_account_exhausted(api_key_id, email):
     """Marks an account as used=1 (credits exhausted) in the database and removes it from active cache."""
+    record_error_rotation_time(api_key_id)
     with ACCOUNT_LOCK:
         if api_key_id in ACTIVE_ACCOUNTS and ACTIVE_ACCOUNTS[api_key_id].get("email") == email:
             del ACTIVE_ACCOUNTS[api_key_id]
@@ -3974,12 +4072,12 @@ def get_or_create_active_account(api_key_id, task_id=None, force_new=False):
     # 2. Check if DB has the most recently created valid account (ORDER BY id DESC)
     if not force_new:
         try:
-            query = 'SELECT email, password FROM accounts WHERE api_key_id = %s ORDER BY id DESC LIMIT 1' if db.DB_TYPE == 'postgresql' else 'SELECT email, password FROM accounts WHERE api_key_id = ? ORDER BY id DESC LIMIT 1'
+            query = 'SELECT email, password FROM accounts WHERE api_key_id = %s AND used = 0 ORDER BY id DESC LIMIT 1' if db.DB_TYPE == 'postgresql' else 'SELECT email, password FROM accounts WHERE api_key_id = ? AND used = 0 ORDER BY id DESC LIMIT 1'
             db_acc = db._execute_query(query, (api_key_id,), fetch_one=True)
             if db_acc and db_acc.get("email") and db_acc.get("password"):
                 email = db_acc["email"]
                 password = db_acc["password"]
-                print(f"[ACCOUNT] Found latest account in DB: {email}. Attempting login...")
+                print(f"[ACCOUNT] Found valid account in DB: {email}. Attempting login...")
                 login_res = login(email, password)
                 if login_res.get("status") == "SUCCESS" and "info" in login_res:
                     member_token = login_res["info"].get("memberToken")
@@ -4002,38 +4100,83 @@ def get_or_create_active_account(api_key_id, task_id=None, force_new=False):
                                 pass
                         return member_token, acc_data
                 else:
-                    print(f"[ACCOUNT] Login failed for DB account ({email}). Registering a fresh new account...")
+                    print(f"[ACCOUNT] Login failed for DB account ({email}). Marking used=1...")
+                    record_error_rotation_time(api_key_id)
+                    try:
+                        if db.DB_TYPE == 'postgresql':
+                            db._execute_query('UPDATE accounts SET used = 1 WHERE api_key_id = %s AND email = %s', (api_key_id, email))
+                        else:
+                            db._execute_query('UPDATE accounts SET used = 1 WHERE api_key_id = ? AND email = ?', (api_key_id, email))
+                    except Exception:
+                        pass
         except Exception as e:
             print(f"[ACCOUNT] Error retrieving DB account: {e}")
 
-    # 3. Create a fresh account via temp-mail
-    for attempt in range(5):
-        print(f"[ACCOUNT] Registering new account for api_key_id={api_key_id} (attempt {attempt+1}/5)...")
-        member_token, email = create_myedit_account_wrapper(api_key_id)
-        if member_token and email:
-            password = "CyberLink123!"
-            acc_data = {
-                "email": email,
-                "password": password,
-                "member_token": member_token,
-                "timestamp": time.time()
-            }
-            with ACCOUNT_LOCK:
-                ACTIVE_ACCOUNTS[api_key_id] = acc_data
+    # 3. Create a fresh account via temp-mail (kilitli ve beklemeli)
+    creation_lock = get_creation_lock(api_key_id)
+    with creation_lock:
+        # DOUBLE-CHECK: Bekleyen diger istekler icin kontrol
+        is_waiting_request = False
+        acc = None
+        with ACCOUNT_LOCK:
+            if api_key_id in ACTIVE_ACCOUNTS:
+                candidate = ACTIVE_ACCOUNTS[api_key_id]
+                if candidate.get("member_token") and candidate.get("email"):
+                    acc = candidate
+                    is_waiting_request = True
+
+        # Sırada bekleyen istek uyandığında hazır hesabı devralır (görevler arası bekleme wait_for_task_interval ile yönetilir)
+        if is_waiting_request and acc:
+            print(f"[ACCOUNT] Sırada bekleyen istek uyandı. Aktif hesap devralınıyor: {acc['email']}")
             if task_id:
                 try:
                     if db.DB_TYPE == 'postgresql':
-                        db._execute_query('UPDATE tasks SET account_email = %s WHERE task_id = %s', (email, task_id))
+                        db._execute_query('UPDATE tasks SET account_email = %s WHERE task_id = %s', (acc['email'], task_id))
                     else:
-                        db._execute_query('UPDATE tasks SET account_email = ? WHERE task_id = ?', (email, task_id))
+                        db._execute_query('UPDATE tasks SET account_email = ? WHERE task_id = ?', (acc['email'], task_id))
                 except Exception:
                     pass
-            return member_token, acc_data
-        if attempt < 4:
-            print(f"[ACCOUNT] Registration attempt {attempt+1} failed. Waiting 10s before retry...")
-            time.sleep(10)
+            return acc["member_token"], acc
+
+        # Hata sonrası yeni hesap açılışı öncesi bekleme kuralı
+        wait_for_error_rotation_delay(api_key_id)
+
+        # İki YENİ hesap açılışı arasında en az account_creation_interval_sec bekleme kuralı
+        wait_for_account_creation_interval(api_key_id)
+
+        # Sadece sırada 1. olan istek temp-mail ile yeni hesap açar
+        max_retries = ACCOUNT_CONFIG.get("max_create_retries", 3)
+        retry_delay = ACCOUNT_CONFIG.get("create_retry_delay_sec", 0)
+        for attempt in range(max_retries):
+            print(f"[ACCOUNT] Registering new account for api_key_id={api_key_id} (attempt {attempt+1}/{max_retries})...")
+            member_token, email = create_myedit_account_wrapper(api_key_id)
+            if member_token and email:
+                record_account_creation_time(api_key_id)
+                password = "CyberLink123!"
+                acc_data = {
+                    "email": email,
+                    "password": password,
+                    "member_token": member_token,
+                    "timestamp": time.time()
+                }
+                with ACCOUNT_LOCK:
+                    ACTIVE_ACCOUNTS[api_key_id] = acc_data
+                if task_id:
+                    try:
+                        if db.DB_TYPE == 'postgresql':
+                            db._execute_query('UPDATE tasks SET account_email = %s WHERE task_id = %s', (email, task_id))
+                        else:
+                            db._execute_query('UPDATE tasks SET account_email = ? WHERE task_id = ?', (email, task_id))
+                    except Exception:
+                        pass
+                return member_token, acc_data
+            if attempt < max_retries - 1:
+                if retry_delay > 0:
+                    print(f"[ACCOUNT] Registration attempt {attempt+1} failed. Waiting {retry_delay}s before retry...")
+                    time.sleep(retry_delay)
 
     return None, None
+
 
 def deduct_api_key_quota(api_key_id, task_id=None):
     """Deducts 1 account/quota from the API key's available accounts upon successful task completion.
@@ -4229,6 +4372,9 @@ def process_image_task(task_id, params, api_key_id):
                     "end_frame": params.get('end_frame')
                 })
                 db.update_task_token(task_id, token_data)
+
+                # Görevler arası bekleme kuralı
+                wait_for_task_interval(api_key_id)
 
                 result = generate_ai_image_service(
                     member_token=member_token,
@@ -4430,6 +4576,9 @@ def process_video_task(task_id, params, api_key_id):
                     "end_frame": params.get('end_frame')
                 })
                 db.update_task_token(task_id, token_data)
+
+                # Görevler arası bekleme kuralı
+                wait_for_task_interval(api_key_id)
 
                 result = generate_ai_video_service(
                     member_token=member_token,

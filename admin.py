@@ -24,11 +24,11 @@ CUSTOMERS_JSON = """
   {
     "id": "lokman",
     "label": "1 - Lokman",
-    "api_key": "zLMvipojeXXJO3mWvogWjsUf3eHRjUTHmCr9Q9X2WH1eUB1mL2",
+    "api_key": "zLMvipojeXXJO3mWvogWjsUh3eHRjUTHmCr9Q9X2WH1eUB1mL2",
     "api_url": "https://api-pe7w.onrender.com",
-    "render": "loceatiofirst@gmail.com",
-    "github": "loceatiofirst@gmail.com/api",
-    "neon": "loceatiofirst@gmail.com",
+    "render": "locaetiofirst@gmail.com",
+    "github": "locaetiofirst@gmail.com/api",
+    "neon": "locaetiofirst@gmail.com",
     "neon_url": "postgresql://neondb_owner:npg_A5EJnM0zFujY@ep-twilight-recipe-aisn9xji-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
   }
 ]
@@ -1157,16 +1157,26 @@ def handle_admin_request(subpath=""):
 
     try:
         handler = _STATIC_ROUTES.get((path, method))
+        result = None
         if handler:
-            return handler()
+            result = handler()
+        else:
+            for pattern, route_method, param_handler in _PARAM_ROUTES:
+                if method == route_method:
+                    match = pattern.match(path)
+                    if match:
+                        result = param_handler(int(match.group(1)))
+                        break
 
-        for pattern, route_method, param_handler in _PARAM_ROUTES:
-            if method == route_method:
-                match = pattern.match(path)
-                if match:
-                    return param_handler(int(match.group(1)))
+        if result is not None:
+            resp = make_response(result)
+            if path.startswith("api/") and path not in ("api/customers", "api/logout"):
+                resp.headers["X-Admin-Db-Type"] = _db_type().upper()
+            return resp
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": f"Veritabanı bağlantı/sorgu hatası: {e}"}), 503
 
     abort(404)
 

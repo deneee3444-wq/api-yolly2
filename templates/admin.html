@@ -1,0 +1,2342 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#0b0b0d">
+    <title>CreativeLabs | Admin Panel</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg transform='translate(16,16) skewY(-9) translate(-16,-16)'%3E%3Crect x='2.5' y='2' width='7' height='26' rx='2' fill='%23ff792e'/%3E%3Crect x='12.5' y='8' width='7' height='15' rx='2' fill='%23ff792e'/%3E%3Crect x='22.5' y='14' width='7' height='15' rx='2' fill='%23ff792e'/%3E%3C/g%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        try {
+            const saved = localStorage.getItem('cl_theme');
+            document.documentElement.dataset.theme =
+                saved === 'light' || saved === 'dark'
+                    ? saved
+                    : matchMedia('(prefers-color-scheme: light)').matches
+                        ? 'light'
+                        : 'dark';
+        } catch {}
+    </script>
+
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0b0b0d;
+            --sidebar: #101012;
+            --surface: #141416;
+            --surface-2: #1b1b1e;
+            --surface-3: #232326;
+            --hover: #29292c;
+            --text: #f4f3f0;
+            --muted: #aaa9b1;
+            --subtle: #85848e;
+            --line: #29292e;
+            --line-strong: #414147;
+            --accent: #ff792e;
+            --accent-hover: #ff965b;
+            --accent-text: #17100b;
+            --accent-soft: rgba(255, 121, 46, .10);
+            --danger: #ff8791;
+            --danger-bg: rgba(255, 89, 112, .09);
+            --veil: rgba(0, 0, 0, .66);
+            --shadow: 0 18px 70px rgba(0, 0, 0, .24);
+            --sidebar-width: 232px;
+            --header-height: 66px;
+            --font: 'DM Sans', sans-serif;
+            --heading: 'Manrope', sans-serif;
+        }
+
+        [data-theme="light"] {
+            color-scheme: light;
+            --bg: #f7f6f3;
+            --sidebar: #eeede9;
+            --surface: #ffffff;
+            --surface-2: #f3f2ef;
+            --surface-3: #eae9e5;
+            --hover: #e3e2dd;
+            --text: #202022;
+            --muted: #64636b;
+            --subtle: #706f78;
+            --line: #e0dfda;
+            --line-strong: #c4c2bb;
+            --accent: #dc570f;
+            --accent-hover: #c64b08;
+            --accent-text: #ffffff;
+            --accent-soft: rgba(230, 93, 18, .08);
+            --danger: #ba3045;
+            --danger-bg: rgba(186, 48, 69, .07);
+            --veil: rgba(22, 20, 18, .4);
+            --shadow: 0 18px 70px rgba(31, 26, 20, .09);
+        }
+
+        * {
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: var(--line-strong) transparent;
+        }
+
+        body, h1, h2, h3, p { margin: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.55 var(--font);
+        }
+
+        body.scroll-lock { overflow: hidden; }
+        button, input, textarea, select { font: inherit; }
+        button, a { touch-action: manipulation; }
+        button { cursor: pointer; }
+        button:disabled { cursor: not-allowed; opacity: .5; }
+        a { color: inherit; text-decoration: none; }
+        [hidden] { display: none !important; }
+        ::selection { background: var(--accent); color: var(--accent-text); }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .icon {
+            width: 19px;
+            height: 19px;
+            flex-shrink: 0;
+            vertical-align: middle;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.7;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .button, .icon-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 41px;
+            padding: 9px 14px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--surface-2);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            transition: background .18s, border-color .18s;
+            white-space: nowrap;
+        }
+
+        .button:hover:not(:disabled), .icon-button:hover:not(:disabled) {
+            background: var(--hover);
+            border-color: var(--line-strong);
+        }
+
+        .button.primary {
+            background: var(--accent);
+            border-color: transparent;
+            color: var(--accent-text);
+        }
+
+        .button.primary:hover:not(:disabled) { background: var(--accent-hover); }
+        .button.danger { background: var(--danger-bg); color: var(--danger); border-color: rgba(255, 89, 112, .25); }
+        .button.small { min-height: 35px; padding: 6px 10px; font-size: 11px; }
+        .button.full { width: 100%; }
+        .icon-button { width: 39px; height: 39px; padding: 0; flex-shrink: 0; }
+        .row { display: flex; align-items: center; gap: 10px; }
+        .wrap { flex-wrap: wrap; }
+        .muted { color: var(--muted); }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+        kbd { font: inherit; border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+
+        .sidebar {
+            position: fixed;
+            inset: 0 auto 0 0;
+            width: var(--sidebar-width);
+            padding: 0 14px;
+            display: flex;
+            flex-direction: column;
+            background: var(--sidebar);
+            border-right: 1px solid var(--line);
+            z-index: 60;
+            transition: transform .2s;
+        }
+
+        .brand {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 0 10px;
+        }
+
+        .brand-mark {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            width: 32px;
+            height: 33px;
+            gap: 3px;
+            transform: skewY(-9deg);
+        }
+
+        .brand-mark span { background: var(--accent); border-radius: 2px; }
+        .brand-mark span:nth-child(2) { margin: 7px 0; }
+        .brand-mark span:nth-child(3) { margin-top: 14px; }
+        .brand-name { font: 800 17px var(--heading); letter-spacing: -.8px; }
+        .brand-name small {
+            display: block;
+            margin-top: 3px;
+            color: var(--subtle);
+            font: 9px var(--font);
+            letter-spacing: 2.5px;
+        }
+
+        .workspace {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0 14px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--surface-2);
+        }
+
+        .workspace-avatar {
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .workspace strong { font-size: 11px; }
+        .workspace small { display: block; font-size: 10px; color: var(--subtle); }
+        .sidebar nav { flex: 1; overflow-y: auto; }
+        .nav-caption {
+            margin: 19px 12px 8px;
+            color: var(--subtle);
+            font-size: 10px;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            width: 100%;
+            min-height: 42px;
+            margin-bottom: 4px;
+            padding: 10px 12px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--muted);
+            text-align: left;
+            font-size: 12px;
+        }
+
+        .nav-link:hover { background: var(--surface-2); color: var(--text); }
+        .nav-link.active { background: var(--surface-3); color: var(--text); }
+        .nav-link.active .icon { color: var(--accent); }
+        .sidebar-bottom { padding: 13px 0; }
+        .connection { display: flex; align-items: center; gap: 8px; padding: 11px; font-size: 10px; color: var(--muted); }
+        .connection::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+        .connection[data-state="error"]::before { background: var(--danger); }
+
+        .theme-switch {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 4px;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 11px;
+        }
+
+        .theme-switch button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 7px;
+            min-height: 35px;
+            border: 0;
+            border-radius: 8px;
+            color: var(--muted);
+            background: transparent;
+            font-size: 11px;
+        }
+
+        .theme-switch button.active { background: var(--surface-3); color: var(--text); }
+
+        .app {
+            margin-left: var(--sidebar-width);
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 35;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 0 28px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .breadcrumb { color: var(--subtle); font-size: 12px; }
+        .breadcrumb strong { color: var(--text); font-weight: 500; }
+        #menuButton { display: none; }
+        .page { max-width: 1500px; width: 100%; margin: 0 auto; padding: 26px 30px; }
+
+        .page-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 21px; flex-wrap: wrap; }
+        .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-bottom: 7px; }
+        .page-heading h1 { font: 600 28px var(--heading); letter-spacing: -1px; }
+        .page-heading p { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+        .quota-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr)); gap: 14px; margin-bottom: 20px; }
+        .quota-card { padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 15px; min-width: 0; }
+        .quota-card .icon { color: var(--accent); margin-bottom: 14px; }
+        .quota-card strong { display: block; font: 600 28px var(--heading); overflow-wrap: anywhere; }
+        .quota-card span { display: block; color: var(--muted); font-size: 11px; margin-top: 6px; }
+        .quota-card small { display: block; color: var(--subtle); font-size: 10px; margin-top: 4px; }
+
+        .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+
+        .panel { min-width: 0; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 17px; margin-bottom: 18px; }
+        .panel h2 { font: 600 16px var(--heading); display: flex; align-items: center; gap: 8px; }
+        .panel-description { color: var(--muted); font-size: 12px; margin-top: 5px; margin-bottom: 16px; }
+
+        input:not([type="checkbox"]),
+        textarea {
+            width: 100%;
+            min-height: 43px;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        input[type="date"] {
+            color-scheme: dark;
+        }
+        [data-theme="light"] input[type="date"] {
+            color-scheme: light;
+        }
+
+        textarea { min-height: 105px; resize: vertical; }
+        input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+
+        .form-field { margin-top: 14px; min-width: 0; }
+        .form-field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 600; }
+        .field-hint { margin-top: 5px; color: var(--subtle); font-size: 11px; }
+        .form-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }
+
+        /* index.html ile birebir tema uyumlu combobox stilleri */
+        .select-ui { min-width: 0; width: 100%; }
+        .select-native { display: none !important; }
+        .select-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            width: 100%;
+            min-width: 0;
+            min-height: 43px;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--text);
+            text-align: left;
+            font-size: 13px;
+            transition: border-color .18s, background .18s;
+        }
+        .select-trigger:hover:not(:disabled) { border-color: var(--line-strong); }
+        .select-trigger[aria-expanded="true"] { border-color: var(--accent); }
+        .select-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .select-trigger .icon { width: 13px; height: 13px; color: var(--subtle); flex-shrink: 0; }
+        .select-menu {
+            position: fixed;
+            z-index: 200;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 5px;
+            background: var(--surface);
+            border: 1px solid var(--line-strong);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        .select-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 39px;
+            padding: 9px 11px;
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            cursor: pointer;
+            overflow-wrap: anywhere;
+        }
+        .select-option.active { background: var(--surface-3); color: var(--text); }
+        .select-option[aria-selected="true"] { color: var(--accent); }
+        .select-option[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+        .select-option .icon { width: 15px; height: 15px; flex-shrink: 0; }
+
+        .library-controls {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            flex-wrap: wrap;
+            padding: 12px;
+            margin-bottom: 14px;
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            background: var(--surface);
+        }
+        .library-controls .grow { flex: 1 1 200px; min-width: 160px; }
+        .library-controls .filter-select { flex: 0 1 180px; min-width: 145px; }
+        .library-controls .filter-date { flex: 0 1 150px; min-width: 135px; }
+        .library-controls .select-trigger { min-height: 39px; padding: 8px 11px; font-size: 12px; }
+        .library-controls input:not([type="checkbox"]) { min-height: 39px; padding: 8px 11px; font-size: 12px; }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--surface);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: left;
+        }
+
+        th {
+            padding: 12px 14px;
+            background: var(--surface-2);
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--line);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 11px 14px;
+            border-bottom: 1px solid var(--line);
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: 0; }
+        tbody tr:hover { background: var(--surface-2); }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border-radius: 6px;
+            background: var(--surface-3);
+            padding: 4px 8px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge[data-state="completed"], .badge[data-state="unused"] { color: var(--accent); background: var(--accent-soft); }
+        .badge[data-state="failed"], .badge[data-state="error"], .badge[data-state="timeout"], .badge[data-state="used"] { color: var(--danger); background: var(--danger-bg); }
+        .badge.clickable { cursor: pointer; border: 1px solid transparent; }
+        .badge.clickable:hover { border-color: var(--line-strong); }
+
+        .truncate {
+            max-width: 230px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        .page-numbers { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .page-jump { display: flex; align-items: center; gap: 7px; }
+        .page-jump label { color: var(--muted); font-size: 11px; }
+        .page-jump input { width: 68px !important; min-height: 35px !important; padding: 6px !important; text-align: center; }
+
+        .json-box {
+            max-height: 240px;
+            margin-top: 12px;
+            padding: 13px;
+            overflow: auto;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: var(--bg);
+            color: var(--muted);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        dialog {
+            width: min(880px, 95vw);
+            max-height: 90dvh;
+            padding: 0;
+            border: 1px solid var(--line-strong);
+            border-radius: 16px;
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+        dialog::backdrop { background: var(--veil); backdrop-filter: blur(5px); }
+        .modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--line);
+        }
+        .modal-head h2 { font: 600 16px var(--heading); }
+        .modal-body { padding: 20px; overflow-y: auto; max-height: calc(90dvh - 135px); }
+        .modal-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 9px;
+            padding: 14px 20px;
+            border-top: 1px solid var(--line);
+        }
+
+        .overlay { position: fixed; inset: 0; background: var(--veil); backdrop-filter: blur(4px); z-index: 55; }
+
+        .toast-stack {
+            position: fixed;
+            top: calc(var(--header-height) + 16px);
+            right: 24px;
+            z-index: 250;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            width: min(380px, calc(100vw - 32px));
+            pointer-events: none;
+        }
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 1px solid var(--line-strong);
+            border-radius: 12px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            font-size: 12px;
+            pointer-events: auto;
+        }
+        .toast > .icon { color: var(--accent); flex-shrink: 0; }
+        .toast.error > .icon { color: var(--danger); }
+        .toast span { flex: 1; overflow-wrap: anywhere; line-height: 1.4; }
+        .toast button { width: 25px; height: 25px; min-height: 25px; flex-shrink: 0; }
+
+        .schema-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+        .schema-card { padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+        .schema-card h3 { font: 600 14px var(--heading); margin-bottom: 10px; color: var(--accent); }
+        .schema-col { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 11px; }
+        .schema-col:last-child { border-bottom: 0; }
+
+        @media (max-width: 900px) {
+            :root { --header-height: 61px; }
+            .sidebar { width: 250px; transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .app { margin-left: 0; }
+            #menuButton { display: inline-flex; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .page { padding: 18px 14px; }
+            .topbar { padding: 0 14px; }
+            .library-controls .filter-select,
+            .library-controls .filter-date { flex: 1 1 140px; }
+        }
+    </style>
+</head>
+<body>
+    <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+        <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 3v18h17M8 16v-4M13 16V8M18 16V4"/></symbol>
+        <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="9" r="5"/><path d="m12 12 9 9M16 16l3-3M18 18l3-3"/></symbol>
+        <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+        <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+        <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+        <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1 1M18 18l1 1M5 19l1-1M18 6l1-1"/></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 8a8 8 0 0 0-14-3L3 8m0-5v5h5M4 16a8 8 0 0 0 14 3l3-3m0 5v-5h-5"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+        <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+        <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></symbol>
+        <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3 10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/></symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+    </svg>
+
+    <div id="navOverlay" class="overlay" hidden></div>
+
+    <aside class="sidebar" id="sidebar" aria-label="Admin gezinme">
+        <a href="#overview" class="brand" id="brandLink">
+            <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+            <span class="brand-name">CreativeLabs<small>ADMIN CONSOLE</small></span>
+        </a>
+
+        <div class="workspace">
+            <span class="workspace-avatar" aria-hidden="true">
+                <svg class="icon"><use href="#i-db"/></svg>
+            </span>
+            <div><strong>Veritabanı Yönetimi</strong><small id="dbBadge">Bağlanıyor...</small></div>
+        </div>
+
+        <nav>
+            <div class="nav-caption">Yönetim</div>
+            <button class="nav-link active" data-page="overview"><svg class="icon"><use href="#i-chart"/></svg>Genel Bakış</button>
+            <button class="nav-link" data-page="keys"><svg class="icon"><use href="#i-key"/></svg>API Anahtarları</button>
+            <button class="nav-link" data-page="accounts"><svg class="icon"><use href="#i-users"/></svg>Hesaplar</button>
+            <button class="nav-link" data-page="tasks"><svg class="icon"><use href="#i-grid"/></svg>Görevler</button>
+
+            <div class="nav-caption">Gelişmiş</div>
+            <button class="nav-link" data-page="sql"><svg class="icon"><use href="#i-db"/></svg>SQL &amp; Şema</button>
+
+            <div class="nav-caption">Kısayollar</div>
+            <a class="nav-link" href="/"><svg class="icon"><use href="#i-external"/></svg>Stüdyo</a>
+            <a class="nav-link" href="/api-doc" target="_blank" rel="noopener noreferrer"><svg class="icon"><use href="#i-info"/></svg>Dokümantasyon</a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div id="connectionStatus" class="connection" data-state="connected">Admin oturumu aktif</div>
+            <div class="theme-switch" aria-label="Görünüm">
+                <button type="button" data-theme-choice="light"><svg class="icon"><use href="#i-sun"/></svg>Aydınlık</button>
+                <button type="button" data-theme-choice="dark"><svg class="icon"><use href="#i-moon"/></svg>Karanlık</button>
+            </div>
+        </div>
+    </aside>
+
+    <div class="app" id="app">
+        <header class="topbar">
+            <div class="row">
+                <button class="icon-button" id="menuButton" aria-label="Menüyü aç"><svg class="icon"><use href="#i-menu"/></svg></button>
+                <div class="breadcrumb"><span class="muted">Admin / </span><strong id="pageTitle">Genel Bakış</strong></div>
+            </div>
+            <div class="row">
+                <button class="button small" id="refreshCurrentBtn"><svg class="icon"><use href="#i-refresh"/></svg>Yenile</button>
+                <button class="button small danger" id="logoutBtn">Çıkış</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- OVERVIEW -->
+            <section class="page" id="page-overview">
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">Sistem özeti</div>
+                        <h1>Veritabanı Genel Bakış</h1>
+                        <p>API anahtarları, hesap havuzu, görev kuyruğu ve bakım işlemleri.</p>
+                    </div>
+                </div>
+
+                <div class="quota-grid" id="overviewCards"></div>
+
+                <div class="grid-2">
+                    <div class="panel">
+                        <h2>Görev Durumları</h2>
+                        <p class="panel-description">Tüm görevlerin durum dağılımı.</p>
+                        <div id="statusBreakdown"></div>
+                    </div>
+                    <div class="panel">
+                        <h2>Üretim Modları</h2>
+                        <p class="panel-description">Image, Video, TTS ve Music dağılımı.</p>
+                        <div id="modeBreakdown"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>Son 5 Görev</h2>
+                    <p class="panel-description">En son oluşturulan görevlerin hızlı özeti.</p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Task ID</th>
+                                    <th>Mod / Model</th>
+                                    <th>Durum</th>
+                                    <th>Hesap</th>
+                                    <th>Tarih</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentTasksTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>Hızlı Veritabanı Bakımı</h2>
+                    <p class="panel-description">Doğrudan tüm tablolar üzerinde toplu bakım işlemleri.</p>
+                    <div class="form-actions">
+                        <button class="button" data-maint="reset_all_accounts" data-confirm="Tüm hesapların used değeri 0 yapılacak. Onaylıyor musun?">Tüm Hesapları Boşa Çek (used=0)</button>
+                        <button class="button" data-maint="fail_stale_tasks" data-confirm="Pending ve running görevler failed yapılacak. Onaylıyor musun?">Takılan Görevleri Failed Yap</button>
+                        <button class="button danger" data-maint="delete_used_accounts" data-confirm="used != 0 olan tüm hesaplar silinecek. Onaylıyor musun?">Kullanılmış Hesapları Sil</button>
+                        <button class="button danger" data-maint="clear_all_tasks" data-confirm="DİKKAT: Tüm görevler silinecek! Emin misin?">Tüm Görevleri Sil</button>
+                        <button class="button danger" data-maint="clear_all_accounts" data-confirm="DİKKAT: Tüm hesaplar silinecek! Emin misin?">Tüm Hesapları Sil</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- API KEYS -->
+            <section class="page" id="page-keys" hidden>
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">api_keys tablosu</div>
+                        <h1>API Anahtarları</h1>
+                        <p>Yeni anahtar üret, tarihe göre filtrele/sırala veya bağlı hesap/görevlerle sil.</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>Yeni API Anahtarı Oluştur</h2>
+                    <p class="panel-description">Boş bırakıp "Rastgele Üret &amp; Ekle" veya kendi özel anahtarını yazıp ekleyebilirsin.</p>
+                    <form id="createKeyForm" class="row wrap">
+                        <div style="flex:1; min-width:240px;">
+                            <input id="newKeyInput" placeholder="Özel API key (boşsa rastgele üretilir)">
+                        </div>
+                        <button type="submit" class="button primary"><svg class="icon"><use href="#i-plus"/></svg>Oluştur</button>
+                        <button type="button" class="button" id="autoGenKeyBtn"><svg class="icon"><use href="#i-spark"/></svg>Rastgele Üret &amp; Ekle</button>
+                    </form>
+                </div>
+
+                <div class="library-controls">
+                    <input class="grow" id="keySearch" placeholder="API key ara...">
+                    <input class="filter-date" type="date" id="keyDateFrom" aria-label="Başlangıç tarihi" title="Başlangıç tarihi">
+                    <input class="filter-date" type="date" id="keyDateTo" aria-label="Bitiş tarihi" title="Bitiş tarihi">
+                    <div class="filter-select">
+                        <select id="keySort" aria-label="Sıralama">
+                            <option value="created_desc">Tarih: En Yeni</option>
+                            <option value="created_asc">Tarih: En Eski</option>
+                            <option value="id_desc">ID: Azalan</option>
+                            <option value="id_asc">ID: Artan</option>
+                            <option value="accounts_desc">Boş Hesap: Çoktan Aza</option>
+                            <option value="tasks_desc">Görev: Çoktan Aza</option>
+                        </select>
+                    </div>
+                    <button type="button" class="button small" id="keyFilterBtn">Filtrele</button>
+                    <button type="button" class="button small" id="keyResetFilterBtn">Temizle</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>API Key</th>
+                                <th>Hesaplar (Boş / Dolu / Toplam)</th>
+                                <th>Görevler (Aktif / Tamam / Hata / Toplam)</th>
+                                <th>Oluşturma</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keysTbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ACCOUNTS -->
+            <section class="page" id="page-accounts" hidden>
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">accounts tablosu · Direkt DB</div>
+                        <h1>Hesap Yönetimi</h1>
+                        <p>Doğrudan veritabanı üzerinden rastgele veya toplu email:pass ekle, tarihe göre sırala/filtrele, dışa aktar.</p>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <form class="panel" id="randomAccountsForm">
+                        <h2><svg class="icon" style="color:var(--accent)"><use href="#i-spark"/></svg>Rastgele Hesap Üret (email:pass)</h2>
+                        <p class="panel-description">İstediğin sayıda rastgele email:pass üretip doğrudan DB'ye yazar.</p>
+
+                        <div class="grid-2" style="margin-bottom:0; gap:12px;">
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="randKeyId">Hedef API Key</label>
+                                <select id="randKeyId" required></select>
+                            </div>
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="randCount">Adet (1 - 10.000)</label>
+                                <input id="randCount" type="number" min="1" max="10000" value="10" required>
+                            </div>
+                        </div>
+
+                        <div class="grid-3" style="margin-top:12px;">
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="randDomain">Domain (opsiyonel)</label>
+                                <input id="randDomain" placeholder="Boş = rastgele">
+                            </div>
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="randPassword">Sabit Şifre (opsiyonel)</label>
+                                <input id="randPassword" placeholder="Boş = rastgele şifre">
+                            </div>
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="randUsed">Durum (used)</label>
+                                <select id="randUsed">
+                                    <option value="0">0 (Kullanılabilir)</option>
+                                    <option value="1">1 (Kullanılmış)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="button primary"><svg class="icon"><use href="#i-plus"/></svg>Üret ve DB'ye Ekle</button>
+                            <button type="button" class="button" id="copyGeneratedBtn" hidden><svg class="icon"><use href="#i-copy"/></svg>Kopyala</button>
+                            <button type="button" class="button" id="downloadGeneratedBtn" hidden><svg class="icon"><use href="#i-download"/></svg>.txt İndir</button>
+                        </div>
+                        <pre id="generatedPreview" class="json-box" hidden></pre>
+                    </form>
+
+                    <form class="panel" id="bulkAccountsForm">
+                        <h2>Toplu / Tekli Hesap Ekle (email:pass)</h2>
+                        <p class="panel-description">Her satıra bir <span class="mono">email:password</span> yazarak doğrudan DB'ye ekle.</p>
+
+                        <div class="grid-2" style="margin-bottom:0; gap:12px;">
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="bulkKeyId">Hedef API Key</label>
+                                <select id="bulkKeyId" required></select>
+                            </div>
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="bulkUsed">Durum (used)</label>
+                                <select id="bulkUsed">
+                                    <option value="0">0 (Kullanılabilir)</option>
+                                    <option value="1">1 (Kullanılmış)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="bulkText">email:pass Listesi</label>
+                            <textarea id="bulkText" placeholder="ornek1@gmail.com:Sifre123!&#10;ornek2@outlook.com:Pass456!" required></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="button primary"><svg class="icon"><use href="#i-plus"/></svg>DB'ye Ekle</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="library-controls">
+                    <input class="grow" id="accSearch" placeholder="Email veya şifre ara...">
+                    <div class="filter-select">
+                        <select id="accKeyFilter" aria-label="API Key filtresi"><option value="">Tüm API Keyler</option></select>
+                    </div>
+                    <div class="filter-select">
+                        <select id="accUsedFilter" aria-label="Durum filtresi">
+                            <option value="all">Tüm Durumlar</option>
+                            <option value="0">Boş (used=0)</option>
+                            <option value="1">Kullanılmış (used=1)</option>
+                        </select>
+                    </div>
+                    <input class="filter-date" type="date" id="accDateFrom" aria-label="Başlangıç tarihi" title="Başlangıç tarihi">
+                    <input class="filter-date" type="date" id="accDateTo" aria-label="Bitiş tarihi" title="Bitiş tarihi">
+                    <div class="filter-select">
+                        <select id="accSort" aria-label="Sıralama">
+                            <option value="created_desc">Tarih: En Yeni</option>
+                            <option value="created_asc">Tarih: En Eski</option>
+                            <option value="id_desc">ID: Azalan</option>
+                            <option value="id_asc">ID: Artan</option>
+                            <option value="email_asc">Email: A-Z</option>
+                            <option value="email_desc">Email: Z-A</option>
+                            <option value="used_asc">Durum: Boş Önce</option>
+                            <option value="used_desc">Durum: Dolu Önce</option>
+                        </select>
+                    </div>
+                    <div class="filter-select" style="flex:0 1 110px; min-width:100px;">
+                        <select id="accPerPage" aria-label="Sayfa boyutu">
+                            <option value="25">25 / sayfa</option>
+                            <option value="50" selected>50 / sayfa</option>
+                            <option value="100">100 / sayfa</option>
+                            <option value="200">200 / sayfa</option>
+                        </select>
+                    </div>
+                    <button type="button" class="button small" id="accFilterBtn">Filtrele</button>
+                    <button type="button" class="button small" id="accResetFilterBtn">Temizle</button>
+                    <button type="button" class="button small" id="accExportBtn"><svg class="icon"><use href="#i-copy"/></svg>Kopyala</button>
+                    <button type="button" class="button small" id="accDownloadBtn"><svg class="icon"><use href="#i-download"/></svg>.txt İndir</button>
+                </div>
+
+                <div class="library-controls" style="justify-content:space-between;">
+                    <span class="muted" id="accSummaryText" style="font-size:12px;">Yükleniyor...</span>
+                    <div class="row wrap">
+                        <button type="button" class="button small" data-acc-bulk="set_used_0">Seçilenleri Boş Yap (0)</button>
+                        <button type="button" class="button small" data-acc-bulk="set_used_1">Seçilenleri Dolu Yap (1)</button>
+                        <button type="button" class="button small danger" data-acc-bulk="delete">Seçilenleri Sil</button>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="accSelectAll"></th>
+                                <th>ID</th>
+                                <th>API Key</th>
+                                <th>Email</th>
+                                <th>Şifre</th>
+                                <th>Durum (tıkla değiştir)</th>
+                                <th>Tarih</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accountsTbody"></tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="accPagination"></div>
+            </section>
+
+            <!-- TASKS -->
+            <section class="page" id="page-tasks" hidden>
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">tasks tablosu</div>
+                        <h1>Görevler</h1>
+                        <p>Tüm görev kayıtlarını tarihe, duruma ve moda göre filtrele/sırala, herhangi bir alanı güncelle.</p>
+                    </div>
+                </div>
+
+                <div class="library-controls">
+                    <input class="grow" id="taskSearch" placeholder="task_id, prompt, email, model, external_task_id ara...">
+                    <div class="filter-select">
+                        <select id="taskKeyFilter" aria-label="API Key filtresi"><option value="">Tüm API Keyler</option></select>
+                    </div>
+                    <div class="filter-select">
+                        <select id="taskStatusFilter" aria-label="Durum filtresi">
+                            <option value="">Tüm Durumlar</option>
+                            <option value="pending">pending</option>
+                            <option value="running">running</option>
+                            <option value="completed">completed</option>
+                            <option value="failed">failed</option>
+                            <option value="error">error</option>
+                            <option value="timeout">timeout</option>
+                        </select>
+                    </div>
+                    <div class="filter-select">
+                        <select id="taskModeFilter" aria-label="Mod filtresi">
+                            <option value="">Tüm Modlar</option>
+                            <option value="image">image</option>
+                            <option value="video">video</option>
+                            <option value="tts">tts</option>
+                            <option value="music">music</option>
+                        </select>
+                    </div>
+                    <div class="filter-select">
+                        <select id="taskResultFilter" aria-label="Sonuç URL filtresi">
+                            <option value="">Sonuç: Tümü</option>
+                            <option value="1">Sonucu Olanlar</option>
+                            <option value="0">Sonucu Olmayanlar</option>
+                        </select>
+                    </div>
+                    <input class="filter-date" type="date" id="taskDateFrom" aria-label="Başlangıç tarihi" title="Başlangıç tarihi">
+                    <input class="filter-date" type="date" id="taskDateTo" aria-label="Bitiş tarihi" title="Bitiş tarihi">
+                    <div class="filter-select">
+                        <select id="taskSort" aria-label="Sıralama">
+                            <option value="created_desc">Tarih: En Yeni</option>
+                            <option value="created_asc">Tarih: En Eski</option>
+                            <option value="id_desc">ID: Azalan</option>
+                            <option value="id_asc">ID: Artan</option>
+                            <option value="status_asc">Durum: A-Z</option>
+                            <option value="mode_asc">Mod: A-Z</option>
+                        </select>
+                    </div>
+                    <div class="filter-select" style="flex:0 1 110px; min-width:100px;">
+                        <select id="taskPerPage" aria-label="Sayfa boyutu">
+                            <option value="25" selected>25 / sayfa</option>
+                            <option value="50">50 / sayfa</option>
+                            <option value="100">100 / sayfa</option>
+                            <option value="200">200 / sayfa</option>
+                        </select>
+                    </div>
+                    <button type="button" class="button small" id="taskFilterBtn">Filtrele</button>
+                    <button type="button" class="button small" id="taskResetFilterBtn">Temizle</button>
+                </div>
+
+                <div class="library-controls" style="justify-content:space-between;">
+                    <span class="muted" id="taskSummaryText" style="font-size:12px;">Yükleniyor...</span>
+                    <div class="row wrap">
+                        <button type="button" class="button small" data-task-bulk="mark_failed">Seçilenleri Failed Yap</button>
+                        <button type="button" class="button small" data-task-bulk="mark_completed">Seçilenleri Completed Yap</button>
+                        <button type="button" class="button small danger" data-task-bulk="delete">Seçilenleri Sil</button>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="taskSelectAll"></th>
+                                <th>ID</th>
+                                <th>Task ID</th>
+                                <th>API Key</th>
+                                <th>Mod / Model</th>
+                                <th>Durum</th>
+                                <th>Hesap</th>
+                                <th>Prompt</th>
+                                <th>Tarih</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasksTbody"></tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="taskPagination"></div>
+            </section>
+
+            <!-- SQL & SCHEMA -->
+            <section class="page" id="page-sql" hidden>
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">Tam yetkili erişim</div>
+                        <h1>SQL Konsolu &amp; DB Şeması</h1>
+                        <p>Doğrudan veritabanına ham SQL sorguları çalıştır ve tüm tablo yapısını gör.</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>SQL Sorgusu Çalıştır</h2>
+                    <p class="panel-description">SELECT, INSERT, UPDATE, DELETE veya şema sorguları. Kısayol: <kbd>Ctrl</kbd>+<kbd>Enter</kbd>.</p>
+                    <div class="form-actions" style="margin-top:0; margin-bottom:10px;">
+                        <button type="button" class="button small" data-sql-preset="SELECT * FROM api_keys ORDER BY created_at DESC;">api_keys</button>
+                        <button type="button" class="button small" data-sql-preset="SELECT id, api_key_id, email, password, used, created_at FROM accounts ORDER BY created_at DESC LIMIT 100;">accounts (son 100)</button>
+                        <button type="button" class="button small" data-sql-preset="SELECT id, api_key_id, task_id, status, mode, model, account_email, created_at FROM tasks ORDER BY created_at DESC LIMIT 100;">tasks (son 100)</button>
+                        <button type="button" class="button small" data-sql-preset="SELECT api_key_id, COUNT(*) AS total, SUM(CASE WHEN used=0 THEN 1 ELSE 0 END) AS free FROM accounts GROUP BY api_key_id;">Hesap Özeti</button>
+                    </div>
+                    <textarea id="sqlInput" class="mono" style="min-height:130px;" placeholder="SELECT * FROM accounts LIMIT 20;"></textarea>
+                    <div class="form-actions">
+                        <button type="button" class="button primary" id="runSqlBtn">Sorguyu Çalıştır</button>
+                    </div>
+                    <div id="sqlMeta" class="field-hint"></div>
+                    <div id="sqlResultWrap" class="table-wrap" style="margin-top:14px;" hidden>
+                        <table>
+                            <thead id="sqlThead"></thead>
+                            <tbody id="sqlTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>Tablo Şemaları</h2>
+                    <p class="panel-description">Veritabanındaki mevcut tablolar ve sütun tanımları.</p>
+                    <div class="schema-grid" id="schemaGrid"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit Account Modal -->
+    <dialog id="accountModal">
+        <div class="modal-head">
+            <h2>Hesabı Düzenle</h2>
+            <button type="button" class="icon-button" onclick="closeModal('accountModal')"><svg class="icon"><use href="#i-close"/></svg></button>
+        </div>
+        <form id="editAccountForm">
+            <div class="modal-body">
+                <input type="hidden" id="editAccId">
+                <div class="form-field" style="margin-top:0;">
+                    <label for="editAccKeyId">API Key</label>
+                    <select id="editAccKeyId" required></select>
+                </div>
+                <div class="form-field">
+                    <label for="editAccEmail">Email</label>
+                    <input id="editAccEmail" required>
+                </div>
+                <div class="form-field">
+                    <label for="editAccPassword">Şifre</label>
+                    <input id="editAccPassword" required>
+                </div>
+                <div class="form-field">
+                    <label for="editAccUsed">Durum (used)</label>
+                    <select id="editAccUsed">
+                        <option value="0">0 (Kullanılabilir)</option>
+                        <option value="1">1 (Kullanılmış)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <span></span>
+                <div class="row">
+                    <button type="button" class="button" onclick="closeModal('accountModal')">İptal</button>
+                    <button type="submit" class="button primary">Kaydet</button>
+                </div>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Edit Task Modal -->
+    <dialog id="taskModal">
+        <div class="modal-head">
+            <h2>Görev Detay &amp; Düzenleme</h2>
+            <button type="button" class="icon-button" onclick="closeModal('taskModal')"><svg class="icon"><use href="#i-close"/></svg></button>
+        </div>
+        <form id="editTaskForm">
+            <div class="modal-body" id="taskModalFields"></div>
+            <div class="modal-foot">
+                <div class="row wrap">
+                    <button type="button" class="button small" id="releaseTaskAccountBtn" hidden>Hesabı Boşa Çek (used=0)</button>
+                    <a class="button small" id="openTaskResultBtn" target="_blank" rel="noopener noreferrer" hidden><svg class="icon"><use href="#i-external"/></svg>Sonucu Aç</a>
+                </div>
+                <div class="row">
+                    <button type="button" class="button" onclick="closeModal('taskModal')">İptal</button>
+                    <button type="submit" class="button primary">Değişiklikleri Kaydet</button>
+                </div>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Edit Key Modal -->
+    <dialog id="keyModal">
+        <div class="modal-head">
+            <h2>API Anahtarını Düzenle</h2>
+            <button type="button" class="icon-button" onclick="closeModal('keyModal')"><svg class="icon"><use href="#i-close"/></svg></button>
+        </div>
+        <form id="editKeyForm">
+            <div class="modal-body">
+                <input type="hidden" id="editKeyId">
+                <div class="form-field" style="margin-top:0;">
+                    <label for="editKeyValue">API Key Değeri</label>
+                    <input id="editKeyValue" class="mono" required>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <span></span>
+                <div class="row">
+                    <button type="button" class="button" onclick="closeModal('keyModal')">İptal</button>
+                    <button type="submit" class="button primary">Güncelle</button>
+                </div>
+            </div>
+        </form>
+    </dialog>
+
+    <div class="select-menu" id="selectMenu" role="listbox" hidden></div>
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+    <script>
+        'use strict';
+
+        const $ = id => document.getElementById(id);
+        const $$ = sel => [...document.querySelectorAll(sel)];
+        const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
+
+        const state = {
+            page: 'overview',
+            keys: [],
+            accountsById: new Map(),
+            accPage: 1,
+            taskPage: 1,
+            lastGeneratedPreview: '',
+        };
+
+        const pageTitles = {
+            overview: 'Genel Bakış',
+            keys: 'API Anahtarları',
+            accounts: 'Hesaplar',
+            tasks: 'Görevler',
+            sql: 'SQL & Şema',
+        };
+
+        function esc(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function toast(message, isError = false) {
+            const stack = $('toastStack');
+            while (stack.children.length >= 4) stack.firstElementChild.remove();
+            const item = document.createElement('div');
+            item.className = 'toast' + (isError ? ' error' : '');
+            item.innerHTML = icon(isError ? 'info' : 'check');
+            const span = document.createElement('span');
+            span.textContent = message;
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'icon-button';
+            closeBtn.innerHTML = icon('close');
+            closeBtn.onclick = () => item.remove();
+            item.append(span, closeBtn);
+            stack.append(item);
+            setTimeout(() => item.isConnected && item.remove(), isError ? 5500 : 3200);
+        }
+
+        function downloadTxt(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        /* Tema uyumlu, klavyeyle kullanılabilen combobox sistemi (index.html ile aynı) */
+        const selects = new Map();
+        let openedSelect = null;
+        let activeOption = -1;
+        let typeBuffer = '';
+        let typeTimer = null;
+
+        function enabledOption(option) {
+            return !option.disabled && !option.hidden &&
+                !(option.parentElement instanceof HTMLOptGroupElement && option.parentElement.disabled);
+        }
+
+        function closeSelect(restore = false) {
+            const old = openedSelect;
+            if (old) {
+                old.button.setAttribute('aria-expanded', 'false');
+                old.button.removeAttribute('aria-activedescendant');
+            }
+            openedSelect = null;
+            activeOption = -1;
+            typeBuffer = '';
+            clearTimeout(typeTimer);
+            const menu = $('selectMenu');
+            menu.hidden = true;
+            menu.replaceChildren();
+            if (menu.parentElement !== document.body) {
+                document.body.appendChild(menu);
+            }
+            if (restore && old && !old.button.disabled) old.button.focus();
+        }
+
+        function refreshSelect(select) {
+            const entry = selects.get(select);
+            if (!entry) return;
+            const text = select.selectedOptions[0]?.label || 'Seçenek yok';
+            entry.text.textContent = text;
+            entry.button.title = text;
+            entry.button.disabled = select.disabled;
+            entry.button.setAttribute('aria-label', `${entry.label}: ${text}`);
+            if (openedSelect === entry) closeSelect();
+        }
+
+        function markOption(index) {
+            activeOption = index;
+            const menu = $('selectMenu');
+            [...menu.children].forEach(row => {
+                const active = Number(row.dataset.index) === index;
+                row.classList.toggle('active', active);
+                if (active && openedSelect) {
+                    openedSelect.button.setAttribute('aria-activedescendant', row.id);
+                    if (row.offsetTop < menu.scrollTop) menu.scrollTop = row.offsetTop;
+                    if (row.offsetTop + row.offsetHeight > menu.scrollTop + menu.clientHeight) {
+                        menu.scrollTop = row.offsetTop + row.offsetHeight - menu.clientHeight;
+                    }
+                }
+            });
+        }
+
+        function chooseOption(index) {
+            const entry = openedSelect;
+            const option = entry?.select.options[index];
+            if (!option || !enabledOption(option)) return;
+            entry.select.selectedIndex = index;
+            closeSelect(true);
+            refreshSelect(entry.select);
+            entry.select.dispatchEvent(new Event('input', { bubbles: true }));
+            entry.select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function openSelect(entry) {
+            if (entry.select.disabled) return;
+            if (openedSelect === entry) return closeSelect();
+            closeSelect();
+            openedSelect = entry;
+            const menu = $('selectMenu');
+            const openDialog = entry.select.closest('dialog[open]');
+            if (openDialog) openDialog.appendChild(menu);
+            menu.setAttribute('aria-label', entry.label);
+
+            [...entry.select.options].forEach((option, index) => {
+                if (option.hidden) return;
+                const row = document.createElement('div');
+                row.className = 'select-option';
+                row.id = `option-${entry.select.id}-${index}`;
+                row.dataset.index = index;
+                row.setAttribute('role', 'option');
+                row.setAttribute('aria-selected', String(option.selected));
+                row.setAttribute('aria-disabled', String(!enabledOption(option)));
+                const label = document.createElement('span');
+                label.textContent = option.label;
+                row.append(label);
+                if (option.selected) row.insertAdjacentHTML('beforeend', icon('check'));
+                row.addEventListener('pointermove', () => {
+                    if (enabledOption(option)) markOption(index);
+                });
+                row.addEventListener('click', () => chooseOption(index));
+                menu.append(row);
+            });
+
+            menu.hidden = false;
+            entry.button.setAttribute('aria-expanded', 'true');
+
+            const rect = entry.button.getBoundingClientRect();
+            const viewportWidth = document.documentElement.clientWidth;
+            const viewportHeight = window.innerHeight;
+            const margin = 10;
+            const gap = 6;
+            const width = Math.min(Math.max(rect.width, 200), viewportWidth - margin * 2);
+            const below = viewportHeight - rect.bottom - margin - gap;
+            const above = rect.top - margin - gap;
+            const placeAbove = below < 190 && above > below;
+            const available = Math.max(0, placeAbove ? above : below);
+
+            menu.style.width = `${width}px`;
+            menu.style.maxHeight = `${Math.min(310, available)}px`;
+            menu.style.left = `${Math.max(margin, Math.min(rect.left, viewportWidth - width - margin))}px`;
+            menu.style.top = placeAbove
+                ? `${Math.max(margin, rect.top - gap - menu.offsetHeight)}px`
+                : `${rect.bottom + gap}px`;
+
+            const options = [...entry.select.options];
+            const selected = entry.select.selectedIndex;
+            const initial = options[selected] && enabledOption(options[selected])
+                ? selected
+                : options.findIndex(enabledOption);
+            if (initial >= 0) markOption(initial);
+        }
+
+        function enhanceSelect(select) {
+            if (selects.has(select)) return;
+            const labels = [...(select.labels || [])];
+            const label = select.getAttribute('aria-label') ||
+                labels.map(item => item.textContent.trim()).filter(Boolean).join(' ') ||
+                'Seçenek';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'select-ui';
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.id = `trigger-${select.id}`;
+            button.className = 'select-trigger';
+            button.setAttribute('role', 'combobox');
+            button.setAttribute('aria-haspopup', 'listbox');
+            button.setAttribute('aria-expanded', 'false');
+            button.setAttribute('aria-controls', 'selectMenu');
+
+            const text = document.createElement('span');
+            text.className = 'select-value';
+            button.append(text);
+            button.insertAdjacentHTML('beforeend', icon('chevron'));
+
+            select.before(wrapper);
+            wrapper.append(select, button);
+
+            select.classList.add('select-native');
+            select.tabIndex = -1;
+            select.setAttribute('aria-hidden', 'true');
+            labels.forEach(item => {
+                if (item.htmlFor === select.id) item.htmlFor = button.id;
+            });
+
+            const entry = { select, button, text, label };
+            selects.set(select, entry);
+
+            button.addEventListener('click', () => openSelect(entry));
+            button.addEventListener('keydown', event => {
+                const navigation = ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key);
+                if (navigation) {
+                    event.preventDefault();
+                    const wasOpen = openedSelect === entry;
+                    if (!wasOpen) openSelect(entry);
+                    const indices = [...select.options]
+                        .map((option, index) => enabledOption(option) ? index : -1)
+                        .filter(index => index >= 0);
+                    if (!indices.length) return;
+                    if (!wasOpen && ['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+                    const current = indices.indexOf(activeOption);
+                    let next = Math.max(0, current);
+                    if (event.key === 'Home') next = 0;
+                    if (event.key === 'End') next = indices.length - 1;
+                    if (event.key === 'ArrowDown') next = Math.min(indices.length - 1, current + 1);
+                    if (event.key === 'ArrowUp') next = Math.max(0, current - 1);
+                    markOption(indices[next]);
+                    return;
+                }
+                if (openedSelect === entry && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    chooseOption(activeOption);
+                    return;
+                }
+                if (event.key === 'Tab') {
+                    closeSelect();
+                    return;
+                }
+                if (event.key.length === 1 && event.key !== ' ' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                    event.preventDefault();
+                    if (openedSelect !== entry) openSelect(entry);
+                    clearTimeout(typeTimer);
+                    typeBuffer += event.key.toLocaleLowerCase('tr');
+                    let match = [...select.options].findIndex(option =>
+                        enabledOption(option) && option.label.toLocaleLowerCase('tr').startsWith(typeBuffer)
+                    );
+                    if (match < 0 && typeBuffer.length > 1) {
+                        typeBuffer = event.key.toLocaleLowerCase('tr');
+                        match = [...select.options].findIndex(option =>
+                            enabledOption(option) && option.label.toLocaleLowerCase('tr').startsWith(typeBuffer)
+                        );
+                    }
+                    if (match >= 0) markOption(match);
+                    typeTimer = setTimeout(() => { typeBuffer = ''; }, 700);
+                }
+            });
+
+            select.addEventListener('change', () => refreshSelect(select));
+            new MutationObserver(() => refreshSelect(select)).observe(select, {
+                childList: true,
+                subtree: true,
+                characterData: true,
+                attributes: true,
+                attributeFilter: ['disabled', 'selected', 'label', 'hidden']
+            });
+            refreshSelect(select);
+        }
+
+        async function apiFetch(path, options = {}) {
+            const headers = { ...(options.headers || {}) };
+            if (options.body && !headers['Content-Type']) {
+                headers['Content-Type'] = 'application/json';
+            }
+            const res = await fetch(path, {
+                ...options,
+                headers,
+                credentials: 'same-origin',
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data.error || `HTTP ${res.status}`);
+            }
+            return data;
+        }
+
+        function applyTheme(value) {
+            const selected = value === 'light' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = selected;
+            try { localStorage.setItem('cl_theme', selected); } catch {}
+            document.querySelector('meta[name="theme-color"]').content =
+                selected === 'light' ? '#f7f6f3' : '#0b0b0d';
+            $$('[data-theme-choice]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.themeChoice === selected);
+            });
+        }
+
+        function setSidebar(open) {
+            closeSelect();
+            $('sidebar').classList.toggle('open', open);
+            $('navOverlay').hidden = !open;
+        }
+
+        function closeModal(id) {
+            closeSelect();
+            $(id).close();
+        }
+
+        async function showPage(page) {
+            if (!pageTitles[page]) return;
+            closeSelect();
+            state.page = page;
+            $$('.page').forEach(sec => sec.hidden = sec.id !== `page-${page}`);
+            $$('[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
+            $('pageTitle').textContent = pageTitles[page];
+            setSidebar(false);
+            await refreshCurrentPage();
+        }
+
+        async function refreshCurrentPage() {
+            try {
+                if (state.page === 'overview') await loadOverview();
+                else if (state.page === 'keys') await loadKeys();
+                else if (state.page === 'accounts') {
+                    await ensureKeysLoaded();
+                    await loadAccounts(state.accPage);
+                } else if (state.page === 'tasks') {
+                    await ensureKeysLoaded();
+                    await loadTasks(state.taskPage);
+                } else if (state.page === 'sql') {
+                    await loadSchema();
+                }
+            } catch (err) {
+                toast(err.message, true);
+            }
+        }
+
+        async function ensureKeysLoaded(query = '') {
+            const data = await apiFetch(`/admin/api/keys${query}`);
+            state.keys = data.api_keys || [];
+            populateKeySelects();
+        }
+
+        function populateKeySelects() {
+            const targetIds = ['randKeyId', 'bulkKeyId', 'editAccKeyId'];
+            const filterIds = ['accKeyFilter', 'taskKeyFilter'];
+            targetIds.forEach(id => {
+                const el = $(id);
+                if (!el) return;
+                const prev = el.value;
+                el.innerHTML = state.keys.length
+                    ? state.keys.map(k => `<option value="${k.id}">#${k.id} · ${esc(k.key.slice(0, 22))}${k.key.length > 22 ? '…' : ''} (${k.accounts_unused} boş)</option>`).join('')
+                    : '<option value="">Önce API Key oluşturun</option>';
+                if (prev && [...el.options].some(o => o.value === prev)) el.value = prev;
+                refreshSelect(el);
+            });
+            filterIds.forEach(id => {
+                const el = $(id);
+                if (!el) return;
+                const prev = el.value;
+                el.innerHTML = '<option value="">Tüm API Keyler</option>' +
+                    state.keys.map(k => `<option value="${k.id}">#${k.id} · ${esc(k.key.slice(0, 18))}${k.key.length > 18 ? '…' : ''}</option>`).join('');
+                if (prev && [...el.options].some(o => o.value === prev)) el.value = prev;
+                refreshSelect(el);
+            });
+        }
+
+        // --- OVERVIEW ---
+        async function loadOverview() {
+            const data = await apiFetch('/admin/api/overview');
+            $('dbBadge').textContent = (data.db_type || 'db').toUpperCase();
+
+            const cards = [
+                { icon: 'key', value: data.api_keys_count, label: 'Toplam API Anahtarı', sub: '' },
+                { icon: 'users', value: data.accounts.total, label: 'Toplam Hesap', sub: `Bugün eklenen: +${data.accounts_today || 0}` },
+                { icon: 'check', value: data.accounts.unused, label: 'Kullanılabilir Hesap (used=0)', sub: '' },
+                { icon: 'info', value: data.accounts.used, label: 'Kullanılmış Hesap (used=1)', sub: '' },
+                { icon: 'grid', value: data.tasks_total, label: 'Toplam Görev', sub: `Bugün açılan: +${data.tasks_today || 0}` },
+            ];
+            $('overviewCards').innerHTML = cards.map(c => `
+                <div class="quota-card">
+                    ${icon(c.icon)}
+                    <strong>${c.value}</strong>
+                    <span>${esc(c.label)}</span>
+                    ${c.sub ? `<small>${esc(c.sub)}</small>` : ''}
+                </div>
+            `).join('');
+
+            $('statusBreakdown').innerHTML = (data.tasks_by_status || []).length
+                ? data.tasks_by_status.map(r => `
+                    <div class="row" style="justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line);">
+                        <span class="badge" data-state="${esc(r.status)}">${esc(r.status)}</span>
+                        <strong>${r.count}</strong>
+                    </div>
+                `).join('')
+                : '<p class="muted" style="font-size:12px;">Henüz görev yok.</p>';
+
+            $('modeBreakdown').innerHTML = (data.tasks_by_mode || []).length
+                ? data.tasks_by_mode.map(r => `
+                    <div class="row" style="justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line);">
+                        <span class="badge">${esc(r.mode)}</span>
+                        <strong>${r.count}</strong>
+                    </div>
+                `).join('')
+                : '<p class="muted" style="font-size:12px;">Henüz görev yok.</p>';
+
+            const recentTbody = $('recentTasksTbody');
+            const recent = data.recent_tasks || [];
+            recentTbody.innerHTML = recent.length
+                ? recent.map(t => `
+                    <tr>
+                        <td class="mono">#${t.id}</td>
+                        <td class="mono truncate" style="max-width:160px;">${esc(t.task_id)}</td>
+                        <td><span class="badge">${esc(t.mode || '-')}</span> <span class="muted">${esc(t.model || '')}</span></td>
+                        <td><span class="badge" data-state="${esc(t.status)}">${esc(t.status)}</span></td>
+                        <td class="mono">${esc(t.account_email || '-')}</td>
+                        <td class="muted">${esc(t.created_at || '-')}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="6" class="muted" style="text-align:center;padding:18px;">Henüz görev yok.</td></tr>';
+        }
+
+        // --- API KEYS ---
+        async function loadKeys() {
+            const params = new URLSearchParams({
+                sort: $('keySort').value,
+                search: $('keySearch').value.trim(),
+            });
+            if ($('keyDateFrom').value) params.set('date_from', $('keyDateFrom').value);
+            if ($('keyDateTo').value) params.set('date_to', $('keyDateTo').value);
+
+            await ensureKeysLoaded(`?${params.toString()}`);
+            const tbody = $('keysTbody');
+            if (!state.keys.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center;padding:24px;">API anahtarı bulunamadı.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = state.keys.map(k => `
+                <tr>
+                    <td class="mono">#${k.id}</td>
+                    <td>
+                        <div class="row">
+                            <span class="mono truncate" title="${esc(k.key)}">${esc(k.key)}</span>
+                            <button type="button" class="button small" onclick="copyKeyById(${k.id})">${icon('copy')}</button>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge" data-state="unused">${k.accounts_unused} boş</span>
+                        <span class="badge" data-state="used">${k.accounts_used} dolu</span>
+                        <span class="badge">${k.accounts_total} toplam</span>
+                    </td>
+                    <td>
+                        <span class="badge">${k.tasks_running} aktif</span>
+                        <span class="badge" data-state="completed">${k.tasks_completed} tamam</span>
+                        <span class="badge" data-state="failed">${k.tasks_failed} hata</span>
+                        <span class="badge">${k.tasks_total} toplam</span>
+                    </td>
+                    <td class="muted">${esc(k.created_at || '-')}</td>
+                    <td>
+                        <div class="row wrap">
+                            <button type="button" class="button small" onclick="jumpToAccounts(${k.id})">Hesaplar</button>
+                            <button type="button" class="button small" onclick="jumpToTasks(${k.id})">Görevler</button>
+                            <button type="button" class="button small" onclick="openEditKey(${k.id})">${icon('edit')}</button>
+                            <button type="button" class="button small danger" onclick="deleteKey(${k.id})">${icon('trash')}</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.jumpToAccounts = async keyId => {
+            await showPage('accounts');
+            $('accKeyFilter').value = String(keyId);
+            $('randKeyId').value = String(keyId);
+            $('bulkKeyId').value = String(keyId);
+            refreshSelect($('accKeyFilter'));
+            refreshSelect($('randKeyId'));
+            refreshSelect($('bulkKeyId'));
+            await loadAccounts(1);
+        };
+
+        window.jumpToTasks = async keyId => {
+            await showPage('tasks');
+            $('taskKeyFilter').value = String(keyId);
+            refreshSelect($('taskKeyFilter'));
+            await loadTasks(1);
+        };
+
+        window.copyKeyById = id => {
+            const k = state.keys.find(item => item.id === id);
+            if (k) copyText(k.key);
+        };
+
+        window.openEditKey = id => {
+            const k = state.keys.find(item => item.id === id);
+            if (!k) return;
+            $('editKeyId').value = k.id;
+            $('editKeyValue').value = k.key;
+            $('keyModal').showModal();
+        };
+
+        window.deleteKey = async id => {
+            if (!confirm(`#${id} numaralı API Key ve ona bağlı TÜM hesaplar ve görevler silinecek. Emin misin?`)) return;
+            try {
+                const res = await apiFetch(`/admin/api/keys/${id}`, { method: 'DELETE' });
+                toast(res.message);
+                await loadKeys();
+            } catch (err) {
+                toast(err.message, true);
+            }
+        };
+
+        // --- ACCOUNTS ---
+        function buildAccountFilterParams(page) {
+            const params = new URLSearchParams({
+                used: $('accUsedFilter').value,
+                search: $('accSearch').value.trim(),
+                sort: $('accSort').value,
+            });
+            if (page != null) {
+                params.set('page', String(page));
+                params.set('per_page', $('accPerPage').value);
+            }
+            if ($('accKeyFilter').value) params.set('api_key_id', $('accKeyFilter').value);
+            if ($('accDateFrom').value) params.set('date_from', $('accDateFrom').value);
+            if ($('accDateTo').value) params.set('date_to', $('accDateTo').value);
+            return params;
+        }
+
+        async function loadAccounts(page = 1) {
+            const params = buildAccountFilterParams(page);
+            const data = await apiFetch(`/admin/api/accounts?${params.toString()}`);
+            state.accPage = data.page;
+            $('accSummaryText').textContent = `Toplam: ${data.total} · Boş (used=0): ${data.unused} · Kullanılmış (used=1): ${data.used}`;
+            $('accSelectAll').checked = false;
+
+            const tbody = $('accountsTbody');
+            state.accountsById.clear();
+            if (!data.accounts.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="muted" style="text-align:center;padding:24px;">Kayıt bulunamadı.</td></tr>';
+            } else {
+                data.accounts.forEach(a => state.accountsById.set(a.id, a));
+                tbody.innerHTML = data.accounts.map(a => `
+                    <tr>
+                        <td><input type="checkbox" class="acc-cb" value="${a.id}"></td>
+                        <td class="mono">#${a.id}</td>
+                        <td class="mono" title="${esc(a.api_key || '')}">#${a.api_key_id}</td>
+                        <td class="mono">${esc(a.email)}</td>
+                        <td class="mono">${esc(a.password)}</td>
+                        <td>
+                            <button type="button" class="badge clickable" data-state="${a.used ? 'used' : 'unused'}" onclick="toggleAccountUsed(${a.id}, ${a.used ? 0 : 1})">
+                                ${a.used ? 'used=1 (Dolu)' : 'used=0 (Boş)'}
+                            </button>
+                        </td>
+                        <td class="muted">${esc(a.created_at || '-')}</td>
+                        <td>
+                            <div class="row">
+                                <button type="button" class="button small" title="email:pass kopyala" onclick="copyAccountPair(${a.id})">${icon('copy')}</button>
+                                <button type="button" class="button small" onclick="openEditAccount(${a.id})">${icon('edit')}</button>
+                                <button type="button" class="button small danger" onclick="deleteAccount(${a.id})">${icon('trash')}</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            renderPagination('accPagination', data.page, data.total_pages, loadAccounts);
+        }
+
+        window.copyAccountPair = id => {
+            const acc = state.accountsById.get(id);
+            if (acc) copyText(`${acc.email}:${acc.password}`);
+        };
+
+        window.toggleAccountUsed = async (id, newUsed) => {
+            try {
+                await apiFetch(`/admin/api/accounts/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ used: newUsed }),
+                });
+                toast(`Hesap #${id} used=${newUsed} yapıldı`);
+                await loadAccounts(state.accPage);
+            } catch (err) {
+                toast(err.message, true);
+            }
+        };
+
+        window.openEditAccount = id => {
+            const acc = state.accountsById.get(id);
+            if (!acc) return;
+            $('editAccId').value = acc.id;
+            $('editAccKeyId').value = String(acc.api_key_id);
+            $('editAccEmail').value = acc.email;
+            $('editAccPassword').value = acc.password;
+            $('editAccUsed').value = String(acc.used ? 1 : 0);
+            refreshSelect($('editAccKeyId'));
+            refreshSelect($('editAccUsed'));
+            $('accountModal').showModal();
+        };
+
+        window.deleteAccount = async id => {
+            if (!confirm(`Hesap #${id} silinsin mi?`)) return;
+            try {
+                await apiFetch(`/admin/api/accounts/${id}`, { method: 'DELETE' });
+                toast('Hesap silindi');
+                await loadAccounts(state.accPage);
+            } catch (err) {
+                toast(err.message, true);
+            }
+        };
+
+        // --- TASKS ---
+        async function loadTasks(page = 1) {
+            const params = new URLSearchParams({
+                page: String(page),
+                per_page: $('taskPerPage').value,
+                status: $('taskStatusFilter').value,
+                mode: $('taskModeFilter').value,
+                has_result: $('taskResultFilter').value,
+                sort: $('taskSort').value,
+                search: $('taskSearch').value.trim(),
+            });
+            if ($('taskKeyFilter').value) params.set('api_key_id', $('taskKeyFilter').value);
+            if ($('taskDateFrom').value) params.set('date_from', $('taskDateFrom').value);
+            if ($('taskDateTo').value) params.set('date_to', $('taskDateTo').value);
+
+            const data = await apiFetch(`/admin/api/tasks?${params.toString()}`);
+            state.taskPage = data.page;
+            $('taskSummaryText').textContent = `Toplam ${data.total} görev (Sayfa ${data.page} / ${data.total_pages})`;
+            $('taskSelectAll').checked = false;
+
+            const tbody = $('tasksTbody');
+            if (!data.tasks.length) {
+                tbody.innerHTML = '<tr><td colspan="10" class="muted" style="text-align:center;padding:24px;">Görev bulunamadı.</td></tr>';
+            } else {
+                tbody.innerHTML = data.tasks.map(t => `
+                    <tr>
+                        <td><input type="checkbox" class="task-cb" value="${t.id}"></td>
+                        <td class="mono">#${t.id}</td>
+                        <td class="mono truncate" style="max-width:140px;" title="${esc(t.task_id)}">${esc(t.task_id)}</td>
+                        <td class="mono">#${t.api_key_id}</td>
+                        <td><span class="badge">${esc(t.mode || '-')}</span> <span class="muted">${esc(t.model || '')}</span></td>
+                        <td><span class="badge" data-state="${esc(t.status)}">${esc(t.status)}</span></td>
+                        <td class="mono truncate" style="max-width:160px;" title="${esc(t.account_email || '')}">${esc(t.account_email || '-')}</td>
+                        <td class="truncate" title="${esc(t.prompt || '')}">${esc(t.prompt || '-')}</td>
+                        <td class="muted">${esc(t.created_at || '-')}</td>
+                        <td>
+                            <div class="row">
+                                ${t.result_url ? `<a class="button small" href="${esc(t.result_url)}" target="_blank" rel="noopener noreferrer" title="Sonucu Aç">${icon('external')}</a>` : ''}
+                                <button type="button" class="button small" onclick="openEditTask(${t.id})">${icon('edit')} Detay</button>
+                                <button type="button" class="button small danger" onclick="deleteTask(${t.id})">${icon('trash')}</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            renderPagination('taskPagination', data.page, data.total_pages, loadTasks);
+        }
+
+        const TASK_LONG_FIELDS = new Set(['prompt', 'lyrics', 'logs', 'reference_image_urls', 'token']);
+        const TASK_READONLY_FIELDS = new Set(['id', 'created_at']);
+        const TASK_STATUS_OPTIONS = ['pending', 'running', 'completed', 'failed', 'error', 'timeout'];
+        const TASK_MODE_OPTIONS = ['image', 'video', 'tts', 'music'];
+
+        window.openEditTask = async rowId => {
+            try {
+                const data = await apiFetch(`/admin/api/tasks/${rowId}`);
+                const task = data.task;
+                const container = $('taskModalFields');
+                container.dataset.rowId = rowId;
+
+                const releaseBtn = $('releaseTaskAccountBtn');
+                releaseBtn.hidden = !task.account_email;
+                releaseBtn.onclick = async () => {
+                    try {
+                        const r = await apiFetch(`/admin/api/tasks/${rowId}/release-account`, { method: 'POST' });
+                        toast(r.message);
+                    } catch (err) {
+                        toast(err.message, true);
+                    }
+                };
+
+                const openResultBtn = $('openTaskResultBtn');
+                if (task.result_url) {
+                    openResultBtn.href = task.result_url;
+                    openResultBtn.hidden = false;
+                } else {
+                    openResultBtn.hidden = true;
+                }
+
+                const shortFields = [];
+                const longFields = [];
+
+                Object.keys(task).forEach(col => {
+                    const val = task[col] ?? '';
+                    const isReadonly = TASK_READONLY_FIELDS.has(col);
+                    if (TASK_LONG_FIELDS.has(col)) {
+                        longFields.push(`
+                            <div class="form-field">
+                                <label for="task_col_${col}">${esc(col)}</label>
+                                <textarea id="task_col_${col}" data-col="${col}" class="mono" ${isReadonly ? 'readonly' : ''}>${esc(val)}</textarea>
+                            </div>
+                        `);
+                    } else if (col === 'status') {
+                        const opts = [...new Set([...TASK_STATUS_OPTIONS, String(val)].filter(Boolean))];
+                        shortFields.push(`
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="task_col_${col}">${esc(col)}</label>
+                                <select id="task_col_${col}" data-col="${col}">
+                                    ${opts.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+                                </select>
+                            </div>
+                        `);
+                    } else if (col === 'mode') {
+                        const opts = [...new Set([...TASK_MODE_OPTIONS, String(val)].filter(Boolean))];
+                        shortFields.push(`
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="task_col_${col}">${esc(col)}</label>
+                                <select id="task_col_${col}" data-col="${col}">
+                                    ${opts.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+                                </select>
+                            </div>
+                        `);
+                    } else if (col === 'api_key_id' && state.keys.length) {
+                        shortFields.push(`
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="task_col_${col}">${esc(col)}</label>
+                                <select id="task_col_${col}" data-col="${col}">
+                                    ${state.keys.map(k => `<option value="${k.id}" ${Number(k.id) === Number(val) ? 'selected' : ''}>#${k.id} · ${esc(k.key.slice(0, 18))}…</option>`).join('')}
+                                </select>
+                            </div>
+                        `);
+                    } else {
+                        shortFields.push(`
+                            <div class="form-field" style="margin-top:0;">
+                                <label for="task_col_${col}">${esc(col)}</label>
+                                <input id="task_col_${col}" data-col="${col}" value="${esc(val)}" ${isReadonly ? 'readonly' : ''}>
+                            </div>
+                        `);
+                    }
+                });
+
+                container.innerHTML = `<div class="grid-3">${shortFields.join('')}</div>${longFields.join('')}`;
+                container.querySelectorAll('select').forEach(enhanceSelect);
+                $('taskModal').showModal();
+            } catch (err) {
+                toast(err.message, true);
+            }
+        };
+
+        window.deleteTask = async rowId => {
+            if (!confirm(`Görev #${rowId} silinsin mi?`)) return;
+            try {
+                await apiFetch(`/admin/api/tasks/${rowId}`, { method: 'DELETE' });
+                toast('Görev silindi');
+                await loadTasks(state.taskPage);
+            } catch (err) {
+                toast(err.message, true);
+            }
+        };
+
+        // --- SCHEMA & SQL ---
+        async function loadSchema() {
+            const data = await apiFetch('/admin/api/schema');
+            const grid = $('schemaGrid');
+            const tables = data.tables || {};
+            grid.innerHTML = Object.entries(tables).map(([tableName, cols]) => `
+                <div class="schema-card">
+                    <h3>${esc(tableName)}</h3>
+                    ${cols.map(c => `
+                        <div class="schema-col">
+                            <span class="mono">${esc(c.name)}</span>
+                            <span class="muted">${esc(c.type)}${c.nullable ? '' : ' · NOT NULL'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        async function runSql() {
+            const sql = $('sqlInput').value.trim();
+            if (!sql) return toast('SQL sorgusu girin', true);
+            try {
+                const res = await apiFetch('/admin/api/sql', {
+                    method: 'POST',
+                    body: JSON.stringify({ sql }),
+                });
+                const wrap = $('sqlResultWrap');
+                if (res.has_rows) {
+                    $('sqlMeta').textContent = `${res.row_count} satır döndü${res.truncated ? ' (ilk 500 satır gösteriliyor)' : ''}.`;
+                    $('sqlThead').innerHTML = `<tr>${res.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr>`;
+                    $('sqlTbody').innerHTML = res.rows.length
+                        ? res.rows.map(r => `<tr>${res.columns.map(c => `<td class="mono truncate" title="${esc(r[c])}">${esc(r[c] ?? 'NULL')}</td>`).join('')}</tr>`).join('')
+                        : `<tr><td colspan="${res.columns.length}" class="muted" style="text-align:center;">Boş sonuç</td></tr>`;
+                    wrap.hidden = false;
+                } else {
+                    wrap.hidden = true;
+                    $('sqlMeta').textContent = res.message || `Tamamlandı (${res.row_count} satır).`;
+                    toast(res.message || 'Sorgu çalıştırıldı');
+                }
+            } catch (err) {
+                $('sqlMeta').textContent = `Hata: ${err.message}`;
+                toast(err.message, true);
+            }
+        }
+
+        // --- HELPERS ---
+        function renderPagination(containerId, page, totalPages, onChange) {
+            const el = $(containerId);
+            if (totalPages <= 1) {
+                el.innerHTML = '';
+                return;
+            }
+            el.innerHTML = `
+                <span class="muted" style="font-size:12px;">Sayfa ${page} / ${totalPages}</span>
+                <div class="page-numbers">
+                    <button type="button" class="button small" ${page <= 1 ? 'disabled' : ''} id="${containerId}_prev">Önceki</button>
+                    <form class="page-jump" id="${containerId}_jump">
+                        <label for="${containerId}_input">Sayfa</label>
+                        <input id="${containerId}_input" type="number" min="1" max="${totalPages}" value="${page}" required>
+                        <button type="submit" class="button small">Git</button>
+                    </form>
+                    <button type="button" class="button small" ${page >= totalPages ? 'disabled' : ''} id="${containerId}_next">Sonraki</button>
+                </div>
+            `;
+            $(`${containerId}_prev`).onclick = () => onChange(page - 1);
+            $(`${containerId}_next`).onclick = () => onChange(page + 1);
+            $(`${containerId}_jump`).onsubmit = e => {
+                e.preventDefault();
+                const target = Math.max(1, Math.min(totalPages, Number($(`${containerId}_input`).value) || 1));
+                onChange(target);
+            };
+        }
+
+        window.copyText = async text => {
+            try {
+                await navigator.clipboard.writeText(text);
+                toast('Panoya kopyalandı');
+            } catch {
+                toast('Kopyalanamadı', true);
+            }
+        };
+
+        // --- EVENT BINDINGS ---
+        $$('[data-page]').forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.page)));
+        $$('[data-theme-choice]').forEach(btn => btn.addEventListener('click', () => applyTheme(btn.dataset.themeChoice)));
+        $('menuButton').addEventListener('click', () => setSidebar(!$('sidebar').classList.contains('open')));
+        $('navOverlay').addEventListener('click', () => setSidebar(false));
+        $('refreshCurrentBtn').addEventListener('click', refreshCurrentPage);
+
+        $('logoutBtn').addEventListener('click', async () => {
+            try {
+                await apiFetch('/admin/api/logout', { method: 'POST' });
+            } catch {}
+            window.location.href = '/';
+        });
+
+        $$('[data-maint]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm(btn.dataset.confirm)) return;
+                try {
+                    const res = await apiFetch('/admin/api/maintenance', {
+                        method: 'POST',
+                        body: JSON.stringify({ action: btn.dataset.maint }),
+                    });
+                    toast(res.message);
+                    await loadOverview();
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
+        });
+
+        $('createKeyForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                const key = $('newKeyInput').value.trim();
+                const res = await apiFetch('/admin/api/keys', {
+                    method: 'POST',
+                    body: JSON.stringify({ key, auto_generate: !key }),
+                });
+                $('newKeyInput').value = '';
+                toast(res.message);
+                await loadKeys();
+            } catch (err) {
+                toast(err.message, true);
+            }
+        });
+
+        $('autoGenKeyBtn').addEventListener('click', async () => {
+            try {
+                const res = await apiFetch('/admin/api/keys', {
+                    method: 'POST',
+                    body: JSON.stringify({ auto_generate: true }),
+                });
+                toast(res.message);
+                await loadKeys();
+            } catch (err) {
+                toast(err.message, true);
+            }
+        });
+
+        $('keyFilterBtn').addEventListener('click', loadKeys);
+        $('keySort').addEventListener('change', loadKeys);
+        $('keyDateFrom').addEventListener('change', loadKeys);
+        $('keyDateTo').addEventListener('change', loadKeys);
+        $('keySearch').addEventListener('keydown', e => { if (e.key === 'Enter') loadKeys(); });
+        $('keyResetFilterBtn').addEventListener('click', () => {
+            $('keySearch').value = '';
+            $('keyDateFrom').value = '';
+            $('keyDateTo').value = '';
+            $('keySort').value = 'created_desc';
+            refreshSelect($('keySort'));
+            loadKeys();
+        });
+
+        $('editKeyForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                const id = $('editKeyId').value;
+                await apiFetch(`/admin/api/keys/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ key: $('editKeyValue').value.trim() }),
+                });
+                closeModal('keyModal');
+                toast('API anahtarı güncellendi');
+                await loadKeys();
+            } catch (err) {
+                toast(err.message, true);
+            }
+        });
+
+        $('randomAccountsForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                const res = await apiFetch('/admin/api/accounts/random', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        api_key_id: $('randKeyId').value,
+                        count: $('randCount').value,
+                        domain: $('randDomain').value.trim(),
+                        password: $('randPassword').value.trim(),
+                        used: $('randUsed').value,
+                    }),
+                });
+                toast(res.message);
+                state.lastGeneratedPreview = (res.preview || []).join('\n');
+                $('generatedPreview').textContent = state.lastGeneratedPreview + (res.truncated ? '\n... (ilk 200 gösterildi)' : '');
+                $('generatedPreview').hidden = !state.lastGeneratedPreview;
+                $('copyGeneratedBtn').hidden = !state.lastGeneratedPreview;
+                $('downloadGeneratedBtn').hidden = !state.lastGeneratedPreview;
+                await loadAccounts(1);
+            } catch (err) {
+                toast(err.message, true);
+            }
+        });
+
+        $('copyGeneratedBtn').addEventListener('click', () => copyText(state.lastGeneratedPreview));
+        $('downloadGeneratedBtn').addEventListener('click', () => {
+            if (state.lastGeneratedPreview) downloadTxt('random_accounts.txt', state.lastGeneratedPreview);
+        });
+
+        $('bulkAccountsForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                const res = await apiFetch('/admin/api/accounts/bulk', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        api_key_id: $('bulkKeyId').value,
+                        used: $('bulkUsed').value,
+                        text: $('bulkText').value,
+                    }),
+                });
+                toast(res.message);
+                $('bulkText').value = '';
+                await loadAccounts(1);
+            } catch (err) {
+                toast(err.message, true);
+            }
+        });
+
+        $('accFilterBtn').addEventListener('click', () => loadAccounts(1));
+        $('accKeyFilter').addEventListener('change', () => loadAccounts(1));
+        $('accUsedFilter').addEventListener('change', () => loadAccounts(1));
+        $('accDateFrom').addEventListener('change', () => loadAccounts(1));
+        $('accDateTo').addEventListener('change', () => loadAccounts(1));
+        $('accSort').addEventListener('change', () => loadAccounts(1));
+        $('accPerPage').addEventListener('change', () => loadAccounts(1));
+        $('accSearch').addEventListener('keydown', e => { if (e.key === 'Enter') loadAccounts(1); });
+        $('accResetFilterBtn').addEventListener('click', () => {
+            $('accSearch').value = '';
+            $('accKeyFilter').value = '';
+            $('accUsedFilter').value = 'all';
+            $('accDateFrom').value = '';
+            $('accDateTo').value = '';
+            $('accSort').value = 'created_desc';
+            $('accPerPage').value = '50';
+            ['accKeyFilter', 'accUsedFilter', 'accSort', 'accPerPage'].forEach(id => refreshSelect($(id)));
+            loadAccounts(1);
+        });
+
+        $('accExportBtn').addEventListener('click', async () => {
+            try {
+                const params = buildAccountFilterParams(null);
+                const res = await apiFetch(`/admin/api/accounts/export?${params.toString()}`);
+                if (!res.count) return toast('Dışa aktarılacak hesap yok', true);
+                await copyText(res.text);
+                toast(`${res.count} hesap email:pass olarak panoya kopyalandı`);
+            } catch (err) {
+                toast(err.message, true);
+            }
+        });
+
+        $('accDownloadBtn').addEventListener('click', async () => {
+            try {
+                const params = buildAccountFilterParams(null);
+                const res = await apiFetch(`/admin/api/accounts/export?${params.toString()}`);
+                if (!res.count) return toast('İndirilecek hesap yok', true);
+                downloadTxt('accounts_export.txt', res.text);
+                toast(`${res.count} hesap indirildi`);
+            } catch (err) {
+                toast(err.message, true);
+            }
+        });
+
+        $('accSelectAll').addEventListener('change', e => {
+            $$('.acc-cb').forEach(cb => cb.checked = e.target.checked);
+        });
+
+        $$('[data-acc-bulk]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const ids = $$('.acc-cb:checked').map(cb => Number(cb.value));
+                if (!ids.length) return toast('Önce en az bir hesap seçin', true);
+                if (btn.dataset.accBulk === 'delete' && !confirm(`${ids.length} hesap silinecek. Emin misin?`)) return;
+                try {
+                    const res = await apiFetch('/admin/api/accounts/bulk-action', {
+                        method: 'POST',
+                        body: JSON.stringify({ action: btn.dataset.accBulk, ids }),
+                    });
+                    toast(res.message);
+                    await loadAccounts(state.accPage);
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
+        });
+
+        $('editAccountForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                const id = $('editAccId').value;
+                await apiFetch(`/admin/api/accounts/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        api_key_id: Number($('editAccKeyId').value),
+                        email: $('editAccEmail').value.trim(),
+                        password: $('editAccPassword').value.trim(),
+                        used: Number($('editAccUsed').value),
+                    }),
+                });
+                closeModal('accountModal');
+                toast('Hesap güncellendi');
+                await loadAccounts(state.accPage);
+            } catch (err) {
+                toast(err.message, true);
+            }
+        });
+
+        $('taskFilterBtn').addEventListener('click', () => loadTasks(1));
+        $('taskKeyFilter').addEventListener('change', () => loadTasks(1));
+        $('taskStatusFilter').addEventListener('change', () => loadTasks(1));
+        $('taskModeFilter').addEventListener('change', () => loadTasks(1));
+        $('taskResultFilter').addEventListener('change', () => loadTasks(1));
+        $('taskDateFrom').addEventListener('change', () => loadTasks(1));
+        $('taskDateTo').addEventListener('change', () => loadTasks(1));
+        $('taskSort').addEventListener('change', () => loadTasks(1));
+        $('taskPerPage').addEventListener('change', () => loadTasks(1));
+        $('taskSearch').addEventListener('keydown', e => { if (e.key === 'Enter') loadTasks(1); });
+        $('taskResetFilterBtn').addEventListener('click', () => {
+            $('taskSearch').value = '';
+            $('taskKeyFilter').value = '';
+            $('taskStatusFilter').value = '';
+            $('taskModeFilter').value = '';
+            $('taskResultFilter').value = '';
+            $('taskDateFrom').value = '';
+            $('taskDateTo').value = '';
+            $('taskSort').value = 'created_desc';
+            $('taskPerPage').value = '25';
+            ['taskKeyFilter', 'taskStatusFilter', 'taskModeFilter', 'taskResultFilter', 'taskSort', 'taskPerPage']
+                .forEach(id => refreshSelect($(id)));
+            loadTasks(1);
+        });
+
+        $('taskSelectAll').addEventListener('change', e => {
+            $$('.task-cb').forEach(cb => cb.checked = e.target.checked);
+        });
+
+        $$('[data-task-bulk]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const ids = $$('.task-cb:checked').map(cb => Number(cb.value));
+                if (!ids.length) return toast('Önce en az bir görev seçin', true);
+                if (btn.dataset.taskBulk === 'delete' && !confirm(`${ids.length} görev silinecek. Emin misin?`)) return;
+                try {
+                    const res = await apiFetch('/admin/api/tasks/bulk-action', {
+                        method: 'POST',
+                        body: JSON.stringify({ action: btn.dataset.taskBulk, ids }),
+                    });
+                    toast(res.message);
+                    await loadTasks(state.taskPage);
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
+        });
+
+        $('editTaskForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            try {
+                const container = $('taskModalFields');
+                const rowId = container.dataset.rowId;
+                const payload = {};
+                container.querySelectorAll('[data-col]').forEach(el => {
+                    const col = el.dataset.col;
+                    if (!TASK_READONLY_FIELDS.has(col)) payload[col] = el.value;
+                });
+                await apiFetch(`/admin/api/tasks/${rowId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload),
+                });
+                closeModal('taskModal');
+                toast('Görev güncellendi');
+                await loadTasks(state.taskPage);
+            } catch (err) {
+                toast(err.message, true);
+            }
+        });
+
+        $$('[data-sql-preset]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                $('sqlInput').value = btn.dataset.sqlPreset;
+                runSql();
+            });
+        });
+        $('runSqlBtn').addEventListener('click', runSql);
+        $('sqlInput').addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runSql();
+        });
+
+        // Global selectMenu close handlers (index.html ile aynı)
+        document.addEventListener('pointerdown', event => {
+            if (!openedSelect) return;
+            const target = event.target;
+            if (!$('selectMenu').contains(target) && !openedSelect.button.contains(target)) {
+                closeSelect();
+            }
+        }, true);
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && openedSelect) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                closeSelect(true);
+            }
+        }, true);
+
+        window.addEventListener('resize', () => closeSelect());
+
+        ['accountModal', 'taskModal', 'keyModal'].forEach(id => {
+            $(id).addEventListener('close', () => closeSelect());
+        });
+
+        // Init
+        $$('select').forEach(enhanceSelect);
+        applyTheme(document.documentElement.dataset.theme);
+        showPage('overview');
+    </script>
+</body>
+</html>

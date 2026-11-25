@@ -1984,7 +1984,7 @@
                 headers,
                 signal: controller.signal,
                 cache: 'no-store',
-                credentials: 'omit',
+                credentials: credentials.base === location.origin ? 'same-origin' : 'omit',
                 redirect: 'error'
             };
 

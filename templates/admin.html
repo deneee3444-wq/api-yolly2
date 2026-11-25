@@ -154,6 +154,18 @@
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
         kbd { font: inherit; border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
 
+        .spinner {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         .sidebar {
             position: fixed;
             inset: 0 auto 0 0;
@@ -1208,6 +1220,25 @@
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
 
+        async function loading(button, label, action) {
+            if (!button) return action();
+            if (button.dataset.loading) return;
+            const html = button.innerHTML;
+            const disabled = button.disabled;
+            button.dataset.loading = '1';
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            button.innerHTML = '<span class="spinner" aria-hidden="true"></span>';
+            if (label) button.append(document.createTextNode(label));
+            try { return await action(); }
+            finally {
+                button.innerHTML = html;
+                button.disabled = disabled;
+                button.removeAttribute('aria-busy');
+                delete button.dataset.loading;
+            }
+        }
+
         /* Tema uyumlu, klavyeyle kullanılabilen combobox sistemi (index.html ile aynı) */
         const selects = new Map();
         let openedSelect = null;
@@ -1626,7 +1657,7 @@
                             <button type="button" class="button small" onclick="jumpToAccounts(${k.id})">Hesaplar</button>
                             <button type="button" class="button small" onclick="jumpToTasks(${k.id})">Görevler</button>
                             <button type="button" class="button small" onclick="openEditKey(${k.id})">${icon('edit')}</button>
-                            <button type="button" class="button small danger" onclick="deleteKey(${k.id})">${icon('trash')}</button>
+                            <button type="button" class="button small danger" onclick="deleteKey(${k.id}, this)">${icon('trash')}</button>
                         </div>
                     </td>
                 </tr>
@@ -1664,15 +1695,17 @@
             $('keyModal').showModal();
         };
 
-        window.deleteKey = async id => {
+        window.deleteKey = async (id, btn) => {
             if (!confirm(`#${id} numaralı API Key ve ona bağlı TÜM hesaplar ve görevler silinecek. Emin misin?`)) return;
-            try {
-                const res = await apiFetch(`/admin/api/keys/${id}`, { method: 'DELETE' });
-                toast(res.message);
-                await loadKeys();
-            } catch (err) {
-                toast(err.message, true);
-            }
+            await loading(btn, '', async () => {
+                try {
+                    const res = await apiFetch(`/admin/api/keys/${id}`, { method: 'DELETE' });
+                    toast(res.message);
+                    await loadKeys();
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
         };
 
         // --- ACCOUNTS ---
@@ -1713,7 +1746,7 @@
                         <td class="mono">${esc(a.email)}</td>
                         <td class="mono">${esc(a.password)}</td>
                         <td>
-                            <button type="button" class="badge clickable" data-state="${a.used ? 'used' : 'unused'}" onclick="toggleAccountUsed(${a.id}, ${a.used ? 0 : 1})">
+                            <button type="button" class="badge clickable" data-state="${a.used ? 'used' : 'unused'}" onclick="toggleAccountUsed(${a.id}, ${a.used ? 0 : 1}, this)">
                                 ${a.used ? 'used=1 (Dolu)' : 'used=0 (Boş)'}
                             </button>
                         </td>
@@ -1722,7 +1755,7 @@
                             <div class="row">
                                 <button type="button" class="button small" title="email:pass kopyala" onclick="copyAccountPair(${a.id})">${icon('copy')}</button>
                                 <button type="button" class="button small" onclick="openEditAccount(${a.id})">${icon('edit')}</button>
-                                <button type="button" class="button small danger" onclick="deleteAccount(${a.id})">${icon('trash')}</button>
+                                <button type="button" class="button small danger" onclick="deleteAccount(${a.id}, this)">${icon('trash')}</button>
                             </div>
                         </td>
                     </tr>
@@ -1736,17 +1769,19 @@
             if (acc) copyText(`${acc.email}:${acc.password}`);
         };
 
-        window.toggleAccountUsed = async (id, newUsed) => {
-            try {
-                await apiFetch(`/admin/api/accounts/${id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ used: newUsed }),
-                });
-                toast(`Hesap #${id} used=${newUsed} yapıldı`);
-                await loadAccounts(state.accPage);
-            } catch (err) {
-                toast(err.message, true);
-            }
+        window.toggleAccountUsed = async (id, newUsed, btn) => {
+            await loading(btn, 'Güncelleniyor', async () => {
+                try {
+                    await apiFetch(`/admin/api/accounts/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ used: newUsed }),
+                    });
+                    toast(`Hesap #${id} used=${newUsed} yapıldı`);
+                    await loadAccounts(state.accPage);
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
         };
 
         window.openEditAccount = id => {
@@ -1762,15 +1797,17 @@
             $('accountModal').showModal();
         };
 
-        window.deleteAccount = async id => {
+        window.deleteAccount = async (id, btn) => {
             if (!confirm(`Hesap #${id} silinsin mi?`)) return;
-            try {
-                await apiFetch(`/admin/api/accounts/${id}`, { method: 'DELETE' });
-                toast('Hesap silindi');
-                await loadAccounts(state.accPage);
-            } catch (err) {
-                toast(err.message, true);
-            }
+            await loading(btn, '', async () => {
+                try {
+                    await apiFetch(`/admin/api/accounts/${id}`, { method: 'DELETE' });
+                    toast('Hesap silindi');
+                    await loadAccounts(state.accPage);
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
         };
 
         // --- TASKS ---
@@ -1811,8 +1848,8 @@
                         <td>
                             <div class="row">
                                 ${t.result_url ? `<a class="button small" href="${esc(t.result_url)}" target="_blank" rel="noopener noreferrer" title="Sonucu Aç">${icon('external')}</a>` : ''}
-                                <button type="button" class="button small" onclick="openEditTask(${t.id})">${icon('edit')} Detay</button>
-                                <button type="button" class="button small danger" onclick="deleteTask(${t.id})">${icon('trash')}</button>
+                                <button type="button" class="button small" onclick="openEditTask(${t.id}, this)">${icon('edit')} Detay</button>
+                                <button type="button" class="button small danger" onclick="deleteTask(${t.id}, this)">${icon('trash')}</button>
                             </div>
                         </td>
                     </tr>
@@ -1826,23 +1863,24 @@
         const TASK_STATUS_OPTIONS = ['pending', 'running', 'completed', 'failed', 'error', 'timeout'];
         const TASK_MODE_OPTIONS = ['image', 'video', 'tts', 'music'];
 
-        window.openEditTask = async rowId => {
-            try {
-                const data = await apiFetch(`/admin/api/tasks/${rowId}`);
-                const task = data.task;
-                const container = $('taskModalFields');
-                container.dataset.rowId = rowId;
+        window.openEditTask = async (rowId, btn) => {
+            await loading(btn, 'Yükleniyor', async () => {
+                try {
+                    const data = await apiFetch(`/admin/api/tasks/${rowId}`);
+                    const task = data.task;
+                    const container = $('taskModalFields');
+                    container.dataset.rowId = rowId;
 
-                const releaseBtn = $('releaseTaskAccountBtn');
-                releaseBtn.hidden = !task.account_email;
-                releaseBtn.onclick = async () => {
-                    try {
-                        const r = await apiFetch(`/admin/api/tasks/${rowId}/release-account`, { method: 'POST' });
-                        toast(r.message);
-                    } catch (err) {
-                        toast(err.message, true);
-                    }
-                };
+                    const releaseBtn = $('releaseTaskAccountBtn');
+                    releaseBtn.hidden = !task.account_email;
+                    releaseBtn.onclick = () => loading(releaseBtn, 'İşleniyor', async () => {
+                        try {
+                            const r = await apiFetch(`/admin/api/tasks/${rowId}/release-account`, { method: 'POST' });
+                            toast(r.message);
+                        } catch (err) {
+                            toast(err.message, true);
+                        }
+                    });
 
                 const openResultBtn = $('openTaskResultBtn');
                 if (task.result_url) {
@@ -1910,17 +1948,20 @@
             } catch (err) {
                 toast(err.message, true);
             }
+            });
         };
 
-        window.deleteTask = async rowId => {
+        window.deleteTask = async (rowId, btn) => {
             if (!confirm(`Görev #${rowId} silinsin mi?`)) return;
-            try {
-                await apiFetch(`/admin/api/tasks/${rowId}`, { method: 'DELETE' });
-                toast('Görev silindi');
-                await loadTasks(state.taskPage);
-            } catch (err) {
-                toast(err.message, true);
-            }
+            await loading(btn, '', async () => {
+                try {
+                    await apiFetch(`/admin/api/tasks/${rowId}`, { method: 'DELETE' });
+                    toast('Görev silindi');
+                    await loadTasks(state.taskPage);
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
         };
 
         // --- SCHEMA & SQL ---
@@ -2010,61 +2051,74 @@
         $$('[data-theme-choice]').forEach(btn => btn.addEventListener('click', () => applyTheme(btn.dataset.themeChoice)));
         $('menuButton').addEventListener('click', () => setSidebar(!$('sidebar').classList.contains('open')));
         $('navOverlay').addEventListener('click', () => setSidebar(false));
-        $('refreshCurrentBtn').addEventListener('click', refreshCurrentPage);
+        $('refreshCurrentBtn').addEventListener('click', () =>
+            loading($('refreshCurrentBtn'), 'Yenileniyor', refreshCurrentPage)
+        );
 
-        $('logoutBtn').addEventListener('click', async () => {
-            try {
-                await apiFetch('/admin/api/logout', { method: 'POST' });
-            } catch {}
-            window.location.href = '/';
-        });
+        $('logoutBtn').addEventListener('click', () =>
+            loading($('logoutBtn'), 'Çıkılıyor', async () => {
+                try {
+                    await apiFetch('/admin/api/logout', { method: 'POST' });
+                } catch {}
+                window.location.href = '/';
+            })
+        );
 
         $$('[data-maint]').forEach(btn => {
-            btn.addEventListener('click', async () => {
+            btn.addEventListener('click', () => {
                 if (!confirm(btn.dataset.confirm)) return;
+                loading(btn, 'İşleniyor', async () => {
+                    try {
+                        const res = await apiFetch('/admin/api/maintenance', {
+                            method: 'POST',
+                            body: JSON.stringify({ action: btn.dataset.maint }),
+                        });
+                        toast(res.message);
+                        await loadOverview();
+                    } catch (err) {
+                        toast(err.message, true);
+                    }
+                });
+            });
+        });
+
+        $('createKeyForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const submitBtn = e.submitter || $('createKeyForm').querySelector('[type="submit"]');
+            loading(submitBtn, 'Oluşturuluyor', async () => {
                 try {
-                    const res = await apiFetch('/admin/api/maintenance', {
+                    const key = $('newKeyInput').value.trim();
+                    const res = await apiFetch('/admin/api/keys', {
                         method: 'POST',
-                        body: JSON.stringify({ action: btn.dataset.maint }),
+                        body: JSON.stringify({ key, auto_generate: !key }),
                     });
+                    $('newKeyInput').value = '';
                     toast(res.message);
-                    await loadOverview();
+                    await loadKeys();
                 } catch (err) {
                     toast(err.message, true);
                 }
             });
         });
 
-        $('createKeyForm').addEventListener('submit', async e => {
-            e.preventDefault();
-            try {
-                const key = $('newKeyInput').value.trim();
-                const res = await apiFetch('/admin/api/keys', {
-                    method: 'POST',
-                    body: JSON.stringify({ key, auto_generate: !key }),
-                });
-                $('newKeyInput').value = '';
-                toast(res.message);
-                await loadKeys();
-            } catch (err) {
-                toast(err.message, true);
-            }
-        });
+        $('autoGenKeyBtn').addEventListener('click', () =>
+            loading($('autoGenKeyBtn'), 'Üretiliyor', async () => {
+                try {
+                    const res = await apiFetch('/admin/api/keys', {
+                        method: 'POST',
+                        body: JSON.stringify({ auto_generate: true }),
+                    });
+                    toast(res.message);
+                    await loadKeys();
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            })
+        );
 
-        $('autoGenKeyBtn').addEventListener('click', async () => {
-            try {
-                const res = await apiFetch('/admin/api/keys', {
-                    method: 'POST',
-                    body: JSON.stringify({ auto_generate: true }),
-                });
-                toast(res.message);
-                await loadKeys();
-            } catch (err) {
-                toast(err.message, true);
-            }
-        });
-
-        $('keyFilterBtn').addEventListener('click', loadKeys);
+        $('keyFilterBtn').addEventListener('click', () =>
+            loading($('keyFilterBtn'), 'Filtreleniyor', loadKeys)
+        );
         $('keySort').addEventListener('change', loadKeys);
         $('keyDateFrom').addEventListener('change', loadKeys);
         $('keyDateTo').addEventListener('change', loadKeys);
@@ -2075,48 +2129,54 @@
             $('keyDateTo').value = '';
             $('keySort').value = 'created_desc';
             refreshSelect($('keySort'));
-            loadKeys();
+            loading($('keyResetFilterBtn'), 'Temizleniyor', loadKeys);
         });
 
-        $('editKeyForm').addEventListener('submit', async e => {
+        $('editKeyForm').addEventListener('submit', e => {
             e.preventDefault();
-            try {
-                const id = $('editKeyId').value;
-                await apiFetch(`/admin/api/keys/${id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ key: $('editKeyValue').value.trim() }),
-                });
-                closeModal('keyModal');
-                toast('API anahtarı güncellendi');
-                await loadKeys();
-            } catch (err) {
-                toast(err.message, true);
-            }
+            const submitBtn = e.submitter || $('editKeyForm').querySelector('[type="submit"]');
+            loading(submitBtn, 'Güncelleniyor', async () => {
+                try {
+                    const id = $('editKeyId').value;
+                    await apiFetch(`/admin/api/keys/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ key: $('editKeyValue').value.trim() }),
+                    });
+                    closeModal('keyModal');
+                    toast('API anahtarı güncellendi');
+                    await loadKeys();
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
         });
 
-        $('randomAccountsForm').addEventListener('submit', async e => {
+        $('randomAccountsForm').addEventListener('submit', e => {
             e.preventDefault();
-            try {
-                const res = await apiFetch('/admin/api/accounts/random', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        api_key_id: $('randKeyId').value,
-                        count: $('randCount').value,
-                        domain: $('randDomain').value.trim(),
-                        password: $('randPassword').value.trim(),
-                        used: $('randUsed').value,
-                    }),
-                });
-                toast(res.message);
-                state.lastGeneratedPreview = (res.preview || []).join('\n');
-                $('generatedPreview').textContent = state.lastGeneratedPreview + (res.truncated ? '\n... (ilk 200 gösterildi)' : '');
-                $('generatedPreview').hidden = !state.lastGeneratedPreview;
-                $('copyGeneratedBtn').hidden = !state.lastGeneratedPreview;
-                $('downloadGeneratedBtn').hidden = !state.lastGeneratedPreview;
-                await loadAccounts(1);
-            } catch (err) {
-                toast(err.message, true);
-            }
+            const submitBtn = e.submitter || $('randomAccountsForm').querySelector('[type="submit"]');
+            loading(submitBtn, 'Üretiliyor', async () => {
+                try {
+                    const res = await apiFetch('/admin/api/accounts/random', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            api_key_id: $('randKeyId').value,
+                            count: $('randCount').value,
+                            domain: $('randDomain').value.trim(),
+                            password: $('randPassword').value.trim(),
+                            used: $('randUsed').value,
+                        }),
+                    });
+                    toast(res.message);
+                    state.lastGeneratedPreview = (res.preview || []).join('\n');
+                    $('generatedPreview').textContent = state.lastGeneratedPreview + (res.truncated ? '\n... (ilk 200 gösterildi)' : '');
+                    $('generatedPreview').hidden = !state.lastGeneratedPreview;
+                    $('copyGeneratedBtn').hidden = !state.lastGeneratedPreview;
+                    $('downloadGeneratedBtn').hidden = !state.lastGeneratedPreview;
+                    await loadAccounts(1);
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
         });
 
         $('copyGeneratedBtn').addEventListener('click', () => copyText(state.lastGeneratedPreview));
@@ -2124,26 +2184,31 @@
             if (state.lastGeneratedPreview) downloadTxt('random_accounts.txt', state.lastGeneratedPreview);
         });
 
-        $('bulkAccountsForm').addEventListener('submit', async e => {
+        $('bulkAccountsForm').addEventListener('submit', e => {
             e.preventDefault();
-            try {
-                const res = await apiFetch('/admin/api/accounts/bulk', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        api_key_id: $('bulkKeyId').value,
-                        used: $('bulkUsed').value,
-                        text: $('bulkText').value,
-                    }),
-                });
-                toast(res.message);
-                $('bulkText').value = '';
-                await loadAccounts(1);
-            } catch (err) {
-                toast(err.message, true);
-            }
+            const submitBtn = e.submitter || $('bulkAccountsForm').querySelector('[type="submit"]');
+            loading(submitBtn, 'Ekleniyor', async () => {
+                try {
+                    const res = await apiFetch('/admin/api/accounts/bulk', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            api_key_id: $('bulkKeyId').value,
+                            used: $('bulkUsed').value,
+                            text: $('bulkText').value,
+                        }),
+                    });
+                    toast(res.message);
+                    $('bulkText').value = '';
+                    await loadAccounts(1);
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            });
         });
 
-        $('accFilterBtn').addEventListener('click', () => loadAccounts(1));
+        $('accFilterBtn').addEventListener('click', () =>
+            loading($('accFilterBtn'), 'Filtreleniyor', () => loadAccounts(1))
+        );
         $('accKeyFilter').addEventListener('change', () => loadAccounts(1));
         $('accUsedFilter').addEventListener('change', () => loadAccounts(1));
         $('accDateFrom').addEventListener('change', () => loadAccounts(1));
@@ -2160,48 +2225,78 @@
             $('accSort').value = 'created_desc';
             $('accPerPage').value = '50';
             ['accKeyFilter', 'accUsedFilter', 'accSort', 'accPerPage'].forEach(id => refreshSelect($(id)));
-            loadAccounts(1);
+            loading($('accResetFilterBtn'), 'Temizleniyor', () => loadAccounts(1));
         });
 
-        $('accExportBtn').addEventListener('click', async () => {
-            try {
-                const params = buildAccountFilterParams(null);
-                const res = await apiFetch(`/admin/api/accounts/export?${params.toString()}`);
-                if (!res.count) return toast('Dışa aktarılacak hesap yok', true);
-                await copyText(res.text);
-                toast(`${res.count} hesap email:pass olarak panoya kopyalandı`);
-            } catch (err) {
-                toast(err.message, true);
-            }
-        });
+        $('accExportBtn').addEventListener('click', () =>
+            loading($('accExportBtn'), 'Kopyalanıyor', async () => {
+                try {
+                    const params = buildAccountFilterParams(null);
+                    const res = await apiFetch(`/admin/api/accounts/export?${params.toString()}`);
+                    if (!res.count) return toast('Dışa aktarılacak hesap yok', true);
+                    await copyText(res.text);
+                    toast(`${res.count} hesap email:pass olarak panoya kopyalandı`);
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            })
+        );
 
-        $('accDownloadBtn').addEventListener('click', async () => {
-            try {
-                const params = buildAccountFilterParams(null);
-                const res = await apiFetch(`/admin/api/accounts/export?${params.toString()}`);
-                if (!res.count) return toast('İndirilecek hesap yok', true);
-                downloadTxt('accounts_export.txt', res.text);
-                toast(`${res.count} hesap indirildi`);
-            } catch (err) {
-                toast(err.message, true);
-            }
-        });
+        $('accDownloadBtn').addEventListener('click', () =>
+            loading($('accDownloadBtn'), 'İndiriliyor', async () => {
+                try {
+                    const params = buildAccountFilterParams(null);
+                    const res = await apiFetch(`/admin/api/accounts/export?${params.toString()}`);
+                    if (!res.count) return toast('İndirilecek hesap yok', true);
+                    downloadTxt('accounts_export.txt', res.text);
+                    toast(`${res.count} hesap indirildi`);
+                } catch (err) {
+                    toast(err.message, true);
+                }
+            })
+        );
 
         $('accSelectAll').addEventListener('change', e => {
             $$('.acc-cb').forEach(cb => cb.checked = e.target.checked);
         });
 
         $$('[data-acc-bulk]').forEach(btn => {
-            btn.addEventListener('click', async () => {
+            btn.addEventListener('click', () => {
                 const ids = $$('.acc-cb:checked').map(cb => Number(cb.value));
                 if (!ids.length) return toast('Önce en az bir hesap seçin', true);
                 if (btn.dataset.accBulk === 'delete' && !confirm(`${ids.length} hesap silinecek. Emin misin?`)) return;
+                loading(btn, 'İşleniyor', async () => {
+                    try {
+                        const res = await apiFetch('/admin/api/accounts/bulk-action', {
+                            method: 'POST',
+                            body: JSON.stringify({ action: btn.dataset.accBulk, ids }),
+                        });
+                        toast(res.message);
+                        await loadAccounts(state.accPage);
+                    } catch (err) {
+                        toast(err.message, true);
+                    }
+                });
+            });
+        });
+
+        $('editAccountForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const submitBtn = e.submitter || $('editAccountForm').querySelector('[type="submit"]');
+            loading(submitBtn, 'Kaydediliyor', async () => {
                 try {
-                    const res = await apiFetch('/admin/api/accounts/bulk-action', {
-                        method: 'POST',
-                        body: JSON.stringify({ action: btn.dataset.accBulk, ids }),
+                    const id = $('editAccId').value;
+                    await apiFetch(`/admin/api/accounts/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            api_key_id: Number($('editAccKeyId').value),
+                            email: $('editAccEmail').value.trim(),
+                            password: $('editAccPassword').value.trim(),
+                            used: Number($('editAccUsed').value),
+                        }),
                     });
-                    toast(res.message);
+                    closeModal('accountModal');
+                    toast('Hesap güncellendi');
                     await loadAccounts(state.accPage);
                 } catch (err) {
                     toast(err.message, true);
@@ -2209,28 +2304,9 @@
             });
         });
 
-        $('editAccountForm').addEventListener('submit', async e => {
-            e.preventDefault();
-            try {
-                const id = $('editAccId').value;
-                await apiFetch(`/admin/api/accounts/${id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        api_key_id: Number($('editAccKeyId').value),
-                        email: $('editAccEmail').value.trim(),
-                        password: $('editAccPassword').value.trim(),
-                        used: Number($('editAccUsed').value),
-                    }),
-                });
-                closeModal('accountModal');
-                toast('Hesap güncellendi');
-                await loadAccounts(state.accPage);
-            } catch (err) {
-                toast(err.message, true);
-            }
-        });
-
-        $('taskFilterBtn').addEventListener('click', () => loadTasks(1));
+        $('taskFilterBtn').addEventListener('click', () =>
+            loading($('taskFilterBtn'), 'Filtreleniyor', () => loadTasks(1))
+        );
         $('taskKeyFilter').addEventListener('change', () => loadTasks(1));
         $('taskStatusFilter').addEventListener('change', () => loadTasks(1));
         $('taskModeFilter').addEventListener('change', () => loadTasks(1));
@@ -2252,7 +2328,7 @@
             $('taskPerPage').value = '25';
             ['taskKeyFilter', 'taskStatusFilter', 'taskModeFilter', 'taskResultFilter', 'taskSort', 'taskPerPage']
                 .forEach(id => refreshSelect($(id)));
-            loadTasks(1);
+            loading($('taskResetFilterBtn'), 'Temizleniyor', () => loadTasks(1));
         });
 
         $('taskSelectAll').addEventListener('change', e => {
@@ -2260,16 +2336,43 @@
         });
 
         $$('[data-task-bulk]').forEach(btn => {
-            btn.addEventListener('click', async () => {
+            btn.addEventListener('click', () => {
                 const ids = $$('.task-cb:checked').map(cb => Number(cb.value));
                 if (!ids.length) return toast('Önce en az bir görev seçin', true);
                 if (btn.dataset.taskBulk === 'delete' && !confirm(`${ids.length} görev silinecek. Emin misin?`)) return;
+                loading(btn, 'İşleniyor', async () => {
+                    try {
+                        const res = await apiFetch('/admin/api/tasks/bulk-action', {
+                            method: 'POST',
+                            body: JSON.stringify({ action: btn.dataset.taskBulk, ids }),
+                        });
+                        toast(res.message);
+                        await loadTasks(state.taskPage);
+                    } catch (err) {
+                        toast(err.message, true);
+                    }
+                });
+            });
+        });
+
+        $('editTaskForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const submitBtn = e.submitter || $('editTaskForm').querySelector('[type="submit"]');
+            loading(submitBtn, 'Kaydediliyor', async () => {
                 try {
-                    const res = await apiFetch('/admin/api/tasks/bulk-action', {
-                        method: 'POST',
-                        body: JSON.stringify({ action: btn.dataset.taskBulk, ids }),
+                    const container = $('taskModalFields');
+                    const rowId = container.dataset.rowId;
+                    const payload = {};
+                    container.querySelectorAll('[data-col]').forEach(el => {
+                        const col = el.dataset.col;
+                        if (!TASK_READONLY_FIELDS.has(col)) payload[col] = el.value;
                     });
-                    toast(res.message);
+                    await apiFetch(`/admin/api/tasks/${rowId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload),
+                    });
+                    closeModal('taskModal');
+                    toast('Görev güncellendi');
                     await loadTasks(state.taskPage);
                 } catch (err) {
                     toast(err.message, true);
@@ -2277,37 +2380,19 @@
             });
         });
 
-        $('editTaskForm').addEventListener('submit', async e => {
-            e.preventDefault();
-            try {
-                const container = $('taskModalFields');
-                const rowId = container.dataset.rowId;
-                const payload = {};
-                container.querySelectorAll('[data-col]').forEach(el => {
-                    const col = el.dataset.col;
-                    if (!TASK_READONLY_FIELDS.has(col)) payload[col] = el.value;
-                });
-                await apiFetch(`/admin/api/tasks/${rowId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(payload),
-                });
-                closeModal('taskModal');
-                toast('Görev güncellendi');
-                await loadTasks(state.taskPage);
-            } catch (err) {
-                toast(err.message, true);
-            }
-        });
-
         $$('[data-sql-preset]').forEach(btn => {
             btn.addEventListener('click', () => {
                 $('sqlInput').value = btn.dataset.sqlPreset;
-                runSql();
+                loading($('runSqlBtn'), 'Çalıştırılıyor', runSql);
             });
         });
-        $('runSqlBtn').addEventListener('click', runSql);
+        $('runSqlBtn').addEventListener('click', () =>
+            loading($('runSqlBtn'), 'Çalıştırılıyor', runSql)
+        );
         $('sqlInput').addEventListener('keydown', e => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runSql();
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                loading($('runSqlBtn'), 'Çalıştırılıyor', runSql);
+            }
         });
 
         // Global selectMenu close handlers (index.html ile aynı)

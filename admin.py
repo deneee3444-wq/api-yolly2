@@ -12,11 +12,29 @@ import secrets
 import string
 from datetime import date, datetime
 from flask import abort, jsonify, make_response, render_template, request
+import psycopg2
 from psycopg2.extras import RealDictCursor
 import database as db
 
 ADMIN_API_KEY = "a9F3kLmP2xQ7vR8tY1zW4bNc6DeGhJ9KlMnOpQrStUvWxYz12"
 ADMIN_COOKIE_NAME = "admin_key"
+
+CUSTOMERS_JSON = """
+[
+  {
+    "id": "lokman",
+    "label": "1 - Lokman",
+    "api_key": "zLMvipojeXXJO3mWvogWjsUf3eHRjUTHmCr9Q9X2WH1eUB1mL2",
+    "api_url": "https://api-pe7w.onrender.com",
+    "render": "loceatiofirst@gmail.com",
+    "github": "loceatiofirst@gmail.com/api",
+    "neon": "loceatiofirst@gmail.com",
+    "neon_url": "postgresql://neondb_owner:npg_A5EJnM0zFujY@ep-twilight-recipe-aisn9xji-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  }
+]
+"""
+CUSTOMERS = json.loads(CUSTOMERS_JSON)
+CUSTOMERS_BY_ID = {c["id"]: c for c in CUSTOMERS}
 
 RANDOM_DOMAINS = [
     "gmail.com",
@@ -58,12 +76,33 @@ TASK_EDITABLE_COLUMNS = [
 ]
 
 
+def _get_active_customer():
+    target = (request.headers.get("X-Admin-Target") or request.args.get("target") or "default").strip()
+    if not target or target == "default":
+        return None
+    customer = CUSTOMERS_BY_ID.get(target)
+    if not customer:
+        raise ValueError(f"Geçersiz müşteri DB hedefi: {target}")
+    return customer
+
+
+def _db_type():
+    return "postgresql" if _get_active_customer() else db.DB_TYPE
+
+
 def _ph():
-    return "%s" if db.DB_TYPE == "postgresql" else "?"
+    return "%s" if _db_type() == "postgresql" else "?"
 
 
 def _db_lock():
-    return db.db_lock if db.DB_TYPE != "postgresql" else contextlib.nullcontext()
+    return contextlib.nullcontext() if _db_type() == "postgresql" else db.db_lock
+
+
+def _get_connection():
+    customer = _get_active_customer()
+    if customer:
+        return psycopg2.connect(customer["neon_url"], connect_timeout=10)
+    return db.get_connection()
 
 
 def _serialize_value(val):
@@ -81,12 +120,13 @@ def _serialize_row(row):
 
 
 def _query(sql, params=None, fetch_one=False, fetch_all=False):
+    db_type = _db_type()
     with _db_lock():
-        conn = db.get_connection()
+        conn = _get_connection()
         try:
             cursor = (
                 conn.cursor(cursor_factory=RealDictCursor)
-                if db.DB_TYPE == "postgresql"
+                if db_type == "postgresql"
                 else conn.cursor()
             )
             cursor.execute(sql, params or ())
@@ -177,6 +217,10 @@ def admin_page():
     return set_admin_cookie(resp)
 
 
+def list_customers_admin():
+    return jsonify({"customers": CUSTOMERS})
+
+
 def admin_logout():
     resp = make_response(jsonify({"message": "Oturum kapatıldı"}))
     resp.delete_cookie(ADMIN_COOKIE_NAME, path="/admin")
@@ -223,8 +267,10 @@ def admin_overview():
         "SELECT id, task_id, status, mode, model, account_email, created_at FROM tasks ORDER BY created_at DESC, id DESC LIMIT 5",
         fetch_all=True,
     )
+    customer = _get_active_customer()
     return jsonify({
-        "db_type": db.DB_TYPE,
+        "db_type": _db_type(),
+        "target": customer["id"] if customer else "default",
         "api_keys_count": key_count,
         "accounts": acc_stats,
         "accounts_today": acc_today,
@@ -249,7 +295,7 @@ def list_api_keys():
     where = []
     params = []
     if search:
-        op = "ILIKE" if db.DB_TYPE == "postgresql" else "LIKE"
+        op = "ILIKE" if _db_type() == "postgresql" else "LIKE"
         where.append(f"k.key {op} {p}")
         params.append(f"%{search}%")
     if date_from:
@@ -323,10 +369,11 @@ def create_api_key_admin():
     if existing:
         return jsonify({"error": "Bu API anahtarı zaten mevcut"}), 409
 
+    db_type = _db_type()
     with _db_lock():
-        conn = db.get_connection()
+        conn = _get_connection()
         try:
-            if db.DB_TYPE == "postgresql":
+            if db_type == "postgresql":
                 cur = conn.cursor(cursor_factory=RealDictCursor)
                 cur.execute("INSERT INTO api_keys (key) VALUES (%s) RETURNING id, key, created_at", (key_val,))
                 created = _serialize_row(cur.fetchone())
@@ -365,7 +412,7 @@ def update_api_key_admin(key_id):
 def delete_api_key_admin(key_id):
     p = _ph()
     with _db_lock():
-        conn = db.get_connection()
+        conn = _get_connection()
         try:
             cur = conn.cursor()
             cur.execute(f"DELETE FROM tasks WHERE api_key_id = {p}", (key_id,))
@@ -412,7 +459,7 @@ def list_accounts_admin():
         where.append(f"a.used = {p}")
         params.append(int(used_filter))
     if search:
-        op = "ILIKE" if db.DB_TYPE == "postgresql" else "LIKE"
+        op = "ILIKE" if _db_type() == "postgresql" else "LIKE"
         where.append(f"(a.email {op} {p} OR a.password {op} {p})")
         like_val = f"%{search}%"
         params.extend([like_val, like_val])
@@ -490,11 +537,12 @@ def _insert_accounts_batch(api_key_id, pairs, used=0):
     inserted_pairs = []
     skipped = 0
 
+    db_type = _db_type()
     with _db_lock():
-        conn = db.get_connection()
+        conn = _get_connection()
         try:
             cur = conn.cursor()
-            if db.DB_TYPE == "postgresql":
+            if db_type == "postgresql":
                 from psycopg2.extras import execute_values
                 values = [(api_key_id, email, password, used) for email, password in pairs]
                 res = execute_values(
@@ -728,7 +776,7 @@ def export_accounts_admin():
         where.append(f"used = {p}")
         params.append(int(used_filter))
     if search:
-        op = "ILIKE" if db.DB_TYPE == "postgresql" else "LIKE"
+        op = "ILIKE" if _db_type() == "postgresql" else "LIKE"
         where.append(f"(email {op} {p} OR password {op} {p})")
         like_val = f"%{search}%"
         params.extend([like_val, like_val])
@@ -788,7 +836,7 @@ def list_tasks_admin():
         where.append(f"t.created_at <= {p}")
         params.append(f"{date_to} 23:59:59")
     if search:
-        op = "ILIKE" if db.DB_TYPE == "postgresql" else "LIKE"
+        op = "ILIKE" if _db_type() == "postgresql" else "LIKE"
         where.append(
             f"(t.task_id {op} {p} OR COALESCE(t.prompt, '') {op} {p} "
             f"OR COALESCE(t.account_email, '') {op} {p} "
@@ -961,7 +1009,8 @@ def bulk_action_tasks_admin():
 
 def get_schema_admin():
     tables = {}
-    if db.DB_TYPE == "postgresql":
+    db_type = _db_type()
+    if db_type == "postgresql":
         cols = _query(
             """
             SELECT table_name, column_name, data_type, is_nullable, column_default
@@ -995,7 +1044,7 @@ def get_schema_admin():
                 }
                 for c in info
             ]
-    return jsonify({"db_type": db.DB_TYPE, "tables": tables})
+    return jsonify({"db_type": db_type, "tables": tables})
 
 
 def maintenance_admin():
@@ -1025,12 +1074,13 @@ def execute_sql_admin():
     if not sql:
         return jsonify({"error": "SQL sorgusu boş olamaz"}), 400
 
+    db_type = _db_type()
     with _db_lock():
-        conn = db.get_connection()
+        conn = _get_connection()
         try:
             cur = (
                 conn.cursor(cursor_factory=RealDictCursor)
-                if db.DB_TYPE == "postgresql"
+                if db_type == "postgresql"
                 else conn.cursor()
             )
             cur.execute(sql)
@@ -1067,6 +1117,7 @@ def execute_sql_admin():
 
 _STATIC_ROUTES = {
     ("", "GET"): admin_page,
+    ("api/customers", "GET"): list_customers_admin,
     ("api/logout", "POST"): admin_logout,
     ("api/overview", "GET"): admin_overview,
     ("api/keys", "GET"): list_api_keys,
@@ -1104,15 +1155,18 @@ def handle_admin_request(subpath=""):
     path = (subpath or "").strip("/")
     method = request.method.upper()
 
-    handler = _STATIC_ROUTES.get((path, method))
-    if handler:
-        return handler()
+    try:
+        handler = _STATIC_ROUTES.get((path, method))
+        if handler:
+            return handler()
 
-    for pattern, route_method, param_handler in _PARAM_ROUTES:
-        if method == route_method:
-            match = pattern.match(path)
-            if match:
-                return param_handler(int(match.group(1)))
+        for pattern, route_method, param_handler in _PARAM_ROUTES:
+            if method == route_method:
+                match = pattern.match(path)
+                if match:
+                    return param_handler(int(match.group(1)))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     abort(404)
 

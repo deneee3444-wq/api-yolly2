@@ -210,13 +210,25 @@
 
         .workspace {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 10px;
             margin: 12px 0 14px;
-            padding: 12px;
+            padding: 11px;
             border: 1px solid var(--line);
             border-radius: 12px;
             background: var(--surface-2);
+        }
+
+        .workspace-top {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
+        }
+
+        .workspace-meta {
+            min-width: 0;
+            flex: 1;
         }
 
         .workspace-avatar {
@@ -231,8 +243,13 @@
             flex-shrink: 0;
         }
 
-        .workspace strong { font-size: 11px; }
-        .workspace small { display: block; font-size: 10px; color: var(--subtle); }
+        .workspace strong { display: block; font-size: 11px; }
+        .workspace small { display: block; font-size: 10px; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .workspace .icon-button { width: 30px; height: 30px; border-radius: 8px; }
+        .workspace .icon-button .icon { width: 15px; height: 15px; }
+        .workspace .select-trigger { min-height: 36px; padding: 6px 10px; font-size: 11.5px; }
+        .secret-row { display: flex; align-items: center; gap: 7px; }
+        .secret-row input { flex: 1; min-width: 0; }
         .sidebar nav { flex: 1; overflow-y: auto; }
         .nav-caption {
             margin: 19px 12px 8px;
@@ -612,6 +629,8 @@
         <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3 10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/></symbol>
         <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
         <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+        <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6 0-10-7-10-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></symbol>
     </svg>
 
     <div id="navOverlay" class="overlay" hidden></div>
@@ -623,10 +642,21 @@
         </a>
 
         <div class="workspace">
-            <span class="workspace-avatar" aria-hidden="true">
-                <svg class="icon"><use href="#i-db"/></svg>
-            </span>
-            <div><strong>Veritabanı Yönetimi</strong><small id="dbBadge">Bağlanıyor...</small></div>
+            <div class="workspace-top">
+                <span class="workspace-avatar" aria-hidden="true">
+                    <svg class="icon"><use href="#i-db"/></svg>
+                </span>
+                <div class="workspace-meta">
+                    <strong>Veritabanı Yönetimi</strong>
+                    <small id="dbBadge">Bağlanıyor...</small>
+                </div>
+                <button type="button" class="icon-button" id="customerInfoBtn" title="Müşteri bilgileri" aria-label="Müşteri bilgileri" hidden>
+                    <svg class="icon"><use href="#i-info"/></svg>
+                </button>
+            </div>
+            <select id="dbTargetSelect" aria-label="Hedef veritabanı">
+                <option value="default">Ana DB (Varsayılan)</option>
+            </select>
         </div>
 
         <nav>
@@ -1155,6 +1185,19 @@
         </form>
     </dialog>
 
+    <!-- Customer Info Modal -->
+    <dialog id="customerModal">
+        <div class="modal-head">
+            <h2 id="customerModalTitle">Müşteri Bilgileri</h2>
+            <button type="button" class="icon-button" onclick="closeModal('customerModal')"><svg class="icon"><use href="#i-close"/></svg></button>
+        </div>
+        <div class="modal-body" id="customerModalBody"></div>
+        <div class="modal-foot">
+            <span></span>
+            <button type="button" class="button primary" onclick="closeModal('customerModal')">Kapat</button>
+        </div>
+    </dialog>
+
     <div class="select-menu" id="selectMenu" role="listbox" hidden></div>
     <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
@@ -1167,6 +1210,8 @@
 
         const state = {
             page: 'overview',
+            target: (() => { try { return sessionStorage.getItem('cl_admin_target') || 'default'; } catch { return 'default'; } })(),
+            customers: [],
             keys: [],
             accountsById: new Map(),
             accPage: 1,
@@ -1465,6 +1510,9 @@
 
         async function apiFetch(path, options = {}) {
             const headers = { ...(options.headers || {}) };
+            if (state.target && state.target !== 'default') {
+                headers['X-Admin-Target'] = state.target;
+            }
             if (options.body && !headers['Content-Type']) {
                 headers['Content-Type'] = 'application/json';
             }
@@ -2414,14 +2462,99 @@
 
         window.addEventListener('resize', () => closeSelect());
 
-        ['accountModal', 'taskModal', 'keyModal'].forEach(id => {
+        ['accountModal', 'taskModal', 'keyModal', 'customerModal'].forEach(id => {
             $(id).addEventListener('close', () => closeSelect());
         });
+
+        async function loadCustomers() {
+            try {
+                const data = await apiFetch('/admin/api/customers');
+                state.customers = data.customers || [];
+            } catch {
+                state.customers = [];
+            }
+            const sel = $('dbTargetSelect');
+            sel.innerHTML = '<option value="default">Ana DB (Varsayılan)</option>' +
+                state.customers.map(c => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
+            if (![...sel.options].some(o => o.value === state.target)) {
+                state.target = 'default';
+                try { sessionStorage.setItem('cl_admin_target', 'default'); } catch {}
+            }
+            sel.value = state.target;
+            sel.disabled = false;
+            refreshSelect(sel);
+            updateCustomerInfoButton();
+        }
+
+        function updateCustomerInfoButton() {
+            const customer = state.customers.find(c => c.id === state.target);
+            $('customerInfoBtn').hidden = !customer;
+        }
+
+        function renderCustomerModal() {
+            const customer = state.customers.find(c => c.id === state.target);
+            if (!customer) return;
+            $('customerModalTitle').textContent = `${customer.label} · Müşteri Bilgileri`;
+
+            const fields = [
+                { label: 'Müşteri', value: customer.label, secret: false },
+                { label: 'API URL', value: customer.api_url, secret: false, link: customer.api_url },
+                { label: 'API Key', value: customer.api_key, secret: true },
+                { label: 'Render Hesabı', value: customer.render, secret: false },
+                { label: 'GitHub', value: customer.github, secret: false },
+                { label: 'Neon Hesabı', value: customer.neon, secret: false },
+                { label: 'NEON_URL', value: customer.neon_url, secret: true },
+            ].filter(f => f.value);
+
+            $('customerModalBody').innerHTML = fields.map((f, idx) => `
+                <div class="form-field" style="${idx === 0 ? 'margin-top:0;' : ''}">
+                    <label for="custField_${idx}">${esc(f.label)}</label>
+                    <div class="secret-row">
+                        <input id="custField_${idx}" class="mono" type="${f.secret ? 'password' : 'text'}" value="${esc(f.value)}" readonly>
+                        ${f.secret ? `<button type="button" class="icon-button" title="Göster / Gizle" aria-label="Göster veya gizle" onclick="toggleCustSecret(${idx}, this)">${icon('eye')}</button>` : ''}
+                        ${f.link ? `<a class="icon-button" href="${esc(f.link)}" target="_blank" rel="noopener noreferrer" title="Adresi aç">${icon('external')}</a>` : ''}
+                        <button type="button" class="icon-button" title="Kopyala" onclick="copyCustField(${idx})">${icon('copy')}</button>
+                    </div>
+                </div>
+            `).join('');
+            $('customerModal').showModal();
+        }
+
+        window.toggleCustSecret = (idx, btn) => {
+            const input = $(`custField_${idx}`);
+            if (!input) return;
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.innerHTML = icon(show ? 'eye-off' : 'eye');
+        };
+
+        window.copyCustField = idx => {
+            const input = $(`custField_${idx}`);
+            if (input) copyText(input.value);
+        };
 
         // Init
         $$('select').forEach(enhanceSelect);
         applyTheme(document.documentElement.dataset.theme);
-        showPage('overview');
+
+        $('customerInfoBtn').addEventListener('click', renderCustomerModal);
+        $('dbTargetSelect').addEventListener('change', async () => {
+            state.target = $('dbTargetSelect').value || 'default';
+            try { sessionStorage.setItem('cl_admin_target', state.target); } catch {}
+            updateCustomerInfoButton();
+            state.accPage = 1;
+            state.taskPage = 1;
+            state.lastGeneratedPreview = '';
+            if ($('generatedPreview')) $('generatedPreview').hidden = true;
+            if ($('copyGeneratedBtn')) $('copyGeneratedBtn').hidden = true;
+            if ($('downloadGeneratedBtn')) $('downloadGeneratedBtn').hidden = true;
+            $('dbBadge').textContent = 'Bağlanıyor...';
+            await refreshCurrentPage();
+            const label = $('dbTargetSelect').selectedOptions[0]?.label || 'Ana DB';
+            toast(`Aktif DB: ${label}`);
+        });
+
+        loadCustomers().then(() => showPage('overview'));
     </script>
 </body>
 </html>

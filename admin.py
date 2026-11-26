@@ -29,7 +29,7 @@ CUSTOMERS_JSON = """
     "render": "locaetiofirst@gmail.com",
     "github": "locaetiofirst@gmail.com/api",
     "neon": "locaetiofirst@gmail.com",
-    "neon_url": "postgresql://neondb_owner:npg_A5EJnM0zFujY@ep-twilight-recipe-aisn9xji-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+    "neon_url": "postgresql://neondb_owner:npg_OmUtSljZH9u0@ep-wild-fog-atbqip7y-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
     "note": ""
   }
 ]

@@ -29,7 +29,8 @@ CUSTOMERS_JSON = """
     "render": "locaetiofirst@gmail.com",
     "github": "locaetiofirst@gmail.com/api",
     "neon": "locaetiofirst@gmail.com",
-    "neon_url": "postgresql://neondb_owner:npg_XedQ08bADTPW@ep-wild-resonance-ah39o1uq-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    "neon_url": "postgresql://neondb_owner:npg_A5EJnM0zFujY@ep-twilight-recipe-aisn9xji-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+    "note": ""
   }
 ]
 """
@@ -1065,6 +1066,29 @@ def maintenance_admin():
     if action == "clear_all_accounts":
         affected = _query("DELETE FROM accounts")
         return jsonify({"message": f"Tüm hesaplar silindi ({affected} satır)"})
+    if action == "reset_entire_db":
+        db_type = _db_type()
+        with _db_lock():
+            conn = _get_connection()
+            try:
+                cur = conn.cursor()
+                if db_type == "postgresql":
+                    cur.execute("TRUNCATE TABLE tasks, accounts, api_keys RESTART IDENTITY CASCADE")
+                else:
+                    cur.execute("DELETE FROM tasks")
+                    cur.execute("DELETE FROM accounts")
+                    cur.execute("DELETE FROM api_keys")
+                    try:
+                        cur.execute("DELETE FROM sqlite_sequence WHERE name IN ('tasks', 'accounts', 'api_keys')")
+                    except Exception:
+                        pass
+                conn.commit()
+                return jsonify({"message": "Veritabanı sıfır kurulum haline döndürüldü (tüm tablolar ve ID sayaçları temizlendi)"})
+            except Exception as e:
+                conn.rollback()
+                return jsonify({"error": str(e)}), 400
+            finally:
+                conn.close()
     return jsonify({"error": "Bilinmeyen bakım işlemi"}), 400
 
 

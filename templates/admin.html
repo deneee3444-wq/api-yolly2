@@ -2724,32 +2724,14 @@
             updateCustomerInfoButton();
         }
 
-        function getCustomerNote(customer) {
-            if (!customer) return '';
-            try {
-                const saved = localStorage.getItem(`cl_admin_cust_note_${customer.id}`);
-                if (saved !== null) return saved;
-            } catch {}
-            return customer.note || '';
-        }
-
-        function saveCustomerNote(customerId, noteText) {
-            try {
-                localStorage.setItem(`cl_admin_cust_note_${customerId}`, noteText);
-                return true;
-            } catch {
-                return false;
-            }
-        }
-
         function updateCustomerInfoButton() {
             const customer = state.customers.find(c => c.id === state.target);
             const btn = $('customerInfoBtn');
             btn.hidden = !customer;
             if (customer) {
-                const note = getCustomerNote(customer).trim();
+                const note = (customer.note || '').trim();
                 btn.dataset.hasNote = note ? '1' : '0';
-                btn.title = note ? `Müşteri bilgileri (Not var)` : 'Müşteri bilgileri';
+                btn.title = note ? 'Müşteri bilgileri (Not var)' : 'Müşteri bilgileri';
             }
         }
 
@@ -2768,7 +2750,7 @@
                 { label: 'NEON_URL', value: customer.neon_url, secret: true },
             ].filter(f => f.value);
 
-            const currentNote = getCustomerNote(customer);
+            const currentNote = customer.note || '';
 
             $('customerModalBody').innerHTML = fields.map((f, idx) => `
                 <div class="form-field" style="${idx === 0 ? 'margin-top:0;' : ''}">
@@ -2782,31 +2764,16 @@
                 </div>
             `).join('') + `
                 <div class="form-field">
-                    <label for="custNoteInput">Müşteri Notları</label>
-                    <textarea id="custNoteInput" placeholder="Bu müşteri hakkında özel bilgi, ödeme, tarih, uyarı vb. not alabilirsin...">${esc(currentNote)}</textarea>
-                    <div class="form-actions" style="margin-top:10px;">
-                        <button type="button" class="button primary small" id="saveCustNoteBtn">${icon('check')}Notu Kaydet</button>
-                        <button type="button" class="button small" id="copyCustNoteBtn">${icon('copy')}Notu Kopyala</button>
-                    </div>
+                    <label for="custNoteInput">Müşteri Notu</label>
+                    <textarea id="custNoteInput" placeholder="admin.py içindeki note alanı boş" readonly>${esc(currentNote)}</textarea>
+                    ${currentNote.trim() ? `<div class="form-actions" style="margin-top:10px;"><button type="button" class="button small" id="copyCustNoteBtn">${icon('copy')}Notu Kopyala</button></div>` : ''}
                 </div>
             `;
 
-            $('saveCustNoteBtn').onclick = () =>
-                loading($('saveCustNoteBtn'), 'Kaydediliyor', async () => {
-                    const text = $('custNoteInput').value;
-                    if (saveCustomerNote(customer.id, text)) {
-                        updateCustomerInfoButton();
-                        toast('Müşteri notu kaydedildi');
-                    } else {
-                        toast('Not tarayıcıya kaydedilemedi', true);
-                    }
-                });
-
-            $('copyCustNoteBtn').onclick = () => {
-                const text = $('custNoteInput').value;
-                if (!text.trim()) return toast('Kopyalanacak not yok', true);
-                copyText(text);
-            };
+            const copyNoteBtn = $('copyCustNoteBtn');
+            if (copyNoteBtn) {
+                copyNoteBtn.onclick = () => copyText(currentNote);
+            }
 
             $('customerModal').showModal();
         }

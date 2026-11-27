@@ -3129,18 +3129,22 @@ def resolve_video_action_and_credit(
             action_id_str = model_data["action_id"].format(sound=action_id_sound, resolution=resolution)
 
     credit_cost = None
-    if action_id_str in CYBERLINK_ACTION_CREDITS:
+    credit_map = model_data.get("credit_map")
+    if credit_map:
+        sound_key = str(sound).lower()
+        alt_sound = {"on": "vendor", "auto": "vendor", "enable": "vendor", "off": "none"}.get(sound_key, sound_key)
+        for s_candidate in (sound, sound_key, alt_sound):
+            credit_cost = credit_map.get((effect_mode, s_candidate, frame_mode, resolution))
+            if credit_cost is None:
+                credit_cost = credit_map.get((effect_mode, s_candidate, resolution))
+            if credit_cost is None:
+                credit_cost = credit_map.get((s_candidate, resolution))
+            if credit_cost is not None:
+                break
+    if credit_cost is None and action_id_str in CYBERLINK_ACTION_CREDITS:
         credit_cost = CYBERLINK_ACTION_CREDITS[action_id_str]
-    else:
-        credit_map = model_data.get("credit_map")
-        if credit_map:
-            credit_cost = credit_map.get((effect_mode, sound, frame_mode, resolution))
-            if credit_cost is None:
-                credit_cost = credit_map.get((effect_mode, sound, resolution))
-            if credit_cost is None:
-                credit_cost = credit_map.get((sound, resolution))
-        if credit_cost is None:
-            credit_cost = model_data.get("credit", 3)
+    if credit_cost is None:
+        credit_cost = model_data.get("credit", 3)
 
     return action_id_str, credit_cost
 
